@@ -1,8 +1,30 @@
 import { Platform } from 'react-native';
 import { PrinterSettings, Order } from '../types';
 
+export interface PrinterDevice {
+  deviceId: string;
+  deviceName: string;
+  address?: string;
+}
+
 // Mock implementation for web
 const webPrinter = {
+  async connectBluetoothPrinter(address: string) {
+    console.log('Connecting to Bluetooth printer:', address);
+  },
+  async connectPrinter(deviceId: string) {
+    console.log('Connecting to printer:', deviceId);
+  },
+  async disconnectPrinter() {
+    console.log('Disconnecting printer');
+  },
+  async printText(text: string) {
+    console.log('Printing text:', text);
+  },
+  async scanDevices() {
+    console.log('Scanning devices');
+    return [];
+  },
   async print(order: Order) {
     // Create a new window for the receipt
     const printWindow = window.open('', '_blank');
@@ -124,6 +146,7 @@ const webPrinter = {
 // Initialize platform-specific printer
 const printer = Platform.select({
   web: webPrinter,
+  default: webPrinter,
   //default: require('react-native-thermal-receipt-printer').default,
 });
 
@@ -140,7 +163,7 @@ export async function printReceipt(order: Order, settings: PrinterSettings) {
     const receiptContent = generateReceiptContent(order);
 
     if (settings.type === 'bluetooth') {
-      await printer.connectBluetoothPrinter(settings.address);
+      await printer.connectBluetoothPrinter(settings.address??'');
     } else {
       await printer.connectPrinter(settings.deviceId);
     }

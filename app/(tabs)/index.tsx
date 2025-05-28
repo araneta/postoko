@@ -16,12 +16,14 @@ export default function POSScreen() {
 
   const handlePayment = async () => {
     if (parseFloat(amountPaid) >= total) {
-      const order = createOrder('cash');
+      const order = await createOrder('cash');
       setShowPaymentModal(false);
       setAmountPaid('');
 
       try {
-        await printReceipt(order, settings.printer);
+        if (order) {
+          await printReceipt(order, settings.printer);
+        }
       } catch (error) {
         if (Platform.OS === 'web') {
           // On web, errors are less critical as the browser handles printing
