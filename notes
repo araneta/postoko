@@ -1,0 +1,21 @@
+How to build
+
+export JAVA_HOME=/media/araneta/49909430-d2bd-4bcf-be1d-3c425a4013bf/apps/jdk-17.0.11
+export PATH=$PATH:$HOME/bin:$JAVA_HOME/bin
+
+Android SDK Platform 35
+export ANDROID_HOME=$HOME/Android/Sdk
+export PATH=$PATH:$ANDROID_HOME/emulator
+export PATH=$PATH:$ANDROID_HOME/platform-tools
+export ANDROID_SDK_ROOT=$HOME/Android/Sdk
+
+keytool -genkey -v -keystore my-release-key.keystore -alias my-key-alias -keyalg RSA -keysize 2048 -validity 10000
+npm install
+npx expo install --check
+npx expo prebuild --clean
+cd android/
+./gradlew assembleRelease
+
+
+if error duplicate class then update gradle.properties add:
+ android.enableJetifier=true
