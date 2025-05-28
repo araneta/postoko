@@ -6,6 +6,8 @@ import useStore from '../store/useStore';
 import { View, ActivityIndicator } from 'react-native'
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { Session } from '@supabase/supabase-js'
+import Auth from '../components/Auth'
+import { supabase } from '@/lib/supabase';
 
 declare global {
   interface Window {
@@ -54,16 +56,25 @@ export default function RootLayout() {
       </View>
     );
   }
-
-  return (
-    <>
-		<Auth />
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" options={{ title: 'Oops!' }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </>
-  );
+  if(session && session.user) {
+    return (
+      <>
+      
+        <Stack screenOptions={{ headerShown: false }}>
+          
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="+not-found" options={{ title: 'Oops!' }} />
+        </Stack>
+        <StatusBar style="auto" />
+      </>
+    );
+  }else{
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Auth />
+      </View>
+    );
+  }
+	
+  
 }
