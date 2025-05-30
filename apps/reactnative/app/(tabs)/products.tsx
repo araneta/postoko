@@ -1,0 +1,343 @@
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TextInput,
+  Pressable,
+  Modal,
+  Alert,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import ProductCard from '../../components/ProductCard';
+import useStore from '../../store/useStore';
+import { Product } from '../../types';
+
+const initialFormData = {
+  name: '',
+  price: '',
+  stock: '',
+  category: '',
+  description: '',
+};
+
+export default function ProductsScreen() {
+  const { products, addProduct, updateProduct, deleteProduct } = useStore();
+  const [modalVisible, setModalVisible] = useState(false);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [formData, setFormData] = useState(initialFormData);
+
+  const handleSave = () => {
+    const product: Product = {
+      id: editingProduct?.id || Date.now().toString(),
+      name: formData.name,
+      price: parseFloat(formData.price),
+      stock: parseInt(formData.stock),
+      category: formData.category,
+      description: formData.description,
+    };
+
+    if (editingProduct) {
+      updateProduct(product);
+    } else {
+      addProduct(product);
+    }
+
+    setModalVisible(false);
+    setEditingProduct(null);
+    setFormData(initialFormData);
+  };
+
+  const handleEdit = (product: Product) => {
+    setEditingProduct(product);
+    setFormData({
+      name: product.name,
+      price: product.price.toString(),
+      stock: product.stock.toString(),
+      category: product.category,
+      description: product.description || '',
+    });
+    setModalVisible(true);
+  };
+
+  const handleAddProduct = () => {
+    setEditingProduct(null);
+    setFormData(initialFormData);
+    setModalVisible(true);
+  };
+
+  const handleDeletePress = (product: Product) => {
+    setProductToDelete(product);
+    setDeleteModalVisible(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (productToDelete) {
+      deleteProduct(productToDelete.id);
+      setDeleteModalVisible(false);
+      setProductToDelete(null);
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Products</Text>
+        <Pressable
+          style={styles.addButton}
+          onPress={handleAddProduct}>
+          <Ionicons name="add" size={24} color="white" />
+          <Text style={styles.addButtonText}>Add Product</Text>
+        </Pressable>
+      </View>
+
+      <FlatList
+        data={products}
+        renderItem={({ item }) => (
+          <View style={styles.productContainer}>
+            <View style={styles.productCardWrapper}>
+              <ProductCard
+                product={item}
+                onPress={() => handleEdit(item)}
+                showAddToCart={false}
+              />
+            </View>
+            <Pressable
+              style={styles.deleteButton}
+              onPress={() => handleDeletePress(item)}>
+              <Ionicons name="trash-outline" size={20} color="#FF3B30" />
+            </Pressable>
+          </View>
+        )}
+        keyExtractor={(item) => item.id}
+      />
+
+      {/* Edit/Add Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => {
+          setModalVisible(false);
+          setFormData(initialFormData);
+        }}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>
+              {editingProduct ? 'Edit Product' : 'Add New Product'}
+            </Text>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Product Name"
+              value={formData.name}
+              onChangeText={(text) => setFormData({ ...formData, name: text })}
+            />
+
+            <TextInput
+              style={styles.input}
+              placeholder="Price"
+              value={formData.price}
+              onChangeText={(text) => setFormData({ ...formData, price: text })}
+              keyboardType="decimal-pad"
+            />
+
+            <TextInput
+              style={styles.input}
+              placeholder="Stock"
+              value={formData.stock}
+              onChangeText={(text) => setFormData({ ...formData, stock: text })}
+              keyboardType="number-pad"
+            />
+
+            <TextInput
+              style={styles.input}
+              placeholder="Category"
+              value={formData.category}
+              onChangeText={(text) => setFormData({ ...formData, category: text })}
+            />
+
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              placeholder="Description"
+              value={formData.description}
+              onChangeText={(text) => setFormData({ ...formData, description: text })}
+              multiline
+            />
+
+            <View style={styles.modalButtons}>
+              <Pressable
+                style={[styles.button, styles.cancelButton]}
+                onPress={() => {
+                  setModalVisible(false);
+                  setFormData(initialFormData);
+                }}>
+                <Text style={styles.buttonText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.button, styles.saveButton]}
+                onPress={handleSave}>
+                <Text style={[styles.buttonText, styles.saveButtonText]}>
+                  {editingProduct ? 'Update' : 'Save'}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={deleteModalVisible}
+        onRequestClose={() => setDeleteModalVisible(false)}>
+        <View style={styles.modalContainer}>
+          <View style={[styles.modalContent, styles.deleteModalContent]}>
+            <Text style={styles.deleteModalTitle}>Delete Product</Text>
+            <Text style={styles.deleteModalText}>
+              Are you sure you want to delete "{productToDelete?.name}"? This action cannot be undone.
+            </Text>
+
+            <View style={styles.modalButtons}>
+              <Pressable
+                style={[styles.button, styles.cancelButton]}
+                onPress={() => setDeleteModalVisible(false)}>
+                <Text style={styles.buttonText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.button, styles.deleteConfirmButton]}
+                onPress={handleConfirmDelete}>
+                <Text style={[styles.buttonText, styles.deleteButtonText]}>
+                  Delete
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e5e5',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '600',
+  },
+  addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#007AFF',
+    padding: 8,
+    borderRadius: 8,
+  },
+  addButtonText: {
+    color: 'white',
+    marginLeft: 4,
+    fontWeight: '600',
+  },
+  productContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  productCardWrapper: {
+    flex: 1,
+  },
+  deleteButton: {
+    padding: 8,
+    marginRight: 8,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 24,
+    width: '90%',
+    maxWidth: 500,
+  },
+  deleteModalContent: {
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: 16,
+  },
+  deleteModalTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: 12,
+    color: '#FF3B30',
+  },
+  deleteModalText: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 24,
+    lineHeight: 22,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#e5e5e5',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    fontSize: 16,
+  },
+  textArea: {
+    height: 100,
+    textAlignVertical: 'top',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 16,
+  },
+  button: {
+    padding: 12,
+    borderRadius: 8,
+    marginLeft: 12,
+    minWidth: 100,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#f5f5f5',
+  },
+  saveButton: {
+    backgroundColor: '#007AFF',
+  },
+  deleteConfirmButton: {
+    backgroundColor: '#FF3B30',
+  },
+  buttonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  saveButtonText: {
+    color: 'white',
+  },
+  deleteButtonText: {
+    color: 'white',
+  },
+});
