@@ -1,5 +1,7 @@
-import { Platform } from 'react-native';
+import { Platform, Alert } from 'react-native';
 import { PrinterSettings, Order } from '../types';
+import BluetoothManager from 'react-native-bluetooth-escpos-printer';
+import { GetAllPermissionPrint } from '../utils/permissions';
 
 export interface PrinterDevice {
   deviceId: string;
@@ -163,13 +165,14 @@ export async function printReceipt(order: Order, settings: PrinterSettings) {
     const receiptContent = generateReceiptContent(order);
 
     if (settings.type === 'bluetooth') {
-      await printer.connectBluetoothPrinter(settings.address??'');
+      await BluetoothManager.enableBluetooth();
+      await BluetoothManager.connectPrinter(settings.address ?? '');
     } else {
-      await printer.connectPrinter(settings.deviceId);
+      await BluetoothManager.connectPrinter(settings.deviceId);
     }
 
-    await printer.printText(receiptContent);
-    await printer.disconnectPrinter();
+    await BluetoothManager.printText(receiptContent);
+    await BluetoothManager.disconnectPrinter();
   } catch (error) {
     console.error('Printing failed:', error);
     throw error;
@@ -182,12 +185,31 @@ export async function scanPrinters(): Promise<PrinterDevice[]> {
   }
 
   try {
-    const devices = await printer.scanDevices();
-    return devices.map(device => ({
-      deviceId: device.device_id,
-      deviceName: device.device_name,
-      address: device.address,
-    }));
+    const permission = await GetAllPermissionPrint();
+    if (!permission) {
+      Alert.alert('Butuh Akses Bluetooth');
+      return [];
+    }
+
+    const pairedDevices = await BluetoothManager.enableBluetooth();
+    const devices: PrinterDevice[] = [];
+
+    if (pairedDevices && pairedDevices.length > 0) {
+      for (const device of pairedDevices) {
+        try {
+          const parsedDevice = JSON.parse(device);
+          devices.push({
+            deviceId: parsedDevice.id || parsedDevice.address,
+            deviceName: parsedDevice.name,
+            address: parsedDevice.address
+          });
+        } catch (e) {
+          console.warn('Failed to parse device:', e);
+        }
+      }
+    }
+
+    return devices;
   } catch (error) {
     console.error('Scanner failed:', error);
     throw error;
