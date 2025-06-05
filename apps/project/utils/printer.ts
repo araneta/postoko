@@ -1,16 +1,19 @@
 import { Platform } from 'react-native';
-import { PrinterSettings, Order } from '../types';
+import { BleManager, Device, Characteristic } from 'react-native-ble-plx';
+import { encode as base64Encode } from 'base-64';
+import { Order, PrinterSettings } from '../types';
 
-// Mock implementation for web
+// Initialize BLE manager only on native platforms
+const manager = Platform.OS !== 'web' ? new BleManager() : null;
+
+// Web printer implementation remains unchanged
 const webPrinter = {
   async print(order: Order) {
-    // Create a new window for the receipt
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
       throw new Error('Failed to open print window');
     }
 
-    // Generate receipt HTML
     const html = `
       <!DOCTYPE html>
       <html>
@@ -115,21 +118,57 @@ const webPrinter = {
       </html>
     `;
 
-    // Write the HTML to the new window and trigger print
     printWindow.document.write(html);
     printWindow.document.close();
   },
 };
 
-// Initialize platform-specific printer
-const printer = Platform.select({
-  web: webPrinter,
-  default: require('react-native-thermal-receipt-printer').default,
-});
+export async function scanPrinters(): Promise<Device[]> {
+  if (Platform.OS === 'web' || !manager) {
+    return [];
+  }
+
+  try {
+    // Request permissions first
+    const state = await manager.state();
+    if (state !== 'PoweredOn') {
+      throw new Error('Bluetooth is not powered on');
+    }
+
+    // Start scanning for devices
+    const devices: Device[] = [];
+    await new Promise((resolve, reject) => {
+      manager.startDeviceScan(null, null, (error, device) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        if (device) {
+          devices.push(device);
+        }
+      });
+
+      // Stop scanning after 5 seconds
+      setTimeout(() => {
+        manager.stopDeviceScan();
+        resolve(devices);
+      }, 5000);
+    });
+
+    return devices;
+  } catch (error) {
+    console.error('Scanner failed:', error);
+    throw error;
+  }
+}
 
 export async function printReceipt(order: Order, settings: PrinterSettings) {
   if (Platform.OS === 'web') {
     return webPrinter.print(order);
+  }
+
+  if (!manager) {
+    throw new Error('BLE manager not available');
   }
 
   try {
@@ -137,45 +176,40 @@ export async function printReceipt(order: Order, settings: PrinterSettings) {
       throw new Error('No printer configured');
     }
 
-    const receiptContent = generateReceiptContent(order);
+    // Connect to the device
+    const device = await manager.connectToDevice(settings.deviceId);
+    await device.discoverAllServicesAndCharacteristics();
 
-    if (settings.type === 'bluetooth') {
-      await printer.connectBluetoothPrinter(settings.address);
-    } else {
-      await printer.connectPrinter(settings.deviceId);
+    // Find the printer service and characteristic
+    const services = await device.services();
+    for (const service of services) {
+      const characteristics = await service.characteristics();
+      const printCharacteristic = characteristics.find(
+        (char) => char.isWritableWithResponse || char.isWritableWithoutResponse
+      );
+
+      if (printCharacteristic) {
+        // Generate and send receipt data
+        const receiptData = generateReceiptData(order);
+        const chunks = chunkString(receiptData, 20); // Split into 20-byte chunks
+
+        for (const chunk of chunks) {
+          await printCharacteristic.writeWithResponse(base64Encode(chunk));
+        }
+
+        break;
+      }
     }
 
-    await printer.printText(receiptContent);
-    await printer.disconnectPrinter();
+    // Disconnect from the device
+    await device.cancelConnection();
   } catch (error) {
     console.error('Printing failed:', error);
     throw error;
   }
 }
 
-export async function scanPrinters(): Promise<PrinterDevice[]> {
-  if (Platform.OS === 'web') {
-    return [];
-  }
-
-  try {
-    const devices = await printer.scanDevices();
-    return devices.map(device => ({
-      deviceId: device.device_id,
-      deviceName: device.device_name,
-      address: device.address,
-    }));
-  } catch (error) {
-    console.error('Scanner failed:', error);
-    throw error;
-  }
-}
-
-function generateReceiptContent(order: Order): string {
-  const date = new Date(order.date);
-  const formattedDate = date.toLocaleDateString();
-  const formattedTime = date.toLocaleTimeString();
-
+function generateReceiptData(order: Order): string {
   let receipt = '\x1B\x40'; // Initialize printer
   receipt += '\x1B\x61\x01'; // Center alignment
 
@@ -184,7 +218,7 @@ function generateReceiptContent(order: Order): string {
   receipt += 'City, Country\n\n';
 
   receipt += `Order #${order.id}\n`;
-  receipt += `${formattedDate} ${formattedTime}\n\n`;
+  receipt += `${new Date(order.date).toLocaleString()}\n\n`;
 
   receipt += '\x1B\x61\x00'; // Left alignment
 
@@ -206,4 +240,14 @@ function generateReceiptContent(order: Order): string {
   receipt += 'Please come again\n\n\n\n';
 
   return receipt;
+}
+
+function chunkString(str: string, length: number): string[] {
+  const chunks = [];
+  let i = 0;
+  while (i < str.length) {
+    chunks.push(str.slice(i, i + length));
+    i += length;
+  }
+  return chunks;
 }

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "bolt-expo-nativewind",
+    "name": "bolt-expo-pos",
     "slug": "bolt-expo-nativewind",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -12,7 +12,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.boltexpo.pos",
       "infoPlist": {
-        "UIBackgroundModes": ["remote-notification"],
+        "UIBackgroundModes": [
+          "remote-notification"
+        ],
         "NSCameraUsageDescription": "This app uses the camera to scan barcodes and take product photos.",
         "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to save and upload product images.",
         "NSBluetoothAlwaysUsageDescription": "This app uses Bluetooth to connect to receipt printers.",
@@ -35,10 +37,11 @@
     },
     "web": {
       "bundler": "metro",
-      "output": "single",
+      "output": "server",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      "react-native-ble-plx",
       "expo-router",
       [
         "expo-camera",
@@ -50,6 +53,16 @@
         "expo-location",
         {
           "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location to find nearby printers."
+        }
+      ],
+      "expo-font",
+      "expo-sqlite",
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "project": "react-native",
+          "organization": "adminujianku"
         }
       ]
     ],

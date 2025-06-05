@@ -1,10 +1,32 @@
 import * as SQLite from 'expo-sqlite';
 import { Product, Order, Settings } from '../types';
 
-const db = SQLite.openDatabase('pos.db');
+interface SQLiteDatabase {
+  transaction: (callback: (tx: any) => void, errorCallback?: (error: Error) => void, successCallback?: () => void) => void;
+}
 
-export const initDatabase = () => {
+let db: SQLiteDatabase | null = null;
+
+interface SQLiteResult {
+  rows: {
+    _array: any[];
+    length: number;
+    item: (index: number) => any;
+  };
+}
+
+export const initDatabase = async () => {
+  if (!db) {
+    const database = await SQLite.openDatabaseAsync('pos.db');
+    db = database as unknown as SQLiteDatabase;
+  }
+
   return new Promise<void>((resolve, reject) => {
+    if (!db) {
+      reject(new Error('Database not initialized'));
+      return;
+    }
+
     db.transaction(tx => {
       // Create products table
       tx.executeSql(
@@ -52,18 +74,29 @@ export const initDatabase = () => {
         }), JSON.stringify({ type: 'none' }), '{}']
       );
     }, 
-    error => reject(error),
-    () => resolve());
+    error => {
+      reject(error);
+    },
+    () => {
+      resolve();
+    });
   });
 };
 
 export const getProducts = (): Promise<Product[]> => {
   return new Promise((resolve, reject) => {
+    if (!db) {
+      reject(new Error('Database not initialized'));
+      return;
+    }
+
     db.transaction(tx => {
       tx.executeSql(
         'SELECT * FROM products;',
         [],
-        (_, { rows: { _array } }) => resolve(_array),
+        (_, result: SQLiteResult) => {
+          resolve(result.rows._array as Product[]);
+        },
         (_, error) => {
           reject(error);
           return false;
@@ -75,6 +108,11 @@ export const getProducts = (): Promise<Product[]> => {
 
 export const addProduct = (product: Product): Promise<void> => {
   return new Promise((resolve, reject) => {
+    if (!db) {
+      reject(new Error('Database not initialized'));
+      return;
+    }
+
     db.transaction(tx => {
       tx.executeSql(
         `INSERT INTO products (id, name, price, stock, category, description, image)
@@ -88,7 +126,9 @@ export const addProduct = (product: Product): Promise<void> => {
           product.description,
           product.image
         ],
-        () => resolve(),
+        () => {
+          resolve();
+        },
         (_, error) => {
           reject(error);
           return false;
@@ -100,6 +140,11 @@ export const addProduct = (product: Product): Promise<void> => {
 
 export const updateProduct = (product: Product): Promise<void> => {
   return new Promise((resolve, reject) => {
+    if (!db) {
+      reject(new Error('Database not initialized'));
+      return;
+    }
+
     db.transaction(tx => {
       tx.executeSql(
         `UPDATE products 
@@ -114,7 +159,9 @@ export const updateProduct = (product: Product): Promise<void> => {
           product.image,
           product.id
         ],
-        () => resolve(),
+        () => {
+          resolve();
+        },
         (_, error) => {
           reject(error);
           return false;
@@ -126,11 +173,18 @@ export const updateProduct = (product: Product): Promise<void> => {
 
 export const deleteProduct = (id: string): Promise<void> => {
   return new Promise((resolve, reject) => {
+    if (!db) {
+      reject(new Error('Database not initialized'));
+      return;
+    }
+
     db.transaction(tx => {
       tx.executeSql(
         'DELETE FROM products WHERE id = ?;',
         [id],
-        () => resolve(),
+        () => {
+          resolve();
+        },
         (_, error) => {
           reject(error);
           return false;
@@ -142,15 +196,20 @@ export const deleteProduct = (id: string): Promise<void> => {
 
 export const getOrders = (): Promise<Order[]> => {
   return new Promise((resolve, reject) => {
+    if (!db) {
+      reject(new Error('Database not initialized'));
+      return;
+    }
+
     db.transaction(tx => {
       tx.executeSql(
         'SELECT * FROM orders ORDER BY date DESC;',
         [],
-        (_, { rows: { _array } }) => {
-          const orders = _array.map(order => ({
+        (_, result: SQLiteResult) => {
+          const orders = result.rows._array.map(order => ({
             ...order,
             items: JSON.parse(order.items)
-          }));
+          })) as Order[];
           resolve(orders);
         },
         (_, error) => {
@@ -164,6 +223,11 @@ export const getOrders = (): Promise<Order[]> => {
 
 export const addOrder = (order: Order): Promise<void> => {
   return new Promise((resolve, reject) => {
+    if (!db) {
+      reject(new Error('Database not initialized'));
+      return;
+    }
+
     db.transaction(tx => {
       tx.executeSql(
         `INSERT INTO orders (id, items, total, date, payment_method, status)
@@ -176,7 +240,9 @@ export const addOrder = (order: Order): Promise<void> => {
           order.paymentMethod,
           order.status
         ],
-        () => resolve(),
+        () => {
+          resolve();
+        },
         (_, error) => {
           reject(error);
           return false;
@@ -188,13 +254,18 @@ export const addOrder = (order: Order): Promise<void> => {
 
 export const getSettings = (): Promise<Settings> => {
   return new Promise((resolve, reject) => {
+    if (!db) {
+      reject(new Error('Database not initialized'));
+      return;
+    }
+
     db.transaction(tx => {
       tx.executeSql(
         'SELECT * FROM settings WHERE id = 1;',
         [],
-        (_, { rows: { _array } }) => {
-          if (_array.length > 0) {
-            const settings = _array[0];
+        (_, result: SQLiteResult) => {
+          if (result.rows.length > 0) {
+            const settings = result.rows.item(0);
             resolve({
               currency: JSON.parse(settings.currency),
               printer: JSON.parse(settings.printer),
@@ -207,7 +278,8 @@ export const getSettings = (): Promise<Settings> => {
                 symbol: '$',
                 name: 'US Dollar'
               },
-              printer: { type: 'none' }
+              printer: { type: 'none' },
+              storeInfo: {}
             });
           }
         },
@@ -222,6 +294,11 @@ export const getSettings = (): Promise<Settings> => {
 
 export const updateSettings = (settings: Settings): Promise<void> => {
   return new Promise((resolve, reject) => {
+    if (!db) {
+      reject(new Error('Database not initialized'));
+      return;
+    }
+
     db.transaction(tx => {
       tx.executeSql(
         `UPDATE settings 
@@ -230,9 +307,11 @@ export const updateSettings = (settings: Settings): Promise<void> => {
         [
           JSON.stringify(settings.currency),
           JSON.stringify(settings.printer),
-          JSON.stringify(settings.storeInfo || {})
+          JSON.stringify(settings.storeInfo)
         ],
-        () => resolve(),
+        () => {
+          resolve();
+        },
         (_, error) => {
           reject(error);
           return false;

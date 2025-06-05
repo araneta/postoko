@@ -1,11 +1,29 @@
+import { Platform } from 'react-native';
 import * as SQLite from 'expo-sqlite';
 import { Product, Order, Settings } from '../types';
 
-const db = SQLite.openDatabase('pos.db');
+// Only initialize database on native platforms
+const db = Platform.OS !== 'web' ? SQLite.openDatabase('pos.db') : null;
+
+const defaultSettings: Settings = {
+  currency: {
+    code: 'USD',
+    symbol: '$',
+    name: 'US Dollar'
+  },
+  printer: { type: 'none' },
+  storeInfo: {}
+};
 
 export const initDatabase = () => {
+  // Return early for web platform
+  if (Platform.OS === 'web') {
+    console.warn('Local database is not available on web platform');
+    return Promise.resolve();
+  }
+
   return new Promise<void>((resolve, reject) => {
-    db.transaction(tx => {
+    db!.transaction(tx => {
       // Create products table
       tx.executeSql(
         `CREATE TABLE IF NOT EXISTS products (
@@ -45,11 +63,7 @@ export const initDatabase = () => {
       tx.executeSql(
         `INSERT OR IGNORE INTO settings (id, currency, printer, store_info)
          VALUES (?, ?, ?, ?);`,
-        [1, JSON.stringify({
-          code: 'USD',
-          symbol: '$',
-          name: 'US Dollar'
-        }), JSON.stringify({ type: 'none' }), '{}']
+        [1, JSON.stringify(defaultSettings.currency), JSON.stringify(defaultSettings.printer), '{}']
       );
     }, 
     error => reject(error),
@@ -58,8 +72,13 @@ export const initDatabase = () => {
 };
 
 export const getProducts = (): Promise<Product[]> => {
+  if (Platform.OS === 'web') {
+    console.warn('Local database is not available on web platform');
+    return Promise.resolve([]);
+  }
+
   return new Promise((resolve, reject) => {
-    db.transaction(tx => {
+    db!.transaction(tx => {
       tx.executeSql(
         'SELECT * FROM products;',
         [],
@@ -74,8 +93,13 @@ export const getProducts = (): Promise<Product[]> => {
 };
 
 export const addProduct = (product: Product): Promise<void> => {
+  if (Platform.OS === 'web') {
+    console.warn('Local database is not available on web platform');
+    return Promise.resolve();
+  }
+
   return new Promise((resolve, reject) => {
-    db.transaction(tx => {
+    db!.transaction(tx => {
       tx.executeSql(
         `INSERT INTO products (id, name, price, stock, category, description, image)
          VALUES (?, ?, ?, ?, ?, ?, ?);`,
@@ -99,8 +123,13 @@ export const addProduct = (product: Product): Promise<void> => {
 };
 
 export const updateProduct = (product: Product): Promise<void> => {
+  if (Platform.OS === 'web') {
+    console.warn('Local database is not available on web platform');
+    return Promise.resolve();
+  }
+
   return new Promise((resolve, reject) => {
-    db.transaction(tx => {
+    db!.transaction(tx => {
       tx.executeSql(
         `UPDATE products 
          SET name = ?, price = ?, stock = ?, category = ?, description = ?, image = ?
@@ -125,8 +154,13 @@ export const updateProduct = (product: Product): Promise<void> => {
 };
 
 export const deleteProduct = (id: string): Promise<void> => {
+  if (Platform.OS === 'web') {
+    console.warn('Local database is not available on web platform');
+    return Promise.resolve();
+  }
+
   return new Promise((resolve, reject) => {
-    db.transaction(tx => {
+    db!.transaction(tx => {
       tx.executeSql(
         'DELETE FROM products WHERE id = ?;',
         [id],
@@ -141,8 +175,13 @@ export const deleteProduct = (id: string): Promise<void> => {
 };
 
 export const getOrders = (): Promise<Order[]> => {
+  if (Platform.OS === 'web') {
+    console.warn('Local database is not available on web platform');
+    return Promise.resolve([]);
+  }
+
   return new Promise((resolve, reject) => {
-    db.transaction(tx => {
+    db!.transaction(tx => {
       tx.executeSql(
         'SELECT * FROM orders ORDER BY date DESC;',
         [],
@@ -163,8 +202,13 @@ export const getOrders = (): Promise<Order[]> => {
 };
 
 export const addOrder = (order: Order): Promise<void> => {
+  if (Platform.OS === 'web') {
+    console.warn('Local database is not available on web platform');
+    return Promise.resolve();
+  }
+
   return new Promise((resolve, reject) => {
-    db.transaction(tx => {
+    db!.transaction(tx => {
       tx.executeSql(
         `INSERT INTO orders (id, items, total, date, payment_method, status)
          VALUES (?, ?, ?, ?, ?, ?);`,
@@ -187,8 +231,13 @@ export const addOrder = (order: Order): Promise<void> => {
 };
 
 export const getSettings = (): Promise<Settings> => {
+  if (Platform.OS === 'web') {
+    console.warn('Local database is not available on web platform');
+    return Promise.resolve(defaultSettings);
+  }
+
   return new Promise((resolve, reject) => {
-    db.transaction(tx => {
+    db!.transaction(tx => {
       tx.executeSql(
         'SELECT * FROM settings WHERE id = 1;',
         [],
@@ -201,14 +250,7 @@ export const getSettings = (): Promise<Settings> => {
               storeInfo: JSON.parse(settings.store_info)
             });
           } else {
-            resolve({
-              currency: {
-                code: 'USD',
-                symbol: '$',
-                name: 'US Dollar'
-              },
-              printer: { type: 'none' }
-            });
+            resolve(defaultSettings);
           }
         },
         (_, error) => {
@@ -221,8 +263,13 @@ export const getSettings = (): Promise<Settings> => {
 };
 
 export const updateSettings = (settings: Settings): Promise<void> => {
+  if (Platform.OS === 'web') {
+    console.warn('Local database is not available on web platform');
+    return Promise.resolve();
+  }
+
   return new Promise((resolve, reject) => {
-    db.transaction(tx => {
+    db!.transaction(tx => {
       tx.executeSql(
         `UPDATE settings 
          SET currency = ?, printer = ?, store_info = ?

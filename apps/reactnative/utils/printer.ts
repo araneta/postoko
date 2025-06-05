@@ -145,11 +145,49 @@ const webPrinter = {
   },
 };
 
+// Create an adapter for BluetoothManager
+const bluetoothPrinter = {
+  async connectBluetoothPrinter(address: string) {
+    await BluetoothManager.enableBluetooth();
+    await BluetoothManager.connectPrinter(address);
+  },
+  async connectPrinter(deviceId: string) {
+    await BluetoothManager.enableBluetooth();
+    await BluetoothManager.connectPrinter(deviceId);
+  },
+  async disconnectPrinter() {
+    await BluetoothManager.disconnectPrinter();
+  },
+  async printText(text: string) {
+    await BluetoothManager.printText(text);
+  },
+  async scanDevices() {
+    await BluetoothManager.enableBluetooth();
+    const devices = await BluetoothManager.scanDevices();
+    return devices.map(device => {
+      try {
+        const parsedDevice = JSON.parse(device);
+        return {
+          deviceId: parsedDevice.id || parsedDevice.address,
+          deviceName: parsedDevice.name,
+          address: parsedDevice.address
+        };
+      } catch (e) {
+        console.warn('Failed to parse device:', e);
+        return null;
+      }
+    }).filter(Boolean);
+  },
+  async print(order: Order) {
+    const receiptContent = generateReceiptContent(order);
+    await BluetoothManager.printText(receiptContent);
+  }
+};
+
 // Initialize platform-specific printer
 const printer = Platform.select({
   web: webPrinter,
-  default: webPrinter,
-  //default: require('react-native-thermal-receipt-printer').default,
+  default: bluetoothPrinter,
 });
 
 export async function printReceipt(order: Order, settings: PrinterSettings) {
@@ -162,17 +200,14 @@ export async function printReceipt(order: Order, settings: PrinterSettings) {
       throw new Error('No printer configured');
     }
 
-    const receiptContent = generateReceiptContent(order);
-
     if (settings.type === 'bluetooth') {
-      await BluetoothManager.enableBluetooth();
-      await BluetoothManager.connectPrinter(settings.address ?? '');
+      await printer.connectBluetoothPrinter(settings.address ?? '');
     } else {
-      await BluetoothManager.connectPrinter(settings.deviceId);
+      await printer.connectPrinter(settings.deviceId);
     }
 
-    await BluetoothManager.printText(receiptContent);
-    await BluetoothManager.disconnectPrinter();
+    await printer.print(order);
+    await printer.disconnectPrinter();
   } catch (error) {
     console.error('Printing failed:', error);
     throw error;

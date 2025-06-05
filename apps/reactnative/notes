@@ -16,10 +16,13 @@ npm install
 npx expo install --check
 npx expo prebuild --clean
 cd android/
-./gradlew bundleRelease
 
 #apk
 ./gradlew assembleRelease
+#ab
+./gradlew bundleRelease
+
+
 
 
 if error duplicate class then update gradle.properties add:
