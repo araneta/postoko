@@ -44,16 +44,5 @@ export interface Settings {
 }
 
 export interface PrinterSettings {
-  type: 'bluetooth' | 'none';
-  deviceId?: string;
-  deviceName?: string;
-  address?: string;
-  serviceUUID?: string;
-  characteristicUUID?: string;
-}
-
-export interface PrinterDevice {
-  deviceId: string;
-  deviceName: string;
-  address?: string;
+  type: 'none';
 }

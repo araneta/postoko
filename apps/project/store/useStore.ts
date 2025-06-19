@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { Product, CartItem, Order, Currency, Settings, StoreInfo, PrinterSettings } from '../types';
-import * as db from '../lib/database';
+import * as api from '../lib/api';
 
 interface StoreState {
   products: Product[];
@@ -41,11 +41,10 @@ const useStore = create<StoreState>((set, get) => ({
 
   initializeStore: async () => {
     try {
-      await db.initDatabase();
       const [products, orders, settings] = await Promise.all([
-        db.getProducts(),
-        db.getOrders(),
-        db.getSettings()
+        api.getProducts(),
+        api.getOrders(),
+        api.getSettings()
       ]);
       set({ products, orders, settings });
     } catch (error) {
@@ -55,7 +54,7 @@ const useStore = create<StoreState>((set, get) => ({
 
   addProduct: async (product) => {
     try {
-      await db.addProduct(product);
+      await api.addProduct(product);
       set(state => ({
         products: [...state.products, product]
       }));
@@ -67,7 +66,7 @@ const useStore = create<StoreState>((set, get) => ({
 
   updateProduct: async (product) => {
     try {
-      await db.updateProduct(product);
+      await api.updateProduct(product);
       set(state => ({
         products: state.products.map(p =>
           p.id === product.id ? product : p
@@ -81,7 +80,7 @@ const useStore = create<StoreState>((set, get) => ({
 
   deleteProduct: async (id) => {
     try {
-      await db.deleteProduct(id);
+      await api.deleteProduct(id);
       set(state => ({
         products: state.products.filter(p => p.id !== id)
       }));
@@ -141,7 +140,7 @@ const useStore = create<StoreState>((set, get) => ({
     };
 
     try {
-      await db.addOrder(order);
+      await api.addOrder(order);
       set(state => ({
         orders: [order, ...state.orders],
         cart: []
@@ -159,7 +158,7 @@ const useStore = create<StoreState>((set, get) => ({
         ...get().settings,
         currency
       };
-      await db.updateSettings(newSettings);
+      await api.updateSettings(newSettings);
       set({ settings: newSettings });
     } catch (error) {
       console.error('Failed to update currency:', error);
@@ -173,7 +172,7 @@ const useStore = create<StoreState>((set, get) => ({
         ...get().settings,
         printer: printerSettings
       };
-      await db.updateSettings(newSettings);
+      await api.updateSettings(newSettings);
       set({ settings: newSettings });
     } catch (error) {
       console.error('Failed to update printer settings:', error);
@@ -187,7 +186,7 @@ const useStore = create<StoreState>((set, get) => ({
         ...get().settings,
         storeInfo
       };
-      await db.updateSettings(newSettings);
+      await api.updateSettings(newSettings);
       set({ settings: newSettings });
     } catch (error) {
       console.error('Failed to update store info:', error);

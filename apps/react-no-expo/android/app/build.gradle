@@ -117,9 +117,12 @@ dependencies {
     implementation("com.facebook.react:react-native:+")
     implementation("com.facebook.soloader:soloader:0.10.5")
 
+    // Debugging tools
     debugImplementation("com.facebook.flipper:flipper:${FLIPPER_VERSION}")
     debugImplementation("com.facebook.flipper:flipper-network-plugin:${FLIPPER_VERSION}")
     debugImplementation("com.facebook.react:flipper-integration")
+    debugImplementation("com.facebook.react:react-native-debugger")
+    debugImplementation("com.facebook.react:react-native-crash-reporting")
 
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")
