@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Stack } from 'expo-router';
+import { Stack, Redirect } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator } from 'react-native';
+import { ClerkProvider, useAuth } from '@clerk/clerk-expo'
+import { tokenCache } from '@clerk/clerk-expo/token-cache'
+
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import useStore from '../store/useStore';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -23,10 +26,11 @@ Sentry.init({
   // spotlight: __DEV__,
 });
 
-export default Sentry.wrap(function RootLayout() {
+function AppContent() {
   useFrameworkReady();
   const initializeStore = useStore(state => state.initializeStore);
   const [initializing, setInitializing] = useState(true);
+  const { isSignedIn, isLoaded } = useAuth();
 
   useEffect(() => {
     initializeStore().finally(() => {
@@ -35,23 +39,36 @@ export default Sentry.wrap(function RootLayout() {
     });
   }, []);
 
-  if (initializing) {
+  if (initializing || !isLoaded) {
     return (
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator size="large" color="#007AFF" />
-        </View>
-      </GestureHandlerRootView>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#007AFF" />
+      </View>
     );
   }
 
+  // Redirect authenticated users to tabs, unauthenticated users to home
+  if (isSignedIn) {
+    return <Redirect href="/(tabs)" />;
+  }
+
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" options={{ title: 'Oops!' }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </GestureHandlerRootView>
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="(home)" options={{ headerShown: false }} />
+      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="+not-found" options={{ title: 'Oops!' }} />
+    </Stack>
+  );
+}
+
+export default Sentry.wrap(function RootLayout() {
+  return (
+    <ClerkProvider tokenCache={tokenCache}>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <AppContent />
+        <StatusBar style="auto" />
+      </GestureHandlerRootView>
+    </ClerkProvider>
   );
 });

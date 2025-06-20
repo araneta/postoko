@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable, Switch, Modal, FlatList, ActivityIndicator, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import useStore from '../../store/useStore';
-import { Currency } from '../../types';
+import { Currency, PrinterDevice } from '../../types';
+import { scanPrinters } from '../../utils/printer';
+import { Platform } from 'react-native';
 
 const currencies: Currency[] = [
   { code: 'USD', symbol: '$', name: 'US Dollar' },
@@ -21,7 +23,11 @@ const currencies: Currency[] = [
 export default function SettingsScreen() {
   const { settings, updateCurrency, updatePrinterSettings, updateStoreInfo } = useStore();
   const [showCurrencyModal, setShowCurrencyModal] = useState(false);
+  const [showPrinterModal, setShowPrinterModal] = useState(false);
   const [showStoreInfoModal, setShowStoreInfoModal] = useState(false);
+  const [printers, setPrinters] = useState<PrinterDevice[]>([]);
+  const [scanning, setScanning] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [storeInfo, setStoreInfo] = useState({
     name: settings.storeInfo?.name || '',
     address: settings.storeInfo?.address || '',
@@ -30,6 +36,34 @@ export default function SettingsScreen() {
     website: settings.storeInfo?.website || '',
     taxId: settings.storeInfo?.taxId || '',
   });
+
+  const handleScanPrinters = async () => {
+    if (Platform.OS === 'web') {
+      setError('Printer scanning is not available on web');
+      return;
+    }
+
+    setScanning(true);
+    setError(null);
+    try {
+      const devices = await scanPrinters();
+      setPrinters(devices);
+    } catch (err) {
+      setError('Failed to scan for printers');
+    } finally {
+      setScanning(false);
+    }
+  };
+
+  const handleSelectPrinter = (printer: PrinterDevice) => {
+    updatePrinterSettings({
+      type: printer.address ? 'bluetooth' : 'usb',
+      deviceId: printer.deviceId,
+      deviceName: printer.deviceName,
+      address: printer.address,
+    });
+    setShowPrinterModal(false);
+  };
 
   const handleSaveStoreInfo = () => {
     updateStoreInfo(storeInfo);
@@ -60,14 +94,17 @@ export default function SettingsScreen() {
 
         <Pressable 
           style={styles.settingItem}
-          onPress={() => updatePrinterSettings({ type: 'none' })}
+          onPress={() => {
+            setShowPrinterModal(true);
+            handleScanPrinters();
+          }}
         >
           <View style={styles.settingContent}>
             <Ionicons name="print" size={24} color="#007AFF" />
             <View style={styles.settingInfo}>
               <Text style={styles.settingText}>Receipt Printer</Text>
               <Text style={styles.settingDetail}>
-                No printer configured
+                {settings.printer?.deviceName || 'No printer configured'}
               </Text>
             </View>
           </View>
@@ -161,18 +198,114 @@ export default function SettingsScreen() {
                   onPress={() => {
                     updateCurrency(item);
                     setShowCurrencyModal(false);
-                  }}
-                >
-                  <Text style={styles.currencyName}>{item.name} ({item.symbol})</Text>
+                  }}>
+                  <View style={styles.currencyItemContent}>
+                    <Text style={styles.currencySymbol}>{item.symbol}</Text>
+                    <View style={styles.currencyDetails}>
+                      <Text style={styles.currencyName}>{item.name}</Text>
+                      <Text style={styles.currencyCode}>{item.code}</Text>
+                    </View>
+                  </View>
+                  {item.code === settings.currency.code && (
+                    <Ionicons name="checkmark" size={24} color="#007AFF" />
+                  )}
                 </Pressable>
               )}
-              keyExtractor={item => item.code}
+              keyExtractor={(item) => item.code}
             />
           </View>
         </View>
       </Modal>
 
-      {/* Store Info Modal */}
+      {/* Printer Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={showPrinterModal}
+        onRequestClose={() => setShowPrinterModal(false)}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Printer</Text>
+              <Pressable
+                onPress={() => setShowPrinterModal(false)}
+                style={styles.closeButton}>
+                <Ionicons name="close" size={24} color="#666" />
+              </Pressable>
+            </View>
+
+            {Platform.OS === 'web' ? (
+              <View style={styles.webPrinterInfo}>
+                <Text style={styles.webPrinterText}>
+                  On web, the browser's print dialog will be used for printing receipts.
+                </Text>
+              </View>
+            ) : (
+              <>
+                <Pressable
+                  style={styles.scanButton}
+                  onPress={handleScanPrinters}
+                  disabled={scanning}>
+                  <Ionicons name="refresh" size={24} color="white" />
+                  <Text style={styles.scanButtonText}>
+                    {scanning ? 'Scanning...' : 'Scan for Printers'}
+                  </Text>
+                </Pressable>
+
+                {error && (
+                  <Text style={styles.errorText}>{error}</Text>
+                )}
+
+                {scanning ? (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color="#007AFF" />
+                    <Text style={styles.loadingText}>Scanning for printers...</Text>
+                  </View>
+                ) : (
+                  <FlatList
+                    data={printers}
+                    renderItem={({ item }) => (
+                      <Pressable
+                        style={[
+                          styles.printerItem,
+                          item.deviceId === settings.printer?.deviceId && styles.selectedItem,
+                        ]}
+                        onPress={() => handleSelectPrinter(item)}>
+                        <View style={styles.printerItemContent}>
+                          <Ionicons
+                            name={item.address ? "bluetooth" : "print"}
+                            size={24}
+                            color="#007AFF"
+                          />
+                          <View style={styles.printerDetails}>
+                            <Text style={styles.printerName}>{item.deviceName}</Text>
+                            <Text style={styles.printerAddress}>
+                              {item.address || 'USB Printer'}
+                            </Text>
+                          </View>
+                        </View>
+                        {item.deviceId === settings.printer?.deviceId && (
+                          <Ionicons name="checkmark" size={24} color="#007AFF" />
+                        )}
+                      </Pressable>
+                    )}
+                    keyExtractor={(item) => item.deviceId}
+                    ListEmptyComponent={
+                      !scanning && (
+                        <Text style={styles.emptyText}>
+                          No printers found. Make sure your printer is turned on and nearby.
+                        </Text>
+                      )
+                    }
+                  />
+                )}
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Store Information Modal */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -188,56 +321,87 @@ export default function SettingsScreen() {
                 <Ionicons name="close" size={24} color="#666" />
               </Pressable>
             </View>
-            <Text style={styles.label}>Name</Text>
-            <TextInput
-              style={styles.input}
-              value={storeInfo.name}
-              onChangeText={(text) => setStoreInfo({ ...storeInfo, name: text })}
-              placeholder="Enter store name"
-            />
-            <Text style={styles.label}>Address</Text>
-            <TextInput
-              style={styles.input}
-              value={storeInfo.address}
-              onChangeText={(text) => setStoreInfo({ ...storeInfo, address: text })}
-              placeholder="Enter store address"
-            />
-            <Text style={styles.label}>Phone</Text>
-            <TextInput
-              style={styles.input}
-              value={storeInfo.phone}
-              onChangeText={(text) => setStoreInfo({ ...storeInfo, phone: text })}
-              placeholder="Enter phone number"
-              keyboardType="phone-pad"
-            />
-            <Text style={styles.label}>Email</Text>
-            <TextInput
-              style={styles.input}
-              value={storeInfo.email}
-              onChangeText={(text) => setStoreInfo({ ...storeInfo, email: text })}
-              placeholder="Enter email address"
-              keyboardType="email-address"
-            />
-            <Text style={styles.label}>Website</Text>
-            <TextInput
-              style={styles.input}
-              value={storeInfo.website}
-              onChangeText={(text) => setStoreInfo({ ...storeInfo, website: text })}
-              placeholder="Enter website"
-            />
-            <Text style={styles.label}>Tax ID</Text>
-            <TextInput
-              style={styles.input}
-              value={storeInfo.taxId}
-              onChangeText={(text) => setStoreInfo({ ...storeInfo, taxId: text })}
-              placeholder="Enter tax ID"
-            />
-            <Pressable
-              style={styles.saveButton}
-              onPress={handleSaveStoreInfo}
-            >
-              <Text style={styles.saveButtonText}>Save</Text>
-            </Pressable>
+            
+            <View style={styles.formContainer}>
+              <View style={styles.formField}>
+                <Text style={styles.label}>Store Name</Text>
+                <TextInput
+                  style={styles.input}
+                  value={storeInfo.name}
+                  onChangeText={(text) => setStoreInfo({ ...storeInfo, name: text })}
+                  placeholder="Enter store name"
+                />
+              </View>
+
+              <View style={styles.formField}>
+                <Text style={styles.label}>Address</Text>
+                <TextInput
+                  style={[styles.input, styles.multilineInput]}
+                  value={storeInfo.address}
+                  onChangeText={(text) => setStoreInfo({ ...storeInfo, address: text })}
+                  placeholder="Enter store address"
+                  multiline
+                />
+              </View>
+
+              <View style={styles.formField}>
+                <Text style={styles.label}>Phone</Text>
+                <TextInput
+                  style={styles.input}
+                  value={storeInfo.phone}
+                  onChangeText={(text) => setStoreInfo({ ...storeInfo, phone: text })}
+                  placeholder="Enter phone number"
+                  keyboardType="phone-pad"
+                />
+              </View>
+
+              <View style={styles.formField}>
+                <Text style={styles.label}>Email</Text>
+                <TextInput
+                  style={styles.input}
+                  value={storeInfo.email}
+                  onChangeText={(text) => setStoreInfo({ ...storeInfo, email: text })}
+                  placeholder="Enter email address"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              </View>
+
+              <View style={styles.formField}>
+                <Text style={styles.label}>Website</Text>
+                <TextInput
+                  style={styles.input}
+                  value={storeInfo.website}
+                  onChangeText={(text) => setStoreInfo({ ...storeInfo, website: text })}
+                  placeholder="Enter website URL"
+                  keyboardType="url"
+                  autoCapitalize="none"
+                />
+              </View>
+
+              <View style={styles.formField}>
+                <Text style={styles.label}>Tax ID</Text>
+                <TextInput
+                  style={styles.input}
+                  value={storeInfo.taxId}
+                  onChangeText={(text) => setStoreInfo({ ...storeInfo, taxId: text })}
+                  placeholder="Enter tax ID"
+                />
+              </View>
+            </View>
+
+            <View style={styles.modalButtons}>
+              <Pressable
+                style={[styles.button, styles.cancelButton]}
+                onPress={() => setShowStoreInfoModal(false)}>
+                <Text style={styles.buttonText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.button, styles.saveButton]}
+                onPress={handleSaveStoreInfo}>
+                <Text style={[styles.buttonText, styles.saveButtonText]}>Save</Text>
+              </Pressable>
+            </View>
           </View>
         </View>
       </Modal>
@@ -335,9 +499,27 @@ const styles = StyleSheet.create({
   selectedItem: {
     backgroundColor: '#f0f9ff',
   },
+  currencyItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  currencySymbol: {
+    fontSize: 20,
+    fontWeight: '600',
+    width: 40,
+  },
+  currencyDetails: {
+    marginLeft: 12,
+  },
   currencyName: {
     fontSize: 16,
     fontWeight: '500',
+  },
+  currencyCode: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
   },
   scanButton: {
     flexDirection: 'row',

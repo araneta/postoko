@@ -1,0 +1,11 @@
+import express from 'express';
+import checkAuth from '../middleware/check-auth';
+import * as PostController from "../controllers/posts";
+import extractFile from '../middleware/file';
+const router = express.Router();
+router.post('', checkAuth, extractFile, PostController.createPost);
+router.put("/:id", checkAuth, extractFile, PostController.updatePost);
+router.get('', PostController.getPosts);
+router.delete('/:id', checkAuth, PostController.deletePost);
+router.get('/:id', PostController.getPost);
+export default router;
