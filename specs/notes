@@ -20,3 +20,5 @@ Apply migrations:
 npx drizzle-kit migrate
 
 Read more about migration process in documentation.
+
+====================

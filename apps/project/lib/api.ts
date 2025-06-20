@@ -1,4 +1,5 @@
-const BASE_URL = 'https://api.example.com';
+//const BASE_URL = 'https://api.example.com';
+const BASE_URL = 'http://localhost:3000/api';
 
 import { Product, Order, Settings } from '../types';
 

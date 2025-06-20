@@ -1,17 +1,23 @@
-import { useSignIn } from '@clerk/clerk-expo'
-import { Link, useRouter } from 'expo-router'
+import { useSignIn, useAuth } from '@clerk/clerk-expo'
+import { Link, useRouter, Redirect } from 'expo-router'
 import { Text, TextInput, TouchableOpacity, View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native'
 import React from 'react'
 import { Ionicons } from '@expo/vector-icons'
 
 export default function Page() {
   const { signIn, setActive, isLoaded } = useSignIn()
+  const { isSignedIn } = useAuth()
   const router = useRouter()
 
   const [emailAddress, setEmailAddress] = React.useState('')
   const [password, setPassword] = React.useState('')
   const [isLoading, setIsLoading] = React.useState(false)
   const [error, setError] = React.useState('')
+
+  // Redirect if already signed in
+  if (isSignedIn) {
+    return <Redirect href="/(tabs)" />
+  }
 
   // Handle the submission of the sign-in form
   const onSignInPress = async () => {

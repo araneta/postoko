@@ -1,11 +1,12 @@
 import * as React from 'react'
 import { Text, TextInput, TouchableOpacity, View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native'
-import { useSignUp } from '@clerk/clerk-expo'
-import { Link, useRouter } from 'expo-router'
+import { useSignUp, useAuth } from '@clerk/clerk-expo'
+import { Link, useRouter, Redirect } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 
 export default function SignUpScreen() {
   const { isLoaded, signUp, setActive } = useSignUp()
+  const { isSignedIn } = useAuth()
   const router = useRouter()
 
   const [emailAddress, setEmailAddress] = React.useState('')
@@ -14,6 +15,11 @@ export default function SignUpScreen() {
   const [code, setCode] = React.useState('')
   const [isLoading, setIsLoading] = React.useState(false)
   const [error, setError] = React.useState('')
+
+  // Redirect if already signed in
+  if (isSignedIn) {
+    return <Redirect href="/(tabs)" />
+  }
 
   // Handle submission of sign-up form
   const onSignUpPress = async () => {

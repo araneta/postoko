@@ -1,13 +1,13 @@
 import { integer, pgTable, varchar, numeric, text, primaryKey, foreignKey, unique, boolean } from "drizzle-orm/pg-core";
 export const usersTable = pgTable("users", {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
-  name: varchar({ length: 255 }).notNull(),
-  age: integer().notNull(),
+  name: varchar({ length: 255 }).notNull(),  
   email: varchar({ length: 255 }).notNull().unique(),
 });
 
 export const productsTable = pgTable("products", {
   id: varchar({ length: 36 }).primaryKey(),
+  storeInfoId: integer().notNull().references(() => storeInfoTable.id),
   name: varchar({ length: 255 }).notNull(),
   price: numeric({ precision: 10, scale: 2 }).notNull(),
   description: text(),
@@ -19,6 +19,7 @@ export const productsTable = pgTable("products", {
 
 export const ordersTable = pgTable("orders", {
   id: varchar({ length: 36 }).primaryKey(),
+  storeInfoId: integer().notNull().references(() => storeInfoTable.id),
   total: numeric({ precision: 10, scale: 2 }).notNull(),
   date: varchar({ length: 50 }).notNull(),
   paymentMethod: varchar({ length: 50 }).notNull(),
@@ -42,10 +43,11 @@ export const currenciesTable = pgTable("currencies", {
 
 export const storeInfoTable = pgTable("store_info", {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  userId: integer().notNull().references(() => usersTable.id),
   name: varchar({ length: 255 }).notNull(),
   address: varchar({ length: 255 }).notNull(),
   phone: varchar({ length: 50 }).notNull(),
-  email: varchar({ length: 255 }).notNull(),
+  email: varchar({ length: 255 }).notNull().unique(),
   website: varchar({ length: 255 }).notNull(),
   taxId: varchar({ length: 50 }).notNull(),
 });

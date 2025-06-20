@@ -42,11 +42,11 @@ const useStore = create<StoreState>((set, get) => ({
   initializeStore: async () => {
     try {
       const [products, orders, settings] = await Promise.all([
-        api.getProducts(),
-        api.getOrders(),
-        api.getSettings()
+        //api.getProducts(),
+        //api.getOrders(),
+        //api.getSettings()
       ]);
-      set({ products, orders, settings });
+      //set({ products, orders, settings });
     } catch (error) {
       console.error('Failed to initialize store:', error);
     }

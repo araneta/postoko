@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Stack, Redirect } from 'expo-router';
+import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator } from 'react-native';
 import { ClerkProvider, useAuth } from '@clerk/clerk-expo'
@@ -30,7 +30,7 @@ function AppContent() {
   useFrameworkReady();
   const initializeStore = useStore(state => state.initializeStore);
   const [initializing, setInitializing] = useState(true);
-  const { isSignedIn, isLoaded } = useAuth();
+  const { isLoaded } = useAuth();
 
   useEffect(() => {
     initializeStore().finally(() => {
@@ -45,11 +45,6 @@ function AppContent() {
         <ActivityIndicator size="large" color="#007AFF" />
       </View>
     );
-  }
-
-  // Redirect authenticated users to tabs, unauthenticated users to home
-  if (isSignedIn) {
-    return <Redirect href="/(tabs)" />;
   }
 
   return (

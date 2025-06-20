@@ -1,7 +1,20 @@
-import { Tabs } from 'expo-router';
+import { Tabs, Redirect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '@clerk/clerk-expo';
 
 export default function TabLayout() {
+  const { isSignedIn, isLoaded } = useAuth();
+
+  // Show loading while auth state is being determined
+  if (!isLoaded) {
+    return null;
+  }
+
+  // Redirect to home if not signed in
+  if (!isSignedIn) {
+    return <Redirect href="/(home)" />;
+  }
+
   return (
     <Tabs
       screenOptions={{
