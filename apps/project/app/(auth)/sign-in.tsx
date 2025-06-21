@@ -3,10 +3,11 @@ import { Link, useRouter, Redirect } from 'expo-router'
 import { Text, TextInput, TouchableOpacity, View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native'
 import React from 'react'
 import { Ionicons } from '@expo/vector-icons'
+import { login, configureAPI } from '../../lib/api'
 
 export default function Page() {
   const { signIn, setActive, isLoaded } = useSignIn()
-  const { isSignedIn } = useAuth()
+  const { isSignedIn, userId } = useAuth()
   const router = useRouter()
 
   const [emailAddress, setEmailAddress] = React.useState('')
@@ -37,6 +38,26 @@ export default function Page() {
       // and redirect the user
       if (signInAttempt.status === 'complete') {
         await setActive({ session: signInAttempt.createdSessionId })
+        
+        // Get the user ID from Clerk
+        const userIdx = signInAttempt.createdSessionId
+        
+        // Call our backend login API with email and Clerk user ID
+        if (userIdx) {
+          try {
+            const { token, userId: serverUserId } = await login(emailAddress)
+            
+            // Configure the API client with the returned credentials
+            configureAPI(serverUserId, token)
+            
+            console.log('Successfully logged in to backend')
+          } catch (apiError) {
+            console.error('Backend login failed:', apiError)
+            // Continue with the flow even if backend login fails
+            // The user is still authenticated with Clerk
+          }
+        }
+        
         router.replace('/(tabs)')
       } else {
         // If the status isn't complete, check why. User might need to

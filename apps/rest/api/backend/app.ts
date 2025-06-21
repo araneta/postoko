@@ -5,10 +5,11 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import 'dotenv/config';
+import { clerkMiddleware } from '@clerk/express';
 
 import productsRoutes from './routes/products';
 import ordersRoutes from './routes/orders';
-
+import authRoutes from './routes/auth';
 const app = express();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -19,6 +20,9 @@ app.use(bodyParser.json());
 app.use("/images", express.static(path.join(__dirname, "images")));
 app.use(cors());
 
+app.use(clerkMiddleware());
+
+app.use('/api/auth',authRoutes);
 app.use('/api/products',productsRoutes);
 app.use('/api/orders',ordersRoutes);
 export default app;

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator } from 'react-native';
-import { ClerkProvider, useAuth } from '@clerk/clerk-expo'
+import { ClerkProvider, useAuth, useUser } from '@clerk/clerk-expo'
 import { tokenCache } from '@clerk/clerk-expo/token-cache'
 
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
@@ -29,15 +29,31 @@ Sentry.init({
 function AppContent() {
   useFrameworkReady();
   const initializeStore = useStore(state => state.initializeStore);
+  const clearStore = useStore(state => state.clearStore);
   const [initializing, setInitializing] = useState(true);
-  const { isLoaded } = useAuth();
+  const { isLoaded, isSignedIn, getToken } = useAuth();
+  const { user } = useUser();
 
   useEffect(() => {
-    initializeStore().finally(() => {
+    // Only initialize store if user is signed in
+    if (isLoaded && isSignedIn && user) {
+      const initializeWithToken = async () => {
+        const token = await getToken();
+        
+        initializeStore(user.id, token || undefined).finally(() => {
+          setInitializing(false);
+          window.frameworkReady?.();
+        });
+      };
+      
+      initializeWithToken();
+    } else if (isLoaded && !isSignedIn) {
+      // User is not signed in, clear store and set initializing to false
+      clearStore();
       setInitializing(false);
       window.frameworkReady?.();
-    });
-  }, []);
+    }
+  }, [isLoaded, isSignedIn, user]);
 
   if (initializing || !isLoaded) {
     return (

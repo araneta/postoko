@@ -1,6 +1,6 @@
 import { integer, pgTable, varchar, numeric, text, primaryKey, foreignKey, unique, boolean } from "drizzle-orm/pg-core";
 export const usersTable = pgTable("users", {
-  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  id: varchar({ length: 255 }).primaryKey(),
   name: varchar({ length: 255 }).notNull(),  
   email: varchar({ length: 255 }).notNull().unique(),
 });
@@ -43,7 +43,7 @@ export const currenciesTable = pgTable("currencies", {
 
 export const storeInfoTable = pgTable("store_info", {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
-  userId: integer().notNull().references(() => usersTable.id),
+  userId: varchar({ length: 255 }).notNull().references(() => usersTable.id),
   name: varchar({ length: 255 }).notNull(),
   address: varchar({ length: 255 }).notNull(),
   phone: varchar({ length: 50 }).notNull(),

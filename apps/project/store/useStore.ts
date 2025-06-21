@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { Product, CartItem, Order, Currency, Settings, StoreInfo, PrinterSettings } from '../types';
-import * as api from '../lib/api';
+import { apiClient, configureAPI } from '../lib/api';
 
 interface StoreState {
   products: Product[];
@@ -19,7 +19,9 @@ interface StoreState {
   updatePrinterSettings: (printerSettings: PrinterSettings) => Promise<void>;
   updateStoreInfo: (storeInfo: StoreInfo) => Promise<void>;
   formatPrice: (price: number) => string;
-  initializeStore: () => Promise<void>;
+  initializeStore: (userId?: string, token?: string) => Promise<void>;
+  clearStore: () => void;
+  userId?: string;
 }
 
 const defaultCurrency: Currency = {
@@ -38,15 +40,22 @@ const useStore = create<StoreState>((set, get) => ({
       type: 'none'
     }
   },
+  userId: undefined,
 
-  initializeStore: async () => {
+  initializeStore: async (userId, token) => {
     try {
+      // Configure the API client with auth
+      configureAPI(userId, token);
+      
+      // Store the user ID for future reference
+      set({ userId });
+      
       const [products, orders, settings] = await Promise.all([
-        //api.getProducts(),
-        //api.getOrders(),
-        //api.getSettings()
+        apiClient.getProducts(),
+        apiClient.getOrders(),
+        apiClient.getSettings()
       ]);
-      //set({ products, orders, settings });
+      set({ products, orders, settings });
     } catch (error) {
       console.error('Failed to initialize store:', error);
     }
@@ -54,7 +63,7 @@ const useStore = create<StoreState>((set, get) => ({
 
   addProduct: async (product) => {
     try {
-      await api.addProduct(product);
+      await apiClient.addProduct(product);
       set(state => ({
         products: [...state.products, product]
       }));
@@ -66,7 +75,7 @@ const useStore = create<StoreState>((set, get) => ({
 
   updateProduct: async (product) => {
     try {
-      await api.updateProduct(product);
+      await apiClient.updateProduct(product);
       set(state => ({
         products: state.products.map(p =>
           p.id === product.id ? product : p
@@ -80,7 +89,7 @@ const useStore = create<StoreState>((set, get) => ({
 
   deleteProduct: async (id) => {
     try {
-      await api.deleteProduct(id);
+      await apiClient.deleteProduct(id);
       set(state => ({
         products: state.products.filter(p => p.id !== id)
       }));
@@ -140,7 +149,7 @@ const useStore = create<StoreState>((set, get) => ({
     };
 
     try {
-      await api.addOrder(order);
+      await apiClient.addOrder(order);
       set(state => ({
         orders: [order, ...state.orders],
         cart: []
@@ -158,7 +167,7 @@ const useStore = create<StoreState>((set, get) => ({
         ...get().settings,
         currency
       };
-      await api.updateSettings(newSettings);
+      await apiClient.updateSettings(newSettings);
       set({ settings: newSettings });
     } catch (error) {
       console.error('Failed to update currency:', error);
@@ -172,7 +181,7 @@ const useStore = create<StoreState>((set, get) => ({
         ...get().settings,
         printer: printerSettings
       };
-      await api.updateSettings(newSettings);
+      await apiClient.updateSettings(newSettings);
       set({ settings: newSettings });
     } catch (error) {
       console.error('Failed to update printer settings:', error);
@@ -186,7 +195,7 @@ const useStore = create<StoreState>((set, get) => ({
         ...get().settings,
         storeInfo
       };
-      await api.updateSettings(newSettings);
+      await apiClient.updateSettings(newSettings);
       set({ settings: newSettings });
     } catch (error) {
       console.error('Failed to update store info:', error);
@@ -197,6 +206,21 @@ const useStore = create<StoreState>((set, get) => ({
   formatPrice: (price: number) => {
     const { settings } = get();
     return `${settings.currency.symbol}${price.toFixed(2)}`;
+  },
+
+  clearStore: () => {
+    set({
+      products: [],
+      cart: [],
+      orders: [],
+      settings: {
+        currency: defaultCurrency,
+        printer: {
+          type: 'none'
+        }
+      },
+      userId: undefined
+    });
   }
 }));
 
