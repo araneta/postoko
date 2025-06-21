@@ -8,8 +8,7 @@ class APIClient {
   private userId?: string;
   private token?: string;
 
-  setAuth(userId?: string, token?: string) {
-    this.userId = userId;
+  setAuth( token?: string) {    
     this.token = token;
   }
 
@@ -24,9 +23,9 @@ class APIClient {
     }
     
     // Add user ID to headers if available
-    if (this.userId) {
-      headers['X-User-ID'] = this.userId;
-    }
+    //if (this.userId) {
+      //headers['X-User-ID'] = this.userId;
+    //}
 
     // Add JWT token to Authorization header if available
     if (this.token) {
@@ -91,8 +90,8 @@ class APIClient {
   }
 
   // Authentication
-  async login(email: string): Promise<{ token: string; userId: string }> {
-    return this.fetchJSON<{ token: string; userId: string }>(`${BASE_URL}/auth/login`, {
+  async login(email: string): Promise<{ id: string }> {
+    return this.fetchJSON<{ id: string }>(`${BASE_URL}/auth/login`, {
       method: 'POST',
       body: JSON.stringify({ email }),
     });
@@ -106,9 +105,9 @@ const apiClient = new APIClient();
 export { apiClient };
 
 // Helper function to configure the API client with auth
-export function configureAPI(userId?: string, token?: string) {
-  console.log('Configuring API with userId:', userId, 'and token:', token);
-  apiClient.setAuth(userId, token);
+export function configureAPI(token?: string) {
+  console.log('Configuring API with token:', token);
+  apiClient.setAuth( token);
 }
 
 // Export individual functions for backward compatibility (optional)

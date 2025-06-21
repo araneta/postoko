@@ -1,8 +1,10 @@
-import { integer, pgTable, varchar, numeric, text, primaryKey, foreignKey, unique, boolean } from "drizzle-orm/pg-core";
+import { integer, pgTable, varchar, numeric, text, primaryKey, foreignKey, unique, boolean, timestamp } from "drizzle-orm/pg-core";
 export const usersTable = pgTable("users", {
   id: varchar({ length: 255 }).primaryKey(),
   name: varchar({ length: 255 }).notNull(),  
   email: varchar({ length: 255 }).notNull().unique(),
+  lastLogin: timestamp(),
+  lastIp: varchar({ length: 50 }),
 });
 
 export const productsTable = pgTable("products", {

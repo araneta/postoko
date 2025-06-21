@@ -19,7 +19,7 @@ interface StoreState {
   updatePrinterSettings: (printerSettings: PrinterSettings) => Promise<void>;
   updateStoreInfo: (storeInfo: StoreInfo) => Promise<void>;
   formatPrice: (price: number) => string;
-  initializeStore: (userId?: string, token?: string) => Promise<void>;
+  initializeStore: () => Promise<void>;
   clearStore: () => void;
   userId?: string;
 }
@@ -42,13 +42,9 @@ const useStore = create<StoreState>((set, get) => ({
   },
   userId: undefined,
 
-  initializeStore: async (userId, token) => {
+  initializeStore: async () => {
     try {
-      // Configure the API client with auth
-      configureAPI(userId, token);
-      
-      // Store the user ID for future reference
-      set({ userId });
+     
       
       const [products, orders, settings] = await Promise.all([
         apiClient.getProducts(),

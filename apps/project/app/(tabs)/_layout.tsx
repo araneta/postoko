@@ -1,9 +1,18 @@
 import { Tabs, Redirect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@clerk/clerk-expo';
+import useStore from '@/store/useStore';
+import { useEffect } from 'react';
 
 export default function TabLayout() {
   const { isSignedIn, isLoaded } = useAuth();
+  const initializeStore = useStore(state => state.initializeStore);
+
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      initializeStore();
+    }
+  }, [isLoaded, isSignedIn]);
 
   // Show loading while auth state is being determined
   if (!isLoaded) {

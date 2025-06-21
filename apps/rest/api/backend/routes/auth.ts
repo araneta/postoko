@@ -4,5 +4,6 @@ const router = express.Router();
 
 
 router.post('/login', usersController.login);
+router.get('/jwt-token', usersController.getJwtToken);
 
 export default router;

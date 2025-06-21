@@ -12,12 +12,20 @@ export default class SettingsController {
         if (!auth.userId) {
             return res.status(401).send('Unauthorized');
         }
+        console.log('userId',auth.userId);
+        
+        
         try {
-            const products = await db.select()
+            const settings = await db.select()
             .from(storeInfoTable)
             .leftJoin(settingsTable, eq(storeInfoTable.id, settingsTable.storeInfoId))
-            .where(eq(storeInfoTable.userId, auth.userId))
-            res.status(200).json(products);
+            .where(eq(storeInfoTable.userId, auth.userId));
+            if(settings.length === 0){
+                return res.status(200).json(null);
+            }else{
+                return res.status(200).json(settings[0]);
+            }
+            
         } catch (error) {
             console.error(error);
             res.status(500).json({ message: 'Error fetching products' });

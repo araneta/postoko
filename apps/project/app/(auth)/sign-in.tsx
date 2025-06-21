@@ -3,11 +3,11 @@ import { Link, useRouter, Redirect } from 'expo-router'
 import { Text, TextInput, TouchableOpacity, View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native'
 import React from 'react'
 import { Ionicons } from '@expo/vector-icons'
-import { login, configureAPI } from '../../lib/api'
+import { login, configureAPI , getSettings} from '../../lib/api'
 
 export default function Page() {
   const { signIn, setActive, isLoaded } = useSignIn()
-  const { isSignedIn, userId } = useAuth()
+  const { isSignedIn, userId, getToken } = useAuth()
   const router = useRouter()
 
   const [emailAddress, setEmailAddress] = React.useState('')
@@ -45,12 +45,25 @@ export default function Page() {
         // Call our backend login API with email and Clerk user ID
         if (userIdx) {
           try {
-            const { token, userId: serverUserId } = await login(emailAddress)
+            const token = await getToken()
             
             // Configure the API client with the returned credentials
-            configureAPI(serverUserId, token)
+            if (token) {              
+              configureAPI(token);
+              const { id } = await login(emailAddress)
+              console.log('id', id)  
+              const storeInfo = await getSettings();
+              console.log('settings', storeInfo);
+              if(!storeInfo){
+                router.replace('/(tabs)/settings')
+                return;
+              }
+              
+            }else{
+              console.log('Failed to get token or user ID')
+            }
             
-            console.log('Successfully logged in to backend')
+            
           } catch (apiError) {
             console.error('Backend login failed:', apiError)
             // Continue with the flow even if backend login fails

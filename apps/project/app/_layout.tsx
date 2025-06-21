@@ -38,12 +38,12 @@ function AppContent() {
     // Only initialize store if user is signed in
     if (isLoaded && isSignedIn && user) {
       const initializeWithToken = async () => {
-        const token = await getToken();
+        //const token = await getToken();
         
-        initializeStore(user.id, token || undefined).finally(() => {
+        //initializeStore().finally(() => {
           setInitializing(false);
           window.frameworkReady?.();
-        });
+        //});
       };
       
       initializeWithToken();
