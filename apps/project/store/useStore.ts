@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { Product, CartItem, Order, Currency, Settings, StoreInfo, PrinterSettings } from '../types';
 import { apiClient, configureAPI } from '../lib/api';
+import { safeToFixed } from '../utils/formatters';
 
 interface StoreState {
   products: Product[];
@@ -216,7 +217,7 @@ const useStore = create<StoreState>((set, get) => ({
 
   formatPrice: (price: number) => {
     const { settings } = get();
-    return `${settings.currency.symbol}${price.toFixed(2)}`;
+    return `${settings.currency.symbol}${safeToFixed(price)}`;
   },
 
   clearStore: () => {

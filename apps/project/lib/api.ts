@@ -2,6 +2,7 @@
 const BASE_URL = 'http://localhost:3000/api';
 
 import { Product, Order, Settings } from '../types';
+import { safeToNumber, safeToInteger } from '../utils/formatters';
 
 // API Client class to handle authentication
 class APIClient {
@@ -52,7 +53,13 @@ class APIClient {
 
   // Products
   async getProducts(): Promise<Product[]> {
-    return this.fetchJSON<Product[]>(`${BASE_URL}/products`);
+    const products = await this.fetchJSON<Product[]>(`${BASE_URL}/products`);
+    // Normalize the data to ensure price and stock are numbers
+    return products.map(product => ({
+      ...product,
+      price: safeToNumber(product.price),
+      stock: safeToInteger(product.stock),
+    }));
   }
 
   async addProduct(product: Product): Promise<void> {
@@ -77,7 +84,17 @@ class APIClient {
 
   // Orders
   async getOrders(): Promise<Order[]> {
-    return this.fetchJSON<Order[]>(`${BASE_URL}/orders`);
+    const orders = await this.fetchJSON<Order[]>(`${BASE_URL}/orders`);
+    // Normalize the data to ensure totals and item prices are numbers
+    return orders.map(order => ({
+      ...order,
+      total: safeToNumber(order.total),
+      items: order.items.map(item => ({
+        ...item,
+        price: safeToNumber(item.price),
+        stock: safeToInteger(item.stock),
+      })),
+    }));
   }
 
   async addOrder(order: Order): Promise<void> {

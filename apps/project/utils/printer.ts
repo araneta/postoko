@@ -1,4 +1,5 @@
 import { Order, PrinterDevice } from '../types';
+import { safeToFixed, safeToNumber, safeToInteger } from './formatters';
 
 // Web printer implementation remains unchanged
 const webPrinter = {
@@ -77,14 +78,19 @@ const webPrinter = {
           <div class="divider"></div>
 
           <div>
-            ${order.items.map(item => `
-              <div class="item">
-                <div>${item.name}</div>
-                <div class="item-details">
-                  ${item.quantity} x $${item.price.toFixed(2)} = $${(item.quantity * item.price).toFixed(2)}
+            ${order.items.map(item => {
+              const price = safeToNumber(item.price);
+              const quantity = safeToInteger(item.quantity);
+              const itemTotal = price * quantity;
+              return `
+                <div class="item">
+                  <div>${item.name}</div>
+                  <div class="item-details">
+                    ${quantity} x $${safeToFixed(price)} = $${safeToFixed(itemTotal)}
+                  </div>
                 </div>
-              </div>
-            `).join('')}
+              `;
+            }).join('')}
           </div>
 
           <div class="divider"></div>
@@ -92,7 +98,7 @@ const webPrinter = {
           <div class="total">
             <div class="item">
               <div>Total:</div>
-              <div>$${order.total.toFixed(2)}</div>
+              <div>$${safeToFixed(order.total)}</div>
             </div>
             <div>Payment Method: ${order.paymentMethod}</div>
           </div>
