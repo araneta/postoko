@@ -5,5 +5,6 @@ const router = express.Router();
 
 
 router.get('',requireAuth(), ProductsController.getProducts);
+router.post('', requireAuth(), ProductsController.createProduct);
 
 export default router;
