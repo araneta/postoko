@@ -30,6 +30,15 @@ const defaultCurrency: Currency = {
   name: 'US Dollar'
 };
 
+const defaultStoreInfo = {
+  name: '',
+  address: '',
+  phone: '',
+  email: '',
+  website: '',
+  taxId: '',
+};
+
 const useStore = create<StoreState>((set, get) => ({
   products: [],
   cart: [],
@@ -38,20 +47,26 @@ const useStore = create<StoreState>((set, get) => ({
     currency: defaultCurrency,
     printer: {
       type: 'none'
-    }
+    },
+    storeInfo: defaultStoreInfo,
   },
   userId: undefined,
 
   initializeStore: async () => {
     try {
-     
-      
       const [products, orders, settings] = await Promise.all([
         apiClient.getProducts(),
         apiClient.getOrders(),
         apiClient.getSettings()
       ]);
-      set({ products, orders, settings });
+      set({
+        products,
+        orders,
+        settings: {
+          ...settings,
+          storeInfo: settings.storeInfo ?? defaultStoreInfo,
+        },
+      });
     } catch (error) {
       console.error('Failed to initialize store:', error);
     }
@@ -213,7 +228,8 @@ const useStore = create<StoreState>((set, get) => ({
         currency: defaultCurrency,
         printer: {
           type: 'none'
-        }
+        },
+        storeInfo: defaultStoreInfo,
       },
       userId: undefined
     });

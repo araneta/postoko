@@ -5,7 +5,7 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import 'dotenv/config';
-import { clerkMiddleware } from '@clerk/express';
+import { clerkMiddleware,requireAuth } from '@clerk/express';
 
 import productsRoutes from './routes/products';
 import ordersRoutes from './routes/orders';
@@ -22,6 +22,8 @@ app.use("/images", express.static(path.join(__dirname, "images")));
 app.use(cors());
 
 app.use(clerkMiddleware());
+
+
 
 app.use('/api/auth',authRoutes);
 app.use('/api/products',productsRoutes);

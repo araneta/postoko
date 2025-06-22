@@ -43,6 +43,15 @@ export interface Settings {
   storeInfo?: StoreInfo;
 }
 
+export interface PrinterDevice {
+  deviceId: string;
+  deviceName: string;
+  address?: string;
+}
+
 export interface PrinterSettings {
-  type: 'none';
+  type: 'none' | 'bluetooth' | 'usb';
+  deviceId?: string;
+  deviceName?: string;
+  address?: string;
 }

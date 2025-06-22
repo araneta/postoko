@@ -1,4 +1,4 @@
-import { Order } from '../types';
+import { Order, PrinterDevice } from '../types';
 
 // Web printer implementation remains unchanged
 const webPrinter = {
@@ -119,4 +119,9 @@ const webPrinter = {
 
 export async function printReceipt(order: Order) {
   return webPrinter.print(order);
+}
+
+export async function scanPrinters(): Promise<PrinterDevice[]> {
+  // Stub: Replace with actual implementation for native platforms
+  return [];
 }

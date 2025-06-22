@@ -5,11 +5,10 @@ import { Product, Order, Settings } from '../types';
 
 // API Client class to handle authentication
 class APIClient {
-  private userId?: string;
-  private token?: string;
+  private getToken?: () => Promise<string | null | undefined>;
 
-  setAuth( token?: string) {    
-    this.token = token;
+  setAuth(getToken?: () => Promise<string | null | undefined>) {
+    this.getToken = getToken;
   }
 
   private async fetchJSON<T>(url: string, options: RequestInit = {}): Promise<T> {
@@ -22,20 +21,31 @@ class APIClient {
       Object.assign(headers, options.headers);
     }
     
-    // Add user ID to headers if available
-    //if (this.userId) {
-      //headers['X-User-ID'] = this.userId;
-    //}
-
-    // Add JWT token to Authorization header if available
-    if (this.token) {
-      headers['Authorization'] = `Bearer ${this.token}`;
+    // Always get the latest token before each request
+    if (this.getToken && typeof this.getToken === 'function') {
+      try {
+        const token = await this.getToken();
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+      } catch (error) {
+        console.warn('Failed to get token:', error);
+        // Continue without token if getToken fails
+      }
     }
 
     const res = await fetch(url, {
       headers,
       ...options,
     });
+
+    if (res.status === 401) {
+      // Redirect to login page
+      window.location.href = "/sign-in";
+      // Optionally, return a rejected promise to stop further processing
+      return Promise.reject(new Error("Unauthorized"));
+    }
+
     if (!res.ok) throw new Error(await res.text());
     return res.json();
   }
@@ -105,9 +115,9 @@ const apiClient = new APIClient();
 export { apiClient };
 
 // Helper function to configure the API client with auth
-export function configureAPI(token?: string) {
-  console.log('Configuring API with token:', token);
-  apiClient.setAuth( token);
+export function configureAPI(getToken?: () => Promise<string | null | undefined>) {
+  console.log('Configuring API with getToken function');
+  apiClient.setAuth(getToken);
 }
 
 // Export individual functions for backward compatibility (optional)

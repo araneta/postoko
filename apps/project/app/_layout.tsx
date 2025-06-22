@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator } from 'react-native';
 import { ClerkProvider, useAuth, useUser } from '@clerk/clerk-expo'
 import { tokenCache } from '@clerk/clerk-expo/token-cache'
+import { configureAPI } from "../lib/api";
 
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import useStore from '../store/useStore';
@@ -54,6 +55,12 @@ function AppContent() {
       window.frameworkReady?.();
     }
   }, [isLoaded, isSignedIn, user]);
+
+  useEffect(() => {
+    if (getToken) {
+      configureAPI(getToken);
+    }
+  }, [getToken]);
 
   if (initializing || !isLoaded) {
     return (

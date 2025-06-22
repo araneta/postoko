@@ -20,21 +20,45 @@ const currencies: Currency[] = [
   { code: 'SGD', symbol: 'S$', name: 'Singapore Dollar' },
 ];
 
+const initialSettings = {
+  currency: { code: 'USD', symbol: '$', name: 'US Dollar' },
+  printer: { type: 'none' },
+  storeInfo: {
+    name: '',
+    address: '',
+    phone: '',
+    email: '',
+    website: '',
+    taxId: '',
+  },
+};
+
 export default function SettingsScreen() {
   const { settings, updateCurrency, updatePrinterSettings, updateStoreInfo } = useStore();
+  if (!settings) {
+    return <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}><ActivityIndicator size="large" color="#007AFF" /></View>;
+  }
   const [showCurrencyModal, setShowCurrencyModal] = useState(false);
   const [showPrinterModal, setShowPrinterModal] = useState(false);
   const [showStoreInfoModal, setShowStoreInfoModal] = useState(false);
   const [printers, setPrinters] = useState<PrinterDevice[]>([]);
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const storeInfoDefaults: Partial<{
+    name: string;
+    address: string;
+    phone: string;
+    email: string;
+    website: string;
+    taxId: string;
+  }> = settings?.storeInfo ?? {};
   const [storeInfo, setStoreInfo] = useState({
-    name: settings.storeInfo?.name || '',
-    address: settings.storeInfo?.address || '',
-    phone: settings.storeInfo?.phone || '',
-    email: settings.storeInfo?.email || '',
-    website: settings.storeInfo?.website || '',
-    taxId: settings.storeInfo?.taxId || '',
+    name: storeInfoDefaults.name || '',
+    address: storeInfoDefaults.address || '',
+    phone: storeInfoDefaults.phone || '',
+    email: storeInfoDefaults.email || '',
+    website: storeInfoDefaults.website || '',
+    taxId: storeInfoDefaults.taxId || '',
   });
 
   const handleScanPrinters = async () => {
@@ -85,7 +109,7 @@ export default function SettingsScreen() {
             <View style={styles.settingInfo}>
               <Text style={styles.settingText}>Currency</Text>
               <Text style={styles.settingDetail}>
-                {settings.currency.name} ({settings.currency.symbol})
+                {settings?.currency.name} ({settings?.currency.symbol})
               </Text>
             </View>
           </View>
@@ -104,7 +128,7 @@ export default function SettingsScreen() {
             <View style={styles.settingInfo}>
               <Text style={styles.settingText}>Receipt Printer</Text>
               <Text style={styles.settingDetail}>
-                {settings.printer?.deviceName || 'No printer configured'}
+                {settings?.printer?.deviceName || 'No printer configured'}
               </Text>
             </View>
           </View>
@@ -120,7 +144,7 @@ export default function SettingsScreen() {
             <View style={styles.settingInfo}>
               <Text style={styles.settingText}>Store Information</Text>
               <Text style={styles.settingDetail}>
-                {settings.storeInfo?.name || 'Not configured'}
+                {settings?.storeInfo?.name || 'Not configured'}
               </Text>
             </View>
           </View>
@@ -193,7 +217,7 @@ export default function SettingsScreen() {
                 <Pressable
                   style={[
                     styles.currencyItem,
-                    item.code === settings.currency.code && styles.selectedItem,
+                    item.code === settings?.currency.code && styles.selectedItem,
                   ]}
                   onPress={() => {
                     updateCurrency(item);
@@ -206,7 +230,7 @@ export default function SettingsScreen() {
                       <Text style={styles.currencyCode}>{item.code}</Text>
                     </View>
                   </View>
-                  {item.code === settings.currency.code && (
+                  {item.code === settings?.currency.code && (
                     <Ionicons name="checkmark" size={24} color="#007AFF" />
                   )}
                 </Pressable>
@@ -268,7 +292,7 @@ export default function SettingsScreen() {
                       <Pressable
                         style={[
                           styles.printerItem,
-                          item.deviceId === settings.printer?.deviceId && styles.selectedItem,
+                          item.deviceId === settings?.printer?.deviceId && styles.selectedItem,
                         ]}
                         onPress={() => handleSelectPrinter(item)}>
                         <View style={styles.printerItemContent}>
@@ -284,7 +308,7 @@ export default function SettingsScreen() {
                             </Text>
                           </View>
                         </View>
-                        {item.deviceId === settings.printer?.deviceId && (
+                        {item.deviceId === settings?.printer?.deviceId && (
                           <Ionicons name="checkmark" size={24} color="#007AFF" />
                         )}
                       </Pressable>

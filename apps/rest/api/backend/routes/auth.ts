@@ -1,9 +1,10 @@
 import express from 'express';
 import usersController from '../controllers/Users';
+import { requireAuth } from '@clerk/express';
 const router = express.Router();
 
 
-router.post('/login', usersController.login);
-router.get('/jwt-token', usersController.getJwtToken);
+router.post('/login',requireAuth(), usersController.login);
+router.get('/jwt-token',requireAuth(), usersController.getJwtToken);
 
 export default router;
