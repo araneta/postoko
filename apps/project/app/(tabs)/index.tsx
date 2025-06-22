@@ -10,6 +10,7 @@ export default function POSScreen() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [amountPaid, setAmountPaid] = useState('');
   const [printError, setPrintError] = useState<string | null>(null);
+  const { formatPrice } = useStore();
 
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const change = parseFloat(amountPaid) - total;
@@ -34,7 +35,7 @@ export default function POSScreen() {
     }
   };
 
-  const quickAmounts = [10, 20, 50, 100];
+  const quickAmounts = [10000, 20000, 50000, 100000];
 
   return (
     <View style={styles.container}>
@@ -75,7 +76,7 @@ export default function POSScreen() {
                 </Pressable>
               </View>
               <Text style={styles.cartItemPrice}>
-                ${(item.price * item.quantity).toFixed(2)}
+                {formatPrice(item.price * item.quantity)}
               </Text>
               <Pressable onPress={() => removeFromCart(item.id)}>
                 <Ionicons name="trash-outline" size={20} color="#FF3B30" />
@@ -86,7 +87,7 @@ export default function POSScreen() {
         />
         <View style={styles.totalContainer}>
           <Text style={styles.totalText}>Total:</Text>
-          <Text style={styles.totalAmount}>${total.toFixed(2)}</Text>
+          <Text style={styles.totalAmount}>{formatPrice(total)}</Text>
         </View>
         <Pressable
           style={[styles.checkoutButton, cart.length === 0 && styles.disabledButton]}
@@ -107,7 +108,7 @@ export default function POSScreen() {
             
             <View style={styles.paymentDetails}>
               <Text style={styles.paymentLabel}>Total Amount:</Text>
-              <Text style={styles.paymentAmount}>${total.toFixed(2)}</Text>
+              <Text style={styles.paymentAmount}>{formatPrice(total)}</Text>
             </View>
 
             <View style={styles.inputContainer}>
@@ -127,7 +128,7 @@ export default function POSScreen() {
                   key={amount}
                   style={styles.quickAmountButton}
                   onPress={() => setAmountPaid(amount.toString())}>
-                  <Text style={styles.quickAmountText}>${amount}</Text>
+                  <Text style={styles.quickAmountText}>{formatPrice(amount)}</Text>
                 </Pressable>
               ))}
             </View>
@@ -139,7 +140,7 @@ export default function POSScreen() {
                   styles.changeAmount,
                   change < 0 ? styles.negativeChange : styles.positiveChange
                 ]}>
-                  ${Math.abs(change).toFixed(2)}
+                  {formatPrice(Math.abs(change))}
                 </Text>
                 <Text style={styles.changeStatus}>
                   {change < 0 ? '(Insufficient payment)' : ''}
