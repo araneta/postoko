@@ -1,9 +1,10 @@
-import { Order, PrinterDevice } from '../types';
+import { Order, PrinterDevice, Settings } from '../types';
 import { safeToFixed, safeToNumber, safeToInteger } from './formatters';
 
 // Web printer implementation remains unchanged
 const webPrinter = {
-  async print(order: Order) {
+  async print(order: Order, settings: Settings, formatPrice: (price: number) => string) {
+    console.log('printing order', order);
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
       throw new Error('Failed to open print window');
@@ -64,21 +65,24 @@ const webPrinter = {
         </head>
         <body>
           <div class="header">
-            <div class="store-name">Your Store Name</div>
-            <div>123 Store Street</div>
-            <div>City, Country</div>
+            <div class="store-name">${settings.storeInfo?.name || 'N/A'}</div>
+            <div>${settings.storeInfo?.address || 'N/A'}</div>
+            <div>${settings.storeInfo?.phone || 'N/A'}</div>
+            <div>${settings.storeInfo?.email || 'N/A'}</div>
+            <div>${settings.storeInfo?.website || 'N/A'}</div>
+            <div>${settings.storeInfo?.taxId || 'N/A'}</div>
           </div>
 
           <div>
-            <div>Order #${order.id}</div>
-            <div>Date: ${new Date(order.date).toLocaleDateString()}</div>
-            <div>Time: ${new Date(order.date).toLocaleTimeString()}</div>
+            <div>Order #${order.id || 'N/A'}</div>
+            <div>Date: ${order.date ? new Date(order.date).toLocaleDateString() : 'N/A'}</div>
+            <div>Time: ${order.date ? new Date(order.date).toLocaleTimeString() : 'N/A'}</div>
           </div>
 
           <div class="divider"></div>
 
           <div>
-            ${order.items.map(item => {
+            ${(order.items || []).map(item => {
               const price = safeToNumber(item.price);
               const quantity = safeToInteger(item.quantity);
               const itemTotal = price * quantity;
@@ -86,7 +90,7 @@ const webPrinter = {
                 <div class="item">
                   <div>${item.name}</div>
                   <div class="item-details">
-                    ${quantity} x $${safeToFixed(price)} = $${safeToFixed(itemTotal)}
+                    ${quantity} x ${formatPrice(price)} = ${formatPrice(itemTotal)}
                   </div>
                 </div>
               `;
@@ -98,9 +102,9 @@ const webPrinter = {
           <div class="total">
             <div class="item">
               <div>Total:</div>
-              <div>$${safeToFixed(order.total)}</div>
+              <div>${formatPrice(order.total || 0)}</div>
             </div>
-            <div>Payment Method: ${order.paymentMethod}</div>
+            <div>Payment Method: ${order.paymentMethod || 'N/A'}</div>
           </div>
 
           <div class="footer">
@@ -123,8 +127,9 @@ const webPrinter = {
   },
 };
 
-export async function printReceipt(order: Order) {
-  return webPrinter.print(order);
+export async function printReceipt(order: Order, settings: Settings, formatPrice: (price: number) => string) {
+  console.log('printing receipt', order, settings);
+  return webPrinter.print(order, settings, formatPrice);
 }
 
 export async function scanPrinters(): Promise<PrinterDevice[]> {

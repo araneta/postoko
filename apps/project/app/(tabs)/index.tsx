@@ -6,23 +6,24 @@ import useStore from '../../store/useStore';
 import { printReceipt } from '../../utils/printer';
 
 export default function POSScreen() {
-  const { products, cart, addToCart, removeFromCart, updateCartItemQuantity, createOrder, settings } = useStore();
+  const { products, cart, addToCart, removeFromCart, updateCartItemQuantity, createOrder, settings, formatPrice } = useStore();
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [amountPaid, setAmountPaid] = useState('');
   const [printError, setPrintError] = useState<string | null>(null);
-  const { formatPrice } = useStore();
+  
 
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const change = parseFloat(amountPaid) - total;
 
   const handlePayment = async () => {
     if (parseFloat(amountPaid) >= total) {
-      const order = createOrder('cash');
+      const order = await createOrder('cash');
+      console.log('order', order);
       setShowPaymentModal(false);
       setAmountPaid('');
 
       try {
-        await printReceipt(order, settings.printer);
+        await printReceipt(order, settings, formatPrice);
       } catch (error) {
         if (Platform.OS === 'web') {
           // On web, errors are less critical as the browser handles printing
