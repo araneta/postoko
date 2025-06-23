@@ -19,7 +19,7 @@ const formatDateTime = (dateString: string) => {
 };
 
 export default function OrdersScreen() {
-  const { orders } = useStore();
+  const { orders,formatPrice } = useStore();
 
   return (
     <View style={styles.container}>
@@ -51,7 +51,7 @@ export default function OrdersScreen() {
                     <Text style={styles.itemName}>{orderItem.name}</Text>
                     <Text style={styles.itemQuantity}>x{orderItem.quantity}</Text>
                     <Text style={styles.itemPrice}>
-                      ${(orderItem.price * orderItem.quantity).toFixed(2)}
+                      {formatPrice(orderItem.price * orderItem.quantity)}
                     </Text>
                   </View>
                 ))}
@@ -61,7 +61,7 @@ export default function OrdersScreen() {
                   Paid with {item.paymentMethod}
                 </Text>
                 <Text style={styles.orderTotal}>
-                  Total: ${item.total.toFixed(2)}
+                  Total: {formatPrice(item.total)}
                 </Text>
               </View>
             </View>

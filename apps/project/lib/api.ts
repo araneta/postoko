@@ -55,7 +55,7 @@ class APIClient {
   async getProducts(): Promise<Product[]> {
     const products = await this.fetchJSON<Product[]>(`${BASE_URL}/products`);
     // Normalize the data to ensure price and stock are numbers
-    return products.map(product => ({
+    return (products || []).map(product => ({
       ...product,
       price: safeToNumber(product.price),
       stock: safeToInteger(product.stock),
@@ -89,7 +89,7 @@ class APIClient {
     return orders.map(order => ({
       ...order,
       total: safeToNumber(order.total),
-      items: order.items.map(item => ({
+      items: (order.items || []).map(item => ({
         ...item,
         price: safeToNumber(item.price),
         stock: safeToInteger(item.stock),
