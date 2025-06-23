@@ -7,6 +7,7 @@ import { useEffect } from 'react';
 export default function TabLayout() {
   const { isSignedIn, isLoaded } = useAuth();
   const initializeStore = useStore(state => state.initializeStore);
+  const settings = useStore(state => state.settings);
 
   useEffect(() => {
     if (isLoaded && isSignedIn) {
@@ -22,6 +23,11 @@ export default function TabLayout() {
   // Redirect to home if not signed in
   if (!isSignedIn) {
     return <Redirect href="/(home)" />;
+  }
+
+  // Redirect to settings if storeInfo is missing or empty
+  if (!settings?.storeInfo || !settings.storeInfo.name) {
+    return <Redirect href="/settings" />;
   }
 
   return (

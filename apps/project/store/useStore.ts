@@ -63,10 +63,16 @@ const useStore = create<StoreState>((set, get) => ({
       set({
         products,
         orders,
-        settings: {
-          ...settings,
-          storeInfo: settings.storeInfo ?? defaultStoreInfo,
-        },
+        settings: settings
+          ? {
+              ...settings,
+              storeInfo: settings.storeInfo ?? defaultStoreInfo,
+            }
+          : {
+              currency: defaultCurrency,
+              printer: { type: 'none' },
+              storeInfo: defaultStoreInfo,
+            },
       });
     } catch (error) {
       console.error('Failed to initialize store:', error);

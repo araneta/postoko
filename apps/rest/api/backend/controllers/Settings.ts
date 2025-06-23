@@ -21,7 +21,48 @@ export default class SettingsController {
                 .leftJoin(settingsTable, eq(storeInfoTable.id, settingsTable.storeInfoId))
                 .where(eq(storeInfoTable.userId, auth.userId));
             if(settings.length === 0){
-                return res.status(200).json(null);
+                // Insert dummy store info
+                const insertedStore = await db.insert(storeInfoTable).values({
+                    userId: auth.userId,
+                    name: 'Demo Store',
+                    address: '123 Demo St',
+                    phone: '1234567890',
+                    email: 'demo@store.com',
+                    website: 'www.demostore.com',
+                    taxId: 'TAX123456'
+                }).returning();
+                const storeInfoId = insertedStore[0].id;
+
+                // Insert dummy printer
+                const insertedPrinter = await db.insert(printerSettingsTable).values({
+                    type: 'thermal'
+                }).returning();
+                const printerSettingsId = insertedPrinter[0].id;
+
+                // Insert dummy currency
+                const dummyCurrency = { code: 'USD', symbol: '$', name: 'US Dollar' };
+                await db.insert(currenciesTable).values(dummyCurrency);
+
+                // Insert dummy settings
+                await db.insert(settingsTable).values({
+                    currencyCode: dummyCurrency.code,
+                    printerSettingsId: printerSettingsId,
+                    storeInfoId: storeInfoId
+                });
+
+                // Return the dummy data in the same format as the rest of the method
+                return res.status(200).json({
+                    currency: dummyCurrency,
+                    printer: { type: 'thermal' },
+                    storeInfo: {
+                        name: 'Demo Store',
+                        address: '123 Demo St',
+                        phone: '1234567890',
+                        email: 'demo@store.com',
+                        website: 'www.demostore.com',
+                        taxId: 'TAX123456'
+                    }
+                });
             } else {
                 const settingsData = settings[0];
                 if (!settingsData.settings) {
