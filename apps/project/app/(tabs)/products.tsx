@@ -8,11 +8,14 @@ import {
   Pressable,
   Modal,
   Alert,
+  Image,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import ProductCard from '../../components/ProductCard';
 import useStore from '../../store/useStore';
 import { Product } from '../../types';
+import { pickImage, takePhoto, uploadImageLocally } from '../../lib/imageUpload';
 
 const initialFormData = {
   name: '',
@@ -20,6 +23,7 @@ const initialFormData = {
   stock: '',
   category: '',
   description: '',
+  image: '',
 };
 
 export default function ProductsScreen() {
@@ -29,8 +33,9 @@ export default function ProductsScreen() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [formData, setFormData] = useState(initialFormData);
+  const [isUploading, setIsUploading] = useState(false);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const product: Product = {
       id: editingProduct?.id || Date.now().toString(),
       name: formData.name,
@@ -38,17 +43,22 @@ export default function ProductsScreen() {
       stock: parseInt(formData.stock),
       category: formData.category,
       description: formData.description,
+      image: formData.image || undefined,
     };
 
-    if (editingProduct) {
-      updateProduct(product);
-    } else {
-      addProduct(product);
-    }
+    try {
+      if (editingProduct) {
+        await updateProduct(product);
+      } else {
+        await addProduct(product);
+      }
 
-    setModalVisible(false);
-    setEditingProduct(null);
-    setFormData(initialFormData);
+      setModalVisible(false);
+      setEditingProduct(null);
+      setFormData(initialFormData);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to save product. Please try again.');
+    }
   };
 
   const handleEdit = (product: Product) => {
@@ -59,6 +69,7 @@ export default function ProductsScreen() {
       stock: product.stock.toString(),
       category: product.category,
       description: product.description || '',
+      image: product.image || '',
     });
     setModalVisible(true);
   };
@@ -80,6 +91,35 @@ export default function ProductsScreen() {
       setDeleteModalVisible(false);
       setProductToDelete(null);
     }
+  };
+
+  const handleImagePicker = async (useCamera: boolean = false) => {
+    try {
+      const imageUri = useCamera ? await takePhoto() : await pickImage();
+      
+      if (imageUri) {
+        setIsUploading(true);
+        
+        // Generate a unique filename
+        const fileName = `product_${Date.now()}.jpg`;
+        
+        // Upload to ImageKit
+        const uploadResult = await uploadImageLocally(imageUri, fileName);
+        
+        // Update form data with the uploaded image URL
+        setFormData({ ...formData, image: uploadResult.url });
+        
+        setIsUploading(false);
+      }
+    } catch (error) {
+      setIsUploading(false);
+      Alert.alert('Error', 'Failed to upload image. Please try again.');
+      console.error('Image upload error:', error);
+    }
+  };
+
+  const removeImage = () => {
+    setFormData({ ...formData, image: '' });
   };
 
   return (
@@ -129,6 +169,50 @@ export default function ProductsScreen() {
             <Text style={styles.modalTitle}>
               {editingProduct ? 'Edit Product' : 'Add New Product'}
             </Text>
+
+            {/* Image Upload Section */}
+            <View style={styles.imageSection}>
+              <Text style={styles.sectionTitle}>Product Image</Text>
+              
+              {formData.image ? (
+                <View style={styles.imagePreviewContainer}>
+                  <Image
+                    source={{ uri: formData.image }}
+                    style={styles.imagePreview}
+                  />
+                  <Pressable
+                    style={styles.removeImageButton}
+                    onPress={removeImage}>
+                    <Ionicons name="close-circle" size={24} color="#FF3B30" />
+                  </Pressable>
+                </View>
+              ) : (
+                <View style={styles.imageUploadContainer}>
+                  <Pressable
+                    style={styles.imageUploadButton}
+                    onPress={() => handleImagePicker(false)}
+                    disabled={isUploading}>
+                    <Ionicons name="image-outline" size={32} color="#007AFF" />
+                    <Text style={styles.imageUploadText}>Choose from Gallery</Text>
+                  </Pressable>
+                  
+                  <Pressable
+                    style={styles.imageUploadButton}
+                    onPress={() => handleImagePicker(true)}
+                    disabled={isUploading}>
+                    <Ionicons name="camera-outline" size={32} color="#007AFF" />
+                    <Text style={styles.imageUploadText}>Take Photo</Text>
+                  </Pressable>
+                </View>
+              )}
+              
+              {isUploading && (
+                <View style={styles.uploadingContainer}>
+                  <ActivityIndicator size="small" color="#007AFF" />
+                  <Text style={styles.uploadingText}>Uploading image...</Text>
+                </View>
+              )}
+            </View>
 
             <TextInput
               style={styles.input}
@@ -339,5 +423,55 @@ const styles = StyleSheet.create({
   },
   deleteButtonText: {
     color: 'white',
+  },
+  imageSection: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  imagePreviewContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  imagePreview: {
+    width: 100,
+    height: 100,
+    borderRadius: 8,
+    marginRight: 8,
+  },
+  removeImageButton: {
+    padding: 8,
+  },
+  imageUploadContainer: {
+    flexDirection: 'column',
+    gap: 8,
+    marginBottom: 12,
+  },
+  imageUploadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#e5e5e5',
+    borderRadius: 8,
+    backgroundColor: '#f9f9f9',
+  },
+  imageUploadText: {
+    marginLeft: 8,
+    fontSize: 16,
+  },
+  uploadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  uploadingText: {
+    marginLeft: 8,
+    fontSize: 16,
   },
 });

@@ -6,5 +6,6 @@ const router = express.Router();
 
 router.get('',requireAuth(), ProductsController.getProducts);
 router.post('', requireAuth(), ProductsController.createProduct);
+router.put('/:id', requireAuth(), ProductsController.updateProduct);
 
 export default router;

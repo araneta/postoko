@@ -63,4 +63,42 @@ export default class ProductsController {
             res.status(500).json({ message: 'Error creating product' });
         }
     }
+
+    static async updateProduct(req: Request, res: Response) {
+        const auth = getAuth(req);
+
+        if (!auth.userId) {
+            return res.status(401).send('Unauthorized');
+        }
+        const productId = req.params.id;
+        const {  name, price, stock, category, description } = req.body;
+
+        // Validate required fields
+        if (!name || !price || !stock || !category) {
+            return res.status(400).json({ message: 'Missing required fields: name, price, stock, category' });
+        }
+
+        try {
+            // Update the product
+            const updatedProduct = await db.update(productsTable)
+                .set({
+                    name: name,
+                    price: price,
+                    stock: stock,
+                    category: category,
+                    description: description || null
+                })
+                .where(eq(productsTable.id, productId))
+                .returning();
+
+            if (updatedProduct.length === 0) {
+                return res.status(404).json({ message: 'Product not found' });
+            }
+
+            res.status(200).json(updatedProduct[0]);
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ message: 'Error updating product' });
+        }
+    }
 }
