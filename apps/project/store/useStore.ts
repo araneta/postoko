@@ -66,6 +66,7 @@ const useStore = create<StoreState>((set, get) => ({
         settings: settings
           ? {
               ...settings,
+              currency: settings.currency ?? defaultCurrency,
               storeInfo: settings.storeInfo ?? defaultStoreInfo,
             }
           : {
@@ -223,7 +224,7 @@ const useStore = create<StoreState>((set, get) => ({
 
   formatPrice: (price: number) => {
     const { settings } = get();
-    return `${settings.currency.symbol} ${safeToFixed(price)}`;
+    return `${settings?.currency?.symbol || '$'} ${safeToFixed(price)}`;
   },
 
   clearStore: () => {

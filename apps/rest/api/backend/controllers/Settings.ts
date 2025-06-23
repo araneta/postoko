@@ -139,16 +139,25 @@ export default class SettingsController {
             }
 
             // 2. Upsert printer settings
-            let printerRecord = await db.select().from(printerSettingsTable).where(eq(printerSettingsTable.type, printer.type));
             let printerSettingsId;
-            if (printerRecord.length === 0) {
+            if(!printer || !printer.type){
                 const insertedPrinter = await db.insert(printerSettingsTable).values({
-                    type: printer.type
+                    type: 'none'
                 }).returning();
                 printerSettingsId = insertedPrinter[0].id;
-            } else {
-                printerSettingsId = printerRecord[0].id;
+            }else{
+                let printerRecord = await db.select().from(printerSettingsTable).where(eq(printerSettingsTable.type, printer.type));
+            
+                if (printerRecord.length === 0) {
+                    const insertedPrinter = await db.insert(printerSettingsTable).values({
+                        type: printer.type
+                    }).returning();
+                    printerSettingsId = insertedPrinter[0].id;
+                } else {
+                    printerSettingsId = printerRecord[0].id;
+                }
             }
+            
 
             // 3. Ensure currency exists in currenciesTable
             let currencyRecord = await db.select().from(currenciesTable).where(eq(currenciesTable.code, currency.code));

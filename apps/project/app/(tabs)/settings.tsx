@@ -109,7 +109,7 @@ export default function SettingsScreen() {
             <View style={styles.settingInfo}>
               <Text style={styles.settingText}>Currency</Text>
               <Text style={styles.settingDetail}>
-                {settings?.currency.name} ({settings?.currency.symbol})
+                {settings?.currency?.name || 'Not set'} ({settings?.currency?.symbol || '$'})
               </Text>
             </View>
           </View>
@@ -217,7 +217,7 @@ export default function SettingsScreen() {
                 <Pressable
                   style={[
                     styles.currencyItem,
-                    item.code === settings?.currency.code && styles.selectedItem,
+                    item.code === settings?.currency?.code && styles.selectedItem,
                   ]}
                   onPress={() => {
                     updateCurrency(item);
@@ -230,7 +230,7 @@ export default function SettingsScreen() {
                       <Text style={styles.currencyCode}>{item.code}</Text>
                     </View>
                   </View>
-                  {item.code === settings?.currency.code && (
+                  {item.code === settings?.currency?.code && (
                     <Ionicons name="checkmark" size={24} color="#007AFF" />
                   )}
                 </Pressable>
