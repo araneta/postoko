@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, Switch, Modal, FlatList, ActivityIndicator, TextInput } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Switch, Modal, FlatList, ActivityIndicator, TextInput, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import useStore from '../../store/useStore';
 import { Currency, PrinterDevice } from '../../types';
@@ -95,7 +95,7 @@ export default function SettingsScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       <Text style={styles.title}>Settings</Text>
 
       <View style={styles.section}>
@@ -346,7 +346,7 @@ export default function SettingsScreen() {
               </Pressable>
             </View>
             
-            <View style={styles.formContainer}>
+            <ScrollView style={styles.formContainer}>
               <View style={styles.formField}>
                 <Text style={styles.label}>Store Name</Text>
                 <TextInput
@@ -412,7 +412,7 @@ export default function SettingsScreen() {
                   placeholder="Enter tax ID"
                 />
               </View>
-            </View>
+            </ScrollView>
 
             <View style={styles.modalButtons}>
               <Pressable
@@ -429,7 +429,7 @@ export default function SettingsScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -496,6 +496,7 @@ const styles = StyleSheet.create({
     width: '90%',
     maxWidth: 500,
     maxHeight: '80%',
+    flexDirection: 'column',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -613,6 +614,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   formContainer: {
+    flex: 1,
     padding: 16,
   },
   formField: {
