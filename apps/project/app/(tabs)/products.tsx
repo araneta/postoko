@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import ProductCard from '../../components/ProductCard';
 import useStore from '../../store/useStore';
 import { Product } from '../../types';
-import { pickImage, takePhoto, uploadImageLocally } from '../../lib/imageUpload';
+import { pickImage, takePhoto, uploadImageToImageKit } from '../../lib/imageUpload';
 
 const initialFormData = {
   name: '',
@@ -104,7 +104,7 @@ export default function ProductsScreen() {
         const fileName = `product_${Date.now()}.jpg`;
         
         // Upload to ImageKit
-        const uploadResult = await uploadImageLocally(imageUri, fileName);
+        const uploadResult = await uploadImageToImageKit(imageUri, fileName);
         
         // Update form data with the uploaded image URL
         setFormData({ ...formData, image: uploadResult.url });

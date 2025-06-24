@@ -1,6 +1,5 @@
 import app from "./backend/app";
-const debug = require("debug")("node-angular");
-const http = require("http");
+import http from "http";
 const normalizePort = (val) => {
     var port = parseInt(val.toString(), 10);
     if (isNaN(port)) {
@@ -34,7 +33,7 @@ const onError = (error) => {
 const onListening = () => {
     const addr = server.address();
     const bind = typeof port === "string" ? "pipe " + port : "port " + port;
-    debug("Listening on " + bind);
+    console.log("Listening on " + bind);
 };
 const port = normalizePort(process.env.PORT || "3000");
 app.set("port", port);
