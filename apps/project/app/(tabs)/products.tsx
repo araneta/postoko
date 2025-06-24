@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import ProductCard from '../../components/ProductCard';
 import useStore from '../../store/useStore';
 import { Product } from '../../types';
-import { pickImage, takePhoto, uploadImageToImageKit } from '../../lib/imageUpload';
+import { pickImage, takePhoto, uploadImageToImageKit, checkFileSize } from '../../lib/imageUpload';
 
 const initialFormData = {
   name: '',
@@ -34,6 +34,7 @@ export default function ProductsScreen() {
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [formData, setFormData] = useState(initialFormData);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const handleSave = async () => {
     const product: Product = {
@@ -71,12 +72,14 @@ export default function ProductsScreen() {
       description: product.description || '',
       image: product.image || '',
     });
+    setUploadError(null);
     setModalVisible(true);
   };
 
   const handleAddProduct = () => {
     setEditingProduct(null);
     setFormData(initialFormData);
+    setUploadError(null);
     setModalVisible(true);
   };
 
@@ -94,32 +97,42 @@ export default function ProductsScreen() {
   };
 
   const handleImagePicker = async (useCamera: boolean = false) => {
-    try {
-      const imageUri = useCamera ? await takePhoto() : await pickImage();
-      
-      if (imageUri) {
-        setIsUploading(true);
-        
-        // Generate a unique filename
-        const fileName = `product_${Date.now()}.jpg`;
-        
-        // Upload to ImageKit
-        const uploadResult = await uploadImageToImageKit(imageUri, fileName);
-        
-        // Update form data with the uploaded image URL
-        setFormData({ ...formData, image: uploadResult.url });
-        
-        setIsUploading(false);
+    // Clear any previous errors
+    setUploadError(null);
+    
+    const imageUri = useCamera ? await takePhoto() : await pickImage();
+    
+    if (imageUri) {
+      // Check file size first
+      const sizeError = await checkFileSize(imageUri);
+      if (sizeError) {
+        setUploadError(sizeError);
+        return;
       }
-    } catch (error) {
+      
+      setIsUploading(true);
+      
+      // Generate a unique filename
+      const fileName = `product_${Date.now()}.jpg`;
+      
+      // Upload to ImageKit
+      const uploadResult = await uploadImageToImageKit(imageUri, fileName);
+      
+      // Update form data with the uploaded image URL if upload was successful
+      if (uploadResult) {
+        setFormData({ ...formData, image: uploadResult.url });
+      } else {
+        // Set error message if upload failed
+        setUploadError('Failed to upload image. Please check your connection and try again.');
+      }
+      
       setIsUploading(false);
-      Alert.alert('Error', 'Failed to upload image. Please try again.');
-      console.error('Image upload error:', error);
     }
   };
 
   const removeImage = () => {
     setFormData({ ...formData, image: '' });
+    setUploadError(null);
   };
 
   return (
@@ -163,6 +176,7 @@ export default function ProductsScreen() {
         onRequestClose={() => {
           setModalVisible(false);
           setFormData(initialFormData);
+          setUploadError(null);
         }}>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
@@ -173,6 +187,13 @@ export default function ProductsScreen() {
             {/* Image Upload Section */}
             <View style={styles.imageSection}>
               <Text style={styles.sectionTitle}>Product Image</Text>
+              
+              {uploadError && (
+                <View style={styles.errorContainer}>
+                  <Ionicons name="alert-circle" size={20} color="#FF3B30" />
+                  <Text style={styles.errorText}>{uploadError}</Text>
+                </View>
+              )}
               
               {formData.image ? (
                 <View style={styles.imagePreviewContainer}>
@@ -258,6 +279,7 @@ export default function ProductsScreen() {
                 onPress={() => {
                   setModalVisible(false);
                   setFormData(initialFormData);
+                  setUploadError(null);
                 }}>
                 <Text style={styles.buttonText}>Cancel</Text>
               </Pressable>
@@ -473,5 +495,21 @@ const styles = StyleSheet.create({
   uploadingText: {
     marginLeft: 8,
     fontSize: 16,
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFEBEE',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#FFCDD2',
+  },
+  errorText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: '#FF3B30',
+    flex: 1,
   },
 });
