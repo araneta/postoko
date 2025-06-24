@@ -7,6 +7,22 @@ import { eq,desc } from 'drizzle-orm';
 export default class OrdersController {
     static async getOrders(req: Request, res: Response) {
         try {
+			const auth = getAuth(req);
+
+			if (!auth.userId) {
+				return res.status(401).send('Unauthorized');
+			}
+			 // Get storeInfoId for the authenticated user
+            const storeInfo = await db.select()
+                .from(storeInfoTable)
+                .where(eq(storeInfoTable.userId, auth.userId));
+
+            if (storeInfo.length === 0) {
+                return res.status(400).json({ message: 'Store information not found. Please set up your store first.' });
+            }
+
+            const storeInfoId = storeInfo[0].id;
+            
             // Get orders with their items and product details
             const ordersWithItems = await db
                 .select({
@@ -17,6 +33,7 @@ export default class OrdersController {
                 .from(ordersTable)
                 .leftJoin(orderItemsTable, eq(ordersTable.id, orderItemsTable.orderId))
                 .leftJoin(productsTable, eq(orderItemsTable.productId, productsTable.id))
+                .where(eq(ordersTable.storeInfoId, storeInfoId))
                 .orderBy(desc(ordersTable.date))
                 .limit(20);
 
