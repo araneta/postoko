@@ -22,6 +22,12 @@ interface PaymentModalProps {
   formatPrice: (price: number) => string;
 }
 
+interface CustomAlert {
+  visible: boolean;
+  title: string;
+  message: string;
+}
+
 export default function PaymentModal({
   visible,
   onClose,
@@ -37,6 +43,11 @@ export default function PaymentModal({
   const [cvc, setCvc] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [walletType, setWalletType] = useState<'apple_pay' | 'google_pay' | 'paypal'>('apple_pay');
+  const [customAlert, setCustomAlert] = useState<CustomAlert>({
+    visible: false,
+    title: '',
+    message: '',
+  });
 
   // Get available payment methods from payment service
   const availableMethods = paymentService.getAvailablePaymentMethods();
@@ -59,10 +70,11 @@ export default function PaymentModal({
   const change = parseFloat(amountPaid) - total;
 
   const handlePayment = async () => {
+    console.log('handlePayment');
     if (isProcessing) return;
-
+    console.log('isPaymentEnabled', isPaymentEnabled);
     if (!isPaymentEnabled) {
-      Alert.alert('Payment Disabled', 'Payment processing is not enabled. Please contact your administrator.');
+      showAlert('Payment Disabled', 'Payment processing is not enabled. Please contact your administrator.');
       return;
     }
 
@@ -73,7 +85,7 @@ export default function PaymentModal({
       switch (selectedMethod) {
         case 'cash':
           if (parseFloat(amountPaid) < total) {
-            Alert.alert('Insufficient Payment', 'Amount paid must be at least the total amount.');
+            showAlert('Insufficient Payment', 'Amount paid must be at least the total amount.');
             return;
           }
           paymentDetails = [paymentService.processCashPayment(parseFloat(amountPaid), total)];
@@ -108,25 +120,27 @@ export default function PaymentModal({
       resetForm();
     } catch (error) {
       console.error('Payment error:', error);
-      Alert.alert('Payment Error', error instanceof Error ? error.message : 'Failed to process payment. Please try again.');
+      showAlert('Payment Error', error instanceof Error ? error.message : 'Failed to process payment. Please try again.');
     } finally {
       setIsProcessing(false);
     }
   };
 
   const validateCardInputs = (): boolean => {
+    console.log('validateCardInputs');
     if (!paymentService.validateCardNumber(cardNumber)) {
-      Alert.alert('Invalid Card', 'Please enter a valid card number.');
+      showAlert('Invalid Card', 'Please enter a valid card number.');
+      console.log('Invalid Card');
       return false;
     }
 
     if (!paymentService.validateExpiryDate(parseInt(expiryMonth), parseInt(expiryYear))) {
-      Alert.alert('Invalid Expiry', 'Please enter a valid expiry date.');
+      showAlert('Invalid Expiry', 'Please enter a valid expiry date.');
       return false;
     }
 
     if (!paymentService.validateCVC(cvc)) {
-      Alert.alert('Invalid CVC', 'Please enter a valid CVC.');
+      showAlert('Invalid CVC', 'Please enter a valid CVC.');
       return false;
     }
 
@@ -145,6 +159,22 @@ export default function PaymentModal({
   const formatCardNumberInput = (text: string) => {
     const formatted = paymentService.formatCardNumber(text);
     setCardNumber(formatted);
+  };
+
+  const showAlert = (title: string, message: string) => {
+    setCustomAlert({
+      visible: true,
+      title,
+      message,
+    });
+  };
+
+  const hideAlert = () => {
+    setCustomAlert({
+      visible: false,
+      title: '',
+      message: '',
+    });
   };
 
   // Show warning if payment is disabled
@@ -242,41 +272,40 @@ export default function PaymentModal({
         />
       </View>
 
-      <View style={styles.cardRow}>
-        <View style={styles.cardInputHalf}>
-          <Text style={styles.inputLabel}>Expiry:</Text>
-          <View style={styles.expiryContainer}>
-            <TextInput
-              style={styles.expiryInput}
-              value={expiryMonth}
-              onChangeText={setExpiryMonth}
-              placeholder="MM"
-              maxLength={2}
-              keyboardType="numeric"
-            />
-            <Text style={styles.expirySeparator}>/</Text>
-            <TextInput
-              style={styles.expiryInput}
-              value={expiryYear}
-              onChangeText={setExpiryYear}
-              placeholder="YY"
-              maxLength={2}
-              keyboardType="numeric"
-            />
-          </View>
-        </View>
-        <View style={styles.cardInputHalf}>
-          <Text style={styles.inputLabel}>CVC:</Text>
+      <View style={styles.inputContainer}>
+        <Text style={styles.inputLabel}>Expiry:</Text>
+        <View style={styles.expiryContainer}>
           <TextInput
-            style={styles.cvcInput}
-            value={cvc}
-            onChangeText={setCvc}
-            placeholder="123"
+            style={styles.expiryInput}
+            value={expiryMonth}
+            onChangeText={setExpiryMonth}
+            placeholder="MM"
+            maxLength={2}
+            keyboardType="numeric"
+          />
+          <Text style={styles.expirySeparator}>/</Text>
+          <TextInput
+            style={styles.expiryInput}
+            value={expiryYear}
+            onChangeText={setExpiryYear}
+            placeholder="YYYY"
             maxLength={4}
             keyboardType="numeric"
-            secureTextEntry
           />
         </View>
+      </View>
+
+      <View style={styles.inputContainer}>
+        <Text style={styles.inputLabel}>CVC:</Text>
+        <TextInput
+          style={styles.cvcInput}
+          value={cvc}
+          onChangeText={setCvc}
+          placeholder="123"
+          maxLength={4}
+          keyboardType="numeric"
+          secureTextEntry
+        />
       </View>
     </View>
   );
@@ -410,6 +439,28 @@ export default function PaymentModal({
           </View>
         </View>
       </View>
+
+      {/* Custom Alert Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={customAlert.visible}
+        onRequestClose={hideAlert}>
+        <View style={styles.alertOverlay}>
+          <View style={styles.alertContainer}>
+            <View style={styles.alertHeader}>
+              <Ionicons name="warning" size={24} color="#FF9500" />
+              <Text style={styles.alertTitle}>{customAlert.title}</Text>
+            </View>
+            <Text style={styles.alertMessage}>{customAlert.message}</Text>
+            <Pressable
+              style={styles.alertButton}
+              onPress={hideAlert}>
+              <Text style={styles.alertButtonText}>OK</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </Modal>
   );
 }
@@ -546,10 +597,10 @@ const styles = StyleSheet.create({
   cardRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: 12,
   },
   cardInputHalf: {
     flex: 1,
-    marginHorizontal: 4,
   },
   expiryContainer: {
     flexDirection: 'row',
@@ -575,7 +626,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: 'left',
   },
   quickAmounts: {
     flexDirection: 'row',
@@ -674,6 +725,44 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   completeButtonText: {
+    color: 'white',
+  },
+  alertOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  alertContainer: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 24,
+    width: '90%',
+    maxWidth: 500,
+  },
+  alertHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  alertTitle: {
+    fontSize: 24,
+    fontWeight: '600',
+  },
+  alertMessage: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 24,
+  },
+  alertButton: {
+    backgroundColor: '#007AFF',
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  alertButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
     color: 'white',
   },
 }); 
