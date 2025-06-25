@@ -59,6 +59,15 @@ export const printerSettingsTable = pgTable("printer_settings", {
   type: varchar({ length: 20 }).notNull(), // 'none'
 });
 
+export const paymentSettingsTable = pgTable("payment_settings", {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  storeInfoId: integer().notNull().references(() => storeInfoTable.id),
+  stripePublishableKey: varchar({ length: 255 }),
+  stripeSecretKey: varchar({ length: 255 }),
+  paymentMethods: text().notNull(), // JSON array of payment methods
+  enabled: boolean().notNull().default(true),
+});
+
 export const settingsTable = pgTable("settings", {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
   currencyCode: varchar({ length: 10 }).notNull().references(() => currenciesTable.code),

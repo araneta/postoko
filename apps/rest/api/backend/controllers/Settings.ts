@@ -3,7 +3,7 @@ import {  getAuth } from '@clerk/express';
 import { asc, between, count, eq, getTableColumns, sql } from 'drizzle-orm';
 
 import { db } from '../db';
-import { storeInfoTable, settingsTable, printerSettingsTable, currenciesTable } from '../db/schema';
+import { storeInfoTable, settingsTable, printerSettingsTable, currenciesTable, paymentSettingsTable } from '../db/schema';
 
 export default class SettingsController {
     static async getSettings(req: Request, res: Response) {
@@ -43,6 +43,15 @@ export default class SettingsController {
                 const dummyCurrency = { code: 'USD', symbol: '$', name: 'US Dollar' };
                 await db.insert(currenciesTable).values(dummyCurrency);
 
+                // Insert dummy payment settings
+                await db.insert(paymentSettingsTable).values({
+                    storeInfoId: storeInfoId,
+                    stripePublishableKey: '',
+                    stripeSecretKey: '',
+                    paymentMethods: JSON.stringify(['cash']),
+                    enabled: false
+                });
+
                 // Insert dummy settings
                 await db.insert(settingsTable).values({
                     currencyCode: dummyCurrency.code,
@@ -61,6 +70,12 @@ export default class SettingsController {
                         email: 'demo@store.com',
                         website: 'www.demostore.com',
                         taxId: 'TAX123456'
+                    },
+                    payment: {
+                        stripePublishableKey: '',
+                        stripeSecretKey: '',
+                        paymentMethods: ['cash'],
+                        enabled: false
                     }
                 });
             } else {
@@ -77,12 +92,15 @@ export default class SettingsController {
                             email: settingsData.store_info.email,
                             website: settingsData.store_info.website,
                             taxId: settingsData.store_info.taxId
-                        }
+                        },
+                        payment: null
                     });
                 }
-                // Fetch currency and printer details
+                // Fetch currency, printer, and payment details
                 const [currency] = await db.select().from(currenciesTable).where(eq(currenciesTable.code, settingsData.settings.currencyCode));
                 const [printer] = await db.select().from(printerSettingsTable).where(eq(printerSettingsTable.id, settingsData.settings.printerSettingsId));
+                const [payment] = await db.select().from(paymentSettingsTable).where(eq(paymentSettingsTable.storeInfoId, settingsData.store_info.id));
+                
                 return res.status(200).json({
                     currency: currency ? { code: currency.code, symbol: currency.symbol, name: currency.name } : null,
                     printer: printer ? { type: printer.type } : null,
@@ -93,7 +111,13 @@ export default class SettingsController {
                         email: settingsData.store_info.email,
                         website: settingsData.store_info.website,
                         taxId: settingsData.store_info.taxId
-                    }
+                    },
+                    payment: payment ? {
+                        stripePublishableKey: payment.stripePublishableKey || '',
+                        stripeSecretKey: payment.stripeSecretKey || '',
+                        paymentMethods: payment.paymentMethods ? JSON.parse(payment.paymentMethods) : ['cash'],
+                        enabled: payment.enabled
+                    } : null
                 });
             }
         } catch (error) {
@@ -107,7 +131,7 @@ export default class SettingsController {
         if (!auth.userId) {
             return res.status(401).send('Unauthorized');
         }
-        const { currency, printer, storeInfo } = req.body;
+        const { currency, printer, storeInfo, payment } = req.body;
         try {
             // 1. Upsert storeInfo
             let storeInfoRecord = await db.select().from(storeInfoTable).where(eq(storeInfoTable.userId, auth.userId));
@@ -159,7 +183,28 @@ export default class SettingsController {
             }
             
 
-            // 3. Ensure currency exists in currenciesTable
+            // 3. Upsert payment settings
+            let paymentSettingsRecord = await db.select().from(paymentSettingsTable).where(eq(paymentSettingsTable.storeInfoId, storeInfoId));
+            if (paymentSettingsRecord.length === 0) {
+                await db.insert(paymentSettingsTable).values({
+                    storeInfoId: storeInfoId,
+                    stripePublishableKey: payment?.stripePublishableKey || '',
+                    stripeSecretKey: payment?.stripeSecretKey || '',
+                    paymentMethods: JSON.stringify(payment?.paymentMethods || ['cash']),
+                    enabled: payment?.enabled !== undefined ? payment.enabled : false
+                });
+            } else {
+                await db.update(paymentSettingsTable)
+                    .set({
+                        stripePublishableKey: payment?.stripePublishableKey || '',
+                        stripeSecretKey: payment?.stripeSecretKey || '',
+                        paymentMethods: JSON.stringify(payment?.paymentMethods || ['cash']),
+                        enabled: payment?.enabled !== undefined ? payment.enabled : false
+                    })
+                    .where(eq(paymentSettingsTable.storeInfoId, storeInfoId));
+            }
+
+            // 4. Ensure currency exists in currenciesTable
             let currencyRecord = await db.select().from(currenciesTable).where(eq(currenciesTable.code, currency.code));
             if (currencyRecord.length === 0) {
                 await db.insert(currenciesTable).values({
@@ -169,7 +214,7 @@ export default class SettingsController {
                 });
             }
 
-            // 4. Upsert settings
+            // 5. Upsert settings
             let settingsRecord = await db.select().from(settingsTable).where(eq(settingsTable.storeInfoId, storeInfoId));
             let settingsResult;
             if (settingsRecord.length === 0) {
