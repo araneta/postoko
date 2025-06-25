@@ -25,6 +25,9 @@ export default function ProductCard({ product, onPress, showAddToCart = true }: 
         <Text style={styles.name}>{product.name}</Text>
         <Text style={styles.price}>{formatPrice(product.price)}</Text>
         <Text style={styles.stock}>In Stock: {product.stock}</Text>
+        {product.barcode && (
+          <Text style={styles.barcode}>Barcode: {product.barcode}</Text>
+        )}
       </View>
       {showAddToCart && (
         <View style={styles.addButton}>
@@ -67,6 +70,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   stock: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
+  },
+  barcode: {
     fontSize: 12,
     color: '#666',
     marginTop: 4,

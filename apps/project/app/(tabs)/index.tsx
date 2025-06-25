@@ -2,13 +2,16 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, TextInput, Modal, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import ProductCard from '../../components/ProductCard';
+import BarcodeScanner from '../../components/BarcodeScanner';
 import useStore from '../../store/useStore';
 import { printReceipt } from '../../utils/printer';
 
 export default function POSScreen() {
   const { products, cart, addToCart, removeFromCart, updateCartItemQuantity, createOrder, settings, formatPrice } = useStore();
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showScannerModal, setShowScannerModal] = useState(false);
   const [amountPaid, setAmountPaid] = useState('');
+  const [barcodeInput, setBarcodeInput] = useState('');
   const [printError, setPrintError] = useState<string | null>(null);
   
 
@@ -23,7 +26,9 @@ export default function POSScreen() {
       setAmountPaid('');
 
       try {
-        await printReceipt(order, settings, formatPrice);
+        if (order) {
+          await printReceipt(order, settings, formatPrice);
+        }
       } catch (error) {
         if (Platform.OS === 'web') {
           // On web, errors are less critical as the browser handles printing
@@ -36,11 +41,51 @@ export default function POSScreen() {
     }
   };
 
+  const handleProductScanned = (product: any) => {
+    addToCart(product);
+  };
+
+  const handleManualBarcodeInput = () => {
+    if (barcodeInput.trim()) {
+      const product = products.find(p => p.barcode === barcodeInput.trim());
+      if (product) {
+        addToCart(product);
+        setBarcodeInput('');
+      } else {
+        alert(`No product found with barcode: ${barcodeInput}`);
+      }
+    }
+  };
+
   const quickAmounts = [10000, 20000, 50000, 100000];
 
   return (
     <View style={styles.container}>
       <View style={styles.productsContainer}>
+        <View style={styles.productsHeader}>
+          <Text style={styles.productsTitle}>Products</Text>
+          <View style={styles.barcodeContainer}>
+            <TextInput
+              style={styles.barcodeInput}
+              placeholder="Enter barcode"
+              value={barcodeInput}
+              onChangeText={setBarcodeInput}
+              onSubmitEditing={handleManualBarcodeInput}
+              returnKeyType="search"
+            />
+            <Pressable
+              style={styles.searchButton}
+              onPress={handleManualBarcodeInput}>
+              <Ionicons name="search" size={16} color="white" />
+            </Pressable>
+            <Pressable
+              style={styles.scanButton}
+              onPress={() => setShowScannerModal(true)}>
+              <Ionicons name="scan-outline" size={20} color="white" />
+              <Text style={styles.scanButtonText}>Scan</Text>
+            </Pressable>
+          </View>
+        </View>
         <FlatList
           data={products}
           renderItem={({ item }) => (
@@ -174,6 +219,17 @@ export default function POSScreen() {
           </View>
         </View>
       </Modal>
+
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={showScannerModal}
+        onRequestClose={() => setShowScannerModal(false)}>
+        <BarcodeScanner
+          onProductScanned={handleProductScanned}
+          onClose={() => setShowScannerModal(false)}
+        />
+      </Modal>
     </View>
   );
 }
@@ -187,6 +243,52 @@ const styles = StyleSheet.create({
   productsContainer: {
     flex: 2,
     padding: 8,
+  },
+  productsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  productsTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+  },
+  barcodeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginLeft: 16,
+  },
+  barcodeInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#e5e5e5',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 14,
+    marginRight: 8,
+  },
+  searchButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#007AFF',
+    marginRight: 8,
+  },
+  scanButton: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  scanButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 4,
   },
   cartContainer: {
     flex: 1,

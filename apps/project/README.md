@@ -2,6 +2,17 @@
 
 A modern point of sale system built with React Native, Expo, and Clerk authentication.
 
+## Features
+
+- **Product Management**: Add, edit, and manage products with images, prices, and stock levels
+- **Barcode Scanning**: Scan product barcodes to quickly add items to cart
+- **Manual Barcode Input**: Enter barcodes manually for testing or when scanner is unavailable
+- **Cart Management**: Add/remove items, adjust quantities, and manage the current order
+- **Payment Processing**: Handle cash payments with change calculation
+- **Receipt Printing**: Print receipts using Bluetooth or USB printers
+- **Order History**: View and manage past orders
+- **Settings Management**: Configure currency, printer settings, and store information
+
 ## Authentication Flow
 
 The application now properly initializes the store only after successful user authentication. Here's how it works:
@@ -39,6 +50,30 @@ The store will automatically:
 
 No additional configuration is needed - the authentication flow is handled automatically by the layout component.
 
+## Barcode Scanning
+
+The app includes a built-in barcode scanner that allows you to:
+
+1. **Scan Products**: Tap the "Scan" button to open the camera scanner
+2. **Manual Input**: Enter barcode numbers manually in the input field
+3. **Quick Search**: Use the search button to find products by barcode
+
+### Supported Barcode Formats
+
+The scanner supports common barcode formats including:
+- EAN-13
+- UPC-A
+- Code 128
+- Code 39
+
+### Sample Products
+
+For testing purposes, the app includes sample products with barcodes:
+- Coca Cola 330ml: `1234567890123`
+- Lay's Classic Chips: `9876543210987`
+- Nestle Pure Life Water: `4567891234567`
+- Snickers Chocolate Bar: `7891234567890`
+
 ## Development
 
 ```bash
@@ -69,4 +104,16 @@ All API endpoints now support user authentication via the `X-User-ID` header:
 - `GET /api/orders` - Get user's orders
 - `POST /api/orders` - Create an order
 - `GET /api/settings` - Get user's settings
-- `PUT /api/settings` - Update user's settings 
+- `PUT /api/settings` - Update user's settings
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License. 

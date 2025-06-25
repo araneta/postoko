@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import ProductCard from '../../components/ProductCard';
+import BarcodeScanner from '../../components/BarcodeScanner';
 import useStore from '../../store/useStore';
 import { Product } from '../../types';
 import { pickImage, takePhoto, uploadImageToImageKit, checkFileSize } from '../../lib/imageUpload';
@@ -24,6 +25,7 @@ const initialFormData = {
   category: '',
   description: '',
   image: '',
+  barcode: '',
 };
 
 export default function ProductsScreen() {
@@ -35,6 +37,7 @@ export default function ProductsScreen() {
   const [formData, setFormData] = useState(initialFormData);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
 
   const handleSave = async () => {
     const product: Product = {
@@ -45,6 +48,7 @@ export default function ProductsScreen() {
       category: formData.category,
       description: formData.description,
       image: formData.image || undefined,
+      barcode: formData.barcode || undefined,
     };
 
     try {
@@ -71,6 +75,7 @@ export default function ProductsScreen() {
       category: product.category,
       description: product.description || '',
       image: product.image || '',
+      barcode: product.barcode || '',
     });
     setUploadError(null);
     setModalVisible(true);
@@ -133,6 +138,11 @@ export default function ProductsScreen() {
   const removeImage = () => {
     setFormData({ ...formData, image: '' });
     setUploadError(null);
+  };
+
+  const handleBarcodeScanned = (barcode: string) => {
+    setFormData({ ...formData, barcode });
+    setShowBarcodeScanner(false);
   };
 
   return (
@@ -265,6 +275,20 @@ export default function ProductsScreen() {
               onChangeText={(text) => setFormData({ ...formData, category: text })}
             />
 
+            <View style={styles.barcodeContainer}>
+              <TextInput
+                style={[styles.input, styles.barcodeInput]}
+                placeholder="Barcode (optional)"
+                value={formData.barcode}
+                onChangeText={(text) => setFormData({ ...formData, barcode: text })}
+              />
+              <Pressable
+                style={styles.scanBarcodeButton}
+                onPress={() => setShowBarcodeScanner(true)}>
+                <Ionicons name="scan-outline" size={20} color="white" />
+              </Pressable>
+            </View>
+
             <TextInput
               style={[styles.input, styles.textArea]}
               placeholder="Description"
@@ -324,6 +348,20 @@ export default function ProductsScreen() {
             </View>
           </View>
         </View>
+      </Modal>
+
+      {/* Barcode Scanner Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={showBarcodeScanner}
+        onRequestClose={() => setShowBarcodeScanner(false)}>
+        <BarcodeScanner
+          onClose={() => setShowBarcodeScanner(false)}
+          onProductScanned={() => {}} // Not used in raw mode
+          rawBarcodeMode={true}
+          onBarcodeScanned={handleBarcodeScanned}
+        />
       </Modal>
     </View>
   );
@@ -511,5 +549,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#FF3B30',
     flex: 1,
+  },
+  barcodeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  barcodeInput: {
+    flex: 1,
+  },
+  scanBarcodeButton: {
+    padding: 8,
+    borderWidth: 1,
+    borderColor: '#e5e5e5',
+    borderRadius: 8,
+    backgroundColor: '#007AFF',
   },
 });

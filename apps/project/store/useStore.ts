@@ -69,8 +69,67 @@ const useStore = create<StoreState>((set, get) => ({
         apiClient.getOrders(),
         apiClient.getSettings()
       ]);
+      
+      // Add sample products with barcodes for testing if no products exist
+      let finalProducts = products;
+      if (products.length === 0) {
+        const sampleProducts: Product[] = [
+          {
+            id: '1',
+            name: 'Coca Cola 330ml',
+            price: 1500,
+            description: 'Refreshing carbonated soft drink',
+            image: 'https://images.unsplash.com/photo-1629203851122-3726ecdf080e?w=400',
+            stock: 50,
+            category: 'Beverages',
+            barcode: '1234567890123'
+          },
+          {
+            id: '2',
+            name: 'Lay\'s Classic Chips',
+            price: 2500,
+            description: 'Crispy potato chips',
+            image: 'https://images.unsplash.com/photo-1566478989037-eec170784d0b?w=400',
+            stock: 30,
+            category: 'Snacks',
+            barcode: '9876543210987'
+          },
+          {
+            id: '3',
+            name: 'Nestle Pure Life Water',
+            price: 800,
+            description: 'Pure spring water',
+            image: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=400',
+            stock: 100,
+            category: 'Beverages',
+            barcode: '4567891234567'
+          },
+          {
+            id: '4',
+            name: 'Snickers Chocolate Bar',
+            price: 1200,
+            description: 'Chocolate bar with caramel and peanuts',
+            image: 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=400',
+            stock: 25,
+            category: 'Candy',
+            barcode: '7891234567890'
+          }
+        ];
+        
+        // Add sample products to the API
+        for (const product of sampleProducts) {
+          try {
+            await apiClient.addProduct(product);
+          } catch (error) {
+            console.warn('Failed to add sample product:', error);
+          }
+        }
+        
+        finalProducts = sampleProducts;
+      }
+      
       set({
-        products,
+        products: finalProducts,
         orders,
         settings: settings
           ? {
