@@ -3,40 +3,37 @@ import { View, Text, StyleSheet, FlatList, Pressable, TextInput, Modal, Platform
 import { Ionicons } from '@expo/vector-icons';
 import ProductCard from '../../components/ProductCard';
 import BarcodeScanner from '../../components/BarcodeScanner';
+import PaymentModal from '../../components/PaymentModal';
 import useStore from '../../store/useStore';
 import { printReceipt } from '../../utils/printer';
+import { PaymentDetails } from '../../types';
 
 export default function POSScreen() {
   const { products, cart, addToCart, removeFromCart, updateCartItemQuantity, createOrder, settings, formatPrice } = useStore();
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showScannerModal, setShowScannerModal] = useState(false);
-  const [amountPaid, setAmountPaid] = useState('');
   const [barcodeInput, setBarcodeInput] = useState('');
   const [printError, setPrintError] = useState<string | null>(null);
   
 
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const change = parseFloat(amountPaid) - total;
 
-  const handlePayment = async () => {
-    if (parseFloat(amountPaid) >= total) {
-      const order = await createOrder('cash');
+  const handlePaymentComplete = async (paymentDetails: PaymentDetails[]) => {
+    try {
+      const order = await createOrder(paymentDetails);
       console.log('order', order);
       setShowPaymentModal(false);
-      setAmountPaid('');
 
-      try {
-        if (order) {
-          await printReceipt(order, settings, formatPrice);
-        }
-      } catch (error) {
-        if (Platform.OS === 'web') {
-          // On web, errors are less critical as the browser handles printing
-          console.warn('Print error:', error);
-        } else {
-          setPrintError('Failed to print receipt. Please check printer connection.');
-          setTimeout(() => setPrintError(null), 3000);
-        }
+      if (order) {
+        await printReceipt(order, settings, formatPrice);
+      }
+    } catch (error) {
+      console.error('Payment processing error:', error);
+      if (Platform.OS === 'web') {
+        console.warn('Print error:', error);
+      } else {
+        setPrintError('Failed to process payment or print receipt. Please try again.');
+        setTimeout(() => setPrintError(null), 3000);
       }
     }
   };
@@ -143,82 +140,13 @@ export default function POSScreen() {
         </Pressable>
       </View>
 
-      <Modal
-        animationType="slide"
-        transparent={true}
+      <PaymentModal
         visible={showPaymentModal}
-        onRequestClose={() => setShowPaymentModal(false)}>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Payment</Text>
-            
-            <View style={styles.paymentDetails}>
-              <Text style={styles.paymentLabel}>Total Amount:</Text>
-              <Text style={styles.paymentAmount}>{formatPrice(total)}</Text>
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={styles.paymentLabel}>Amount Received:</Text>
-              <TextInput
-                style={styles.paymentInput}
-                keyboardType="decimal-pad"
-                value={amountPaid}
-                onChangeText={setAmountPaid}
-                placeholder="0.00"
-              />
-            </View>
-
-            <View style={styles.quickAmounts}>
-              {quickAmounts.map((amount) => (
-                <Pressable
-                  key={amount}
-                  style={styles.quickAmountButton}
-                  onPress={() => setAmountPaid(amount.toString())}>
-                  <Text style={styles.quickAmountText}>{formatPrice(amount)}</Text>
-                </Pressable>
-              ))}
-            </View>
-
-            {parseFloat(amountPaid) > 0 && (
-              <View style={styles.changeContainer}>
-                <Text style={styles.changeLabel}>Change:</Text>
-                <Text style={[
-                  styles.changeAmount,
-                  change < 0 ? styles.negativeChange : styles.positiveChange
-                ]}>
-                  {formatPrice(Math.abs(change))}
-                </Text>
-                <Text style={styles.changeStatus}>
-                  {change < 0 ? '(Insufficient payment)' : ''}
-                </Text>
-              </View>
-            )}
-
-            <View style={styles.modalButtons}>
-              <Pressable
-                style={[styles.button, styles.cancelButton]}
-                onPress={() => {
-                  setShowPaymentModal(false);
-                  setAmountPaid('');
-                }}>
-                <Text style={styles.buttonText}>Cancel</Text>
-              </Pressable>
-              <Pressable
-                style={[
-                  styles.button,
-                  styles.completeButton,
-                  change < 0 && styles.disabledButton
-                ]}
-                disabled={change < 0}
-                onPress={handlePayment}>
-                <Text style={[styles.buttonText, styles.completeButtonText]}>
-                  Complete Payment
-                </Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        onClose={() => setShowPaymentModal(false)}
+        onPaymentComplete={handlePaymentComplete}
+        total={total}
+        formatPrice={formatPrice}
+      />
 
       <Modal
         animationType="slide"

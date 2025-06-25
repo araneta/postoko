@@ -5,6 +5,7 @@ import useStore from '../../store/useStore';
 import { Currency, PrinterDevice } from '../../types';
 import { scanPrinters } from '../../utils/printer';
 import { Platform } from 'react-native';
+import PaymentSettings from '../../components/PaymentSettings';
 
 const currencies: Currency[] = [
   { code: 'USD', symbol: '$', name: 'US Dollar' },
@@ -41,6 +42,7 @@ export default function SettingsScreen() {
   const [showCurrencyModal, setShowCurrencyModal] = useState(false);
   const [showPrinterModal, setShowPrinterModal] = useState(false);
   const [showStoreInfoModal, setShowStoreInfoModal] = useState(false);
+  const [showPaymentSettings, setShowPaymentSettings] = useState(false);
   const [printers, setPrinters] = useState<PrinterDevice[]>([]);
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -145,6 +147,25 @@ export default function SettingsScreen() {
               <Text style={styles.settingText}>Store Information</Text>
               <Text style={styles.settingDetail}>
                 {settings?.storeInfo?.name || 'Not configured'}
+              </Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={24} color="#666" />
+        </Pressable>
+
+        <Pressable 
+          style={styles.settingItem}
+          onPress={() => setShowPaymentSettings(true)}
+        >
+          <View style={styles.settingContent}>
+            <Ionicons name="card" size={24} color="#007AFF" />
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingText}>Payment Methods</Text>
+              <Text style={styles.settingDetail}>
+                {settings?.payment?.enabled ? 
+                  `${settings.payment.paymentMethods.length} method(s) enabled` : 
+                  'Not configured'
+                }
               </Text>
             </View>
           </View>
@@ -428,6 +449,15 @@ export default function SettingsScreen() {
             </View>
           </View>
         </View>
+      </Modal>
+
+      {/* Payment Settings Modal */}
+      <Modal
+        animationType="slide"
+        visible={showPaymentSettings}
+        onRequestClose={() => setShowPaymentSettings(false)}
+      >
+        <PaymentSettings onClose={() => setShowPaymentSettings(false)} />
       </Modal>
     </ScrollView>
   );

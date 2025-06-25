@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, FlatList } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import useStore from '../../store/useStore';
 
 const formatDateTime = (dateString: string) => {
@@ -18,8 +19,101 @@ const formatDateTime = (dateString: string) => {
   };
 };
 
+const formatPaymentMethod = (method: string) => {
+  switch (method) {
+    case 'cash': return 'Cash';
+    case 'card': return 'Card';
+    case 'digital_wallet': return 'Digital Wallet';
+    case 'bank_transfer': return 'Bank Transfer';
+    default: return method;
+  }
+};
+
+const formatWalletType = (walletType?: string) => {
+  switch (walletType) {
+    case 'apple_pay': return 'Apple Pay';
+    case 'google_pay': return 'Google Pay';
+    case 'paypal': return 'PayPal';
+    default: return '';
+  }
+};
+
+const PaymentMethodIcon = ({ method }: { method: string }) => {
+  let iconName = 'card-outline';
+  let iconColor = '#007AFF';
+
+  switch (method) {
+    case 'cash':
+      iconName = 'cash-outline';
+      iconColor = '#34C759';
+      break;
+    case 'card':
+      iconName = 'card-outline';
+      iconColor = '#007AFF';
+      break;
+    case 'digital_wallet':
+      iconName = 'phone-portrait-outline';
+      iconColor = '#FF9500';
+      break;
+    case 'bank_transfer':
+      iconName = 'business-outline';
+      iconColor = '#5856D6';
+      break;
+  }
+
+  return <Ionicons name={iconName as any} size={16} color={iconColor} />;
+};
+
 export default function OrdersScreen() {
-  const { orders,formatPrice } = useStore();
+  const { orders, formatPrice } = useStore();
+
+  const renderPaymentDetails = (order: any) => {
+    if (!order.paymentDetails || order.paymentDetails.length === 0) {
+      return (
+        <View style={styles.paymentMethodContainer}>
+          <PaymentMethodIcon method={order.paymentMethod} />
+          <Text style={styles.paymentMethod}>
+            {formatPaymentMethod(order.paymentMethod)}
+          </Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.paymentDetailsContainer}>
+        {order.paymentDetails.map((payment: any, index: number) => (
+          <View key={index} style={styles.paymentDetailItem}>
+            <View style={styles.paymentMethodContainer}>
+              <PaymentMethodIcon method={payment.method} />
+              <Text style={styles.paymentMethod}>
+                {formatPaymentMethod(payment.method)}: {formatPrice(payment.amount)}
+              </Text>
+            </View>
+            
+            {payment.transactionId && (
+              <Text style={styles.paymentDetail}>Transaction: {payment.transactionId}</Text>
+            )}
+            
+            {payment.cardLast4 && (
+              <Text style={styles.paymentDetail}>
+                Card: ****{payment.cardLast4} ({payment.cardBrand})
+              </Text>
+            )}
+            
+            {payment.walletType && (
+              <Text style={styles.paymentDetail}>
+                Wallet: {formatWalletType(payment.walletType)}
+              </Text>
+            )}
+            
+            {payment.change && payment.change > 0 && (
+              <Text style={styles.paymentDetail}>Change: {formatPrice(payment.change)}</Text>
+            )}
+          </View>
+        ))}
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -40,7 +134,8 @@ export default function OrdersScreen() {
                 </View>
                 <View style={[
                   styles.statusBadge,
-                  item.status === 'completed' ? styles.completedBadge : styles.refundedBadge
+                  item.status === 'completed' ? styles.completedBadge : 
+                  item.status === 'pending' ? styles.pendingBadge : styles.refundedBadge
                 ]}>
                   <Text style={styles.statusText}>{item.status}</Text>
                 </View>
@@ -57,9 +152,7 @@ export default function OrdersScreen() {
                 ))}
               </View>
               <View style={styles.orderFooter}>
-                <Text style={styles.paymentMethod}>
-                  Paid with {item.paymentMethod}
-                </Text>
+                {renderPaymentDetails(item)}
                 <Text style={styles.orderTotal}>
                   Total: {formatPrice(item.total)}
                 </Text>
@@ -142,22 +235,41 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   orderFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: '#e5e5e5',
   },
+  paymentMethodContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
   paymentMethod: {
+    marginLeft: 8,
     color: '#666',
     fontStyle: 'italic',
+  },
+  paymentDetailsContainer: {
+    marginBottom: 8,
+  },
+  paymentDetailItem: {
+    marginBottom: 8,
+    padding: 8,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 6,
+  },
+  paymentDetail: {
+    fontSize: 12,
+    color: '#666',
+    marginLeft: 24,
+    marginTop: 2,
   },
   orderTotal: {
     fontSize: 18,
     fontWeight: '600',
     color: '#007AFF',
+    textAlign: 'right',
   },
   statusBadge: {
     paddingHorizontal: 8,
@@ -166,6 +278,9 @@ const styles = StyleSheet.create({
   },
   completedBadge: {
     backgroundColor: '#34C759',
+  },
+  pendingBadge: {
+    backgroundColor: '#FF9500',
   },
   refundedBadge: {
     backgroundColor: '#FF3B30',

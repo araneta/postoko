@@ -10,6 +10,53 @@ const webPrinter = {
       throw new Error('Failed to open print window');
     }
 
+    const formatPaymentMethod = (method: string) => {
+      switch (method) {
+        case 'cash': return 'Cash';
+        case 'card': return 'Card';
+        case 'digital_wallet': return 'Digital Wallet';
+        case 'bank_transfer': return 'Bank Transfer';
+        default: return method;
+      }
+    };
+
+    const formatWalletType = (walletType?: string) => {
+      switch (walletType) {
+        case 'apple_pay': return 'Apple Pay';
+        case 'google_pay': return 'Google Pay';
+        case 'paypal': return 'PayPal';
+        default: return '';
+      }
+    };
+
+    const renderPaymentDetails = () => {
+      if (!order.paymentDetails || order.paymentDetails.length === 0) {
+        return `<div>Payment Method: ${formatPaymentMethod(order.paymentMethod)}</div>`;
+      }
+
+      return order.paymentDetails.map((payment, index) => {
+        let paymentInfo = `<div>${formatPaymentMethod(payment.method)}: ${formatPrice(payment.amount)}</div>`;
+        
+        if (payment.transactionId) {
+          paymentInfo += `<div style="font-size: 0.8em; color: #666;">Transaction ID: ${payment.transactionId}</div>`;
+        }
+        
+        if (payment.cardLast4) {
+          paymentInfo += `<div style="font-size: 0.8em; color: #666;">Card: ****${payment.cardLast4} (${payment.cardBrand})</div>`;
+        }
+        
+        if (payment.walletType) {
+          paymentInfo += `<div style="font-size: 0.8em; color: #666;">Wallet: ${formatWalletType(payment.walletType)}</div>`;
+        }
+        
+        if (payment.change && payment.change > 0) {
+          paymentInfo += `<div style="font-size: 0.8em; color: #666;">Change: ${formatPrice(payment.change)}</div>`;
+        }
+        
+        return paymentInfo;
+      }).join('');
+    };
+
     const html = `
       <!DOCTYPE html>
       <html>
@@ -46,6 +93,12 @@ const webPrinter = {
               margin-top: 10px;
               font-weight: bold;
             }
+            .payment-details {
+              margin-top: 10px;
+              padding: 10px;
+              background-color: #f8f9fa;
+              border-radius: 4px;
+            }
             .footer {
               text-align: center;
               margin-top: 20px;
@@ -66,7 +119,7 @@ const webPrinter = {
         <body>
           <div class="header">
             <div class="store-name">${settings.storeInfo?.name || 'N/A'}</div>
-            <div>${settings.storeInfo?.address || 'N/A'}</div>
+            <div>
             <div>${settings.storeInfo?.phone || 'N/A'}</div>
             <div>${settings.storeInfo?.email || 'N/A'}</div>
             <div>${settings.storeInfo?.website || 'N/A'}</div>
@@ -104,7 +157,10 @@ const webPrinter = {
               <div>Total:</div>
               <div>${formatPrice(order.total || 0)}</div>
             </div>
-            <div>Payment Method: ${order.paymentMethod || 'N/A'}</div>
+          </div>
+
+          <div class="payment-details">
+            ${renderPaymentDetails()}
           </div>
 
           <div class="footer">

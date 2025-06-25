@@ -13,13 +13,33 @@ export interface CartItem extends Product {
   quantity: number;
 }
 
+export type PaymentMethod = 'cash' | 'card' | 'digital_wallet' | 'bank_transfer';
+
+export interface PaymentDetails {
+  method: PaymentMethod;
+  amount: number;
+  transactionId?: string;
+  cardLast4?: string;
+  cardBrand?: string;
+  walletType?: 'apple_pay' | 'google_pay' | 'paypal';
+  change?: number;
+}
+
+export interface PaymentConfig {
+  stripePublishableKey?: string;
+  stripeSecretKey?: string;
+  paymentMethods: PaymentMethod[];
+  enabled: boolean;
+}
+
 export interface Order {
   id: string;
   items: CartItem[];
   total: number;
   date: string;
   paymentMethod: string;
-  status: 'completed' | 'refunded';
+  paymentDetails?: PaymentDetails[];
+  status: 'completed' | 'refunded' | 'pending';
 }
 
 export interface Currency {
@@ -41,6 +61,7 @@ export interface Settings {
   currency: Currency;
   printer: PrinterSettings;
   storeInfo?: StoreInfo;
+  payment?: PaymentConfig;
 }
 
 export interface PrinterDevice {

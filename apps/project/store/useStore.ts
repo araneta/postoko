@@ -1,7 +1,8 @@
 import { create } from 'zustand';
-import { Product, CartItem, Order, Currency, Settings, StoreInfo, PrinterSettings } from '../types';
+import { Product, CartItem, Order, Currency, Settings, StoreInfo, PrinterSettings, PaymentDetails, PaymentConfig } from '../types';
 import { apiClient, configureAPI } from '../lib/api';
 import { safeToFixed } from '../utils/formatters';
+import paymentService from '../lib/payment';
 
 interface StoreState {
   products: Product[];
@@ -16,10 +17,11 @@ interface StoreState {
   removeFromCart: (productId: string) => void;
   updateCartItemQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
-  createOrder: (paymentMethod: string) => Promise<Order | undefined>;
+  createOrder: (paymentDetails: PaymentDetails[]) => Promise<Order | undefined>;
   updateCurrency: (currency: Currency) => Promise<void>;
   updatePrinterSettings: (printerSettings: PrinterSettings) => Promise<void>;
   updateStoreInfo: (storeInfo: StoreInfo) => Promise<void>;
+  updatePaymentConfig: (paymentConfig: PaymentConfig) => Promise<void>;
   formatPrice: (price: number) => string;
   initializeStore: () => Promise<void>;
   clearStore: () => void;
@@ -41,6 +43,13 @@ const defaultStoreInfo = {
   taxId: '',
 };
 
+const defaultPaymentConfig: PaymentConfig = {
+  stripePublishableKey: '',
+  stripeSecretKey: '',
+  paymentMethods: ['cash'],
+  enabled: false,
+};
+
 const useStore = create<StoreState>((set, get) => ({
   products: [],
   cart: [],
@@ -51,6 +60,7 @@ const useStore = create<StoreState>((set, get) => ({
       type: 'none'
     },
     storeInfo: defaultStoreInfo,
+    payment: defaultPaymentConfig,
   },
   initializing: false,
   userId: undefined,
@@ -128,20 +138,29 @@ const useStore = create<StoreState>((set, get) => ({
         finalProducts = sampleProducts;
       }
       
+      const finalSettings = settings
+        ? {
+            ...settings,
+            currency: settings.currency ?? defaultCurrency,
+            storeInfo: settings.storeInfo ?? defaultStoreInfo,
+            payment: settings.payment ?? defaultPaymentConfig,
+          }
+        : {
+            currency: defaultCurrency,
+            printer: { type: 'none' as const },
+            storeInfo: defaultStoreInfo,
+            payment: defaultPaymentConfig,
+          };
+
+      // Initialize payment service with user's payment configuration
+      if (finalSettings.payment) {
+        paymentService.setPaymentConfig(finalSettings.payment);
+      }
+      
       set({
         products: finalProducts,
         orders,
-        settings: settings
-          ? {
-              ...settings,
-              currency: settings.currency ?? defaultCurrency,
-              storeInfo: settings.storeInfo ?? defaultStoreInfo,
-            }
-          : {
-              currency: defaultCurrency,
-              printer: { type: 'none' },
-              storeInfo: defaultStoreInfo,
-            },
+        settings: finalSettings,
         initializing: false,
       });
     } catch (error) {
@@ -224,16 +243,28 @@ const useStore = create<StoreState>((set, get) => ({
     set({ cart: [] });
   },
 
-  createOrder: async (paymentMethod) => {
+  createOrder: async (paymentDetails: PaymentDetails[]) => {
     const { cart } = get();
     if (cart.length === 0) return;
+
+    const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const totalPaid = paymentDetails.reduce((sum, payment) => sum + payment.amount, 0);
+
+    // Validate that total payment covers the order total
+    if (totalPaid < total) {
+      throw new Error('Insufficient payment amount');
+    }
+
+    // Determine primary payment method for display
+    const primaryPaymentMethod = paymentDetails[0]?.method || 'unknown';
 
     const order: Order = {
       id: Date.now().toString(),
       items: [...cart],
-      total: cart.reduce((sum, item) => sum + item.price * item.quantity, 0),
+      total,
       date: new Date().toISOString(),
-      paymentMethod,
+      paymentMethod: primaryPaymentMethod,
+      paymentDetails,
       status: 'completed'
     };
 
@@ -292,6 +323,24 @@ const useStore = create<StoreState>((set, get) => ({
     }
   },
 
+  updatePaymentConfig: async (paymentConfig: PaymentConfig) => {
+    try {
+      const newSettings = {
+        ...get().settings,
+        payment: paymentConfig
+      };
+      await apiClient.updateSettings(newSettings);
+      
+      // Update payment service with new configuration
+      paymentService.setPaymentConfig(paymentConfig);
+      
+      set({ settings: newSettings });
+    } catch (error) {
+      console.error('Failed to update payment config:', error);
+      throw error;
+    }
+  },
+
   formatPrice: (price: number) => {
     const { settings } = get();
     return `${settings?.currency?.symbol || '$'} ${safeToFixed(price)}`;
@@ -308,6 +357,7 @@ const useStore = create<StoreState>((set, get) => ({
           type: 'none'
         },
         storeInfo: defaultStoreInfo,
+        payment: defaultPaymentConfig,
       },
       initializing: false,
       userId: undefined
