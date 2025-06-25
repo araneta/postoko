@@ -1,19 +1,15 @@
-import { Tabs, Redirect } from 'expo-router';
+import { Tabs, Redirect, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '@clerk/clerk-expo';
+import { useAuth,useUser } from '@clerk/clerk-expo';
 import useStore from '@/store/useStore';
+import { login, configureAPI , getSettings} from '../../lib/api'
 import { useEffect } from 'react';
 
 export default function TabLayout() {
-  const { isSignedIn, isLoaded } = useAuth();
-  const initializeStore = useStore(state => state.initializeStore);
-  const settings = useStore(state => state.settings);
+  const { isSignedIn, isLoaded, getToken } = useAuth();
+  const { user } = useUser();
 
-  useEffect(() => {
-    if (isLoaded && isSignedIn) {
-      initializeStore();
-    }
-  }, [isLoaded, isSignedIn]);
+  const settings = useStore(state => state.settings);
 
   // Show loading while auth state is being determined
   if (!isLoaded) {
@@ -24,11 +20,61 @@ export default function TabLayout() {
   if (!isSignedIn) {
     return <Redirect href="/(home)" />;
   }
+  let email = '';
+  if (isLoaded && user) {
+    let primaryEmail = user.primaryEmailAddress;
+    const allEmails = user.emailAddresses;
 
-  // Redirect to settings if storeInfo is missing or empty
-  if (!settings?.storeInfo || !settings.storeInfo.name) {
-    return <Redirect href="/settings" />;
+    if (primaryEmail) {
+      email = primaryEmail.emailAddress;
+      console.log("Primary Email:", email);
+    }
+
+    if (allEmails && allEmails.length > 0) {
+      console.log("All Email Addresses:");
+      allEmails.forEach(email => {
+        console.log(email.emailAddress);
+      });
+    }
   }
+
+  // Use useEffect to handle async operations
+  useEffect(() => {
+    const handleLogin = async () => {
+      // Redirect to settings if storeInfo is missing or empty
+      if (!settings?.storeInfo || !settings.storeInfo.name) {
+        if(email){
+          try {
+            
+            // Configure the API client with the returned credentials
+            //if (token) {              
+              configureAPI(getToken);
+              const { id } = await login(email)
+              console.log('id', id)  
+              const storeInfo = await getSettings();
+              console.log('settings', storeInfo);
+              if(!storeInfo){
+                router.replace('/(tabs)/settings')
+                return;
+              }
+              
+            //}else{
+            //  console.log('Failed to get token or user ID')
+            //}
+            
+            
+          } catch (apiError) {
+            console.error('Backend login failed:', apiError)
+            // Continue with the flow even if backend login fails
+            // The user is still authenticated with Clerk
+          }
+        }
+        //return <Redirect href="/settings" />;
+      }
+    };
+
+    handleLogin();
+  }, [email, settings, getToken]);
 
   return (
     <Tabs

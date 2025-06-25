@@ -41,10 +41,10 @@ function AppContent() {
       const initializeWithToken = async () => {
         //const token = await getToken();
         
-        //initializeStore().finally(() => {
+        initializeStore().finally(() => {
           setInitializing(false);
           window.frameworkReady?.();
-        //});
+        });
       };
       
       initializeWithToken();

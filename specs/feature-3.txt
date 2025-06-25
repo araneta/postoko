@@ -1,0 +1,11 @@
+Phase 3: Operational Efficiency (Weeks 9-12)
+6. Employee Management
+Multiple user accounts with different permissions
+Sales tracking by employee
+Secure PIN login
+Why needed: Multi-employee businesses need accountability
+7. Advanced Inventory Features
+Bulk product import via CSV
+Product categories and filtering
+Supplier information tracking
+Why valuable: Saves hours of manual data entry

@@ -13,37 +13,42 @@ export default class UsersController {
         if (!auth.userId) {
             return res.status(401).send('Unauthorized');
         }
-        const userId = auth.userId;
-        console.log('userId',userId);
-        const clerkuser = await clerkClient.users.getUser(userId);
-        console.log('user',clerkuser);
-        const emails = clerkuser.emailAddresses;
-        if(emails.length === 0){
-            return res.status(401).send('Unauthorized');
-        }
-        const email = emails[0].emailAddress;
-
-        const user = await db.select()
-        .from(usersTable).where(eq(usersTable.email, email));
-        if (user.length === 0) {
-            //create user
-            const newUser = await db.insert(usersTable).values({
-                email: email,
-                id: userId,//randomUUID(),
-                name: email,
-                lastLogin: new Date(),
-                lastIp: req.ip
-            }).returning();
-            res.status(200).json(newUser[0]);
-        }else{
-            const updatedUser = await db.update(usersTable)
-                .set({ 
-                    lastLogin: new Date(),
-                    lastIp: req.ip
-                 })
-                .where(eq(usersTable.email, email))
-                .returning();
-            res.status(200).json(updatedUser[0]);
+        try{
+			const userId = auth.userId;
+			console.log('userId',userId);
+			const clerkuser = await clerkClient.users.getUser(userId);
+			console.log('user',clerkuser);
+			const emails = clerkuser.emailAddresses;
+			if(emails.length === 0){
+				return res.status(401).send('Unauthorized');
+			}
+			const email = emails[0].emailAddress;
+			console.log('searching email',email);
+			const user = await db.select()
+			.from(usersTable).where(eq(usersTable.email, email));
+			if (user.length === 0) {
+				//create user
+				const newUser = await db.insert(usersTable).values({
+					email: email,
+					id: userId,//randomUUID(),
+					name: email,
+					lastLogin: new Date(),
+					lastIp: req.ip
+				}).returning();
+				res.status(200).json(newUser[0]);
+			}else{
+				const updatedUser = await db.update(usersTable)
+					.set({ 
+						lastLogin: new Date(),
+						lastIp: req.ip
+					 })
+					.where(eq(usersTable.email, email))
+					.returning();
+				res.status(200).json(updatedUser[0]);
+			}
+		} catch (error) {
+            console.error(error);
+            res.status(500).json({ message: 'Error fetching user' });
         }
         
     }

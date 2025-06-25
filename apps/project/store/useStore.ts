@@ -8,6 +8,7 @@ interface StoreState {
   cart: CartItem[];
   orders: Order[];
   settings: Settings;
+  initializing: boolean;
   addProduct: (product: Product) => Promise<void>;
   updateProduct: (product: Product) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
@@ -51,9 +52,17 @@ const useStore = create<StoreState>((set, get) => ({
     },
     storeInfo: defaultStoreInfo,
   },
+  initializing: false,
   userId: undefined,
 
   initializeStore: async () => {
+    const { initializing } = get();
+    if (initializing) {
+      console.log('Store initialization already in progress, skipping...');
+      return;
+    }
+    
+    set({ initializing: true });
     try {
       const [products, orders, settings] = await Promise.all([
         apiClient.getProducts(),
@@ -74,9 +83,11 @@ const useStore = create<StoreState>((set, get) => ({
               printer: { type: 'none' },
               storeInfo: defaultStoreInfo,
             },
+        initializing: false,
       });
     } catch (error) {
       console.error('Failed to initialize store:', error);
+      set({ initializing: false });
     }
   },
 
@@ -239,6 +250,7 @@ const useStore = create<StoreState>((set, get) => ({
         },
         storeInfo: defaultStoreInfo,
       },
+      initializing: false,
       userId: undefined
     });
   }

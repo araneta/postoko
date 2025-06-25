@@ -1,0 +1,11 @@
+Phase 4: Revenue Optimization (Weeks 13-16)
+8. Promotions & Discounts
+Percentage and fixed amount discounts
+Buy-one-get-one offers
+Time-based promotions (happy hour)
+Why important: Increases average transaction value
+9. Cloud Sync & Backup
+Real-time data synchronization
+Automatic backups
+Multi-device access
+Why critical: Data loss protection and flexibility

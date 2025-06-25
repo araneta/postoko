@@ -12,7 +12,19 @@ export default class ProductsController {
             return res.status(401).send('Unauthorized');
         }
         try {
-            const products = await db.select().from(productsTable);
+			 // Get storeInfoId for the authenticated user
+            const storeInfo = await db.select()
+                .from(storeInfoTable)
+                .where(eq(storeInfoTable.userId, auth.userId));
+
+            if (storeInfo.length === 0) {
+                //return res.status(400).json({ message: 'Store information not found. Please set up your store first.' });
+                return res.status(200).json(null);
+            }
+
+            const storeInfoId = storeInfo[0].id;
+            const products = await db.select().from(productsTable)
+            .where(eq(productsTable.storeInfoId, storeInfoId));
             res.status(200).json(products);
         } catch (error) {
             console.error(error);
