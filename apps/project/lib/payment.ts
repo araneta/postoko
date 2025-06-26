@@ -7,6 +7,7 @@ export interface PaymentIntent {
   currency: string;
   status: string;
   client_secret: string;
+  next_action?: any; // For handling redirects
 }
 
 export interface CardPaymentData {
@@ -143,14 +144,40 @@ class PaymentService {
     }
 
     try {
+      // Create payment intent
       const paymentIntent = await this.createPaymentIntent(paymentData.amount);
       
-      // In a real implementation, you would use Stripe's SDK to confirm the payment
-      // For now, we'll simulate a successful payment
+      // Confirm the payment intent with card details
+      const confirmedPayment = await this.fetchJSON<PaymentIntent>(`${this.baseUrl}/payments/confirm`, {
+        method: 'POST',
+        body: JSON.stringify({
+          paymentIntentId: paymentIntent.id,
+          paymentMethodId: null, // We'll use card data directly
+          cardData: {
+            number: paymentData.cardNumber,
+            exp_month: paymentData.expiryMonth,
+            exp_year: paymentData.expiryYear,
+            cvc: paymentData.cvc,
+          },
+          currency: this.getCurrency(),
+          config: this.paymentConfig,
+        }),
+      });
+      
+      // Check if payment requires additional action (like 3D Secure)
+      if (confirmedPayment.status === 'requires_action' && confirmedPayment.next_action) {
+        throw new Error('Payment requires additional authentication. Please try a different card or contact support.');
+      }
+      
+      // Check if payment was successful
+      if (confirmedPayment.status !== 'succeeded') {
+        throw new Error(`Payment failed with status: ${confirmedPayment.status}`);
+      }
+      
       const paymentDetails: PaymentDetails = {
         method: 'card',
         amount: paymentData.amount,
-        transactionId: paymentIntent.id,
+        transactionId: confirmedPayment.id,
         cardLast4: paymentData.cardNumber.slice(-4),
         cardBrand: this.detectCardBrand(paymentData.cardNumber),
       };
@@ -169,13 +196,24 @@ class PaymentService {
     }
 
     try {
+      // Create payment intent
       const paymentIntent = await this.createPaymentIntent(walletData.amount);
       
-      // In a real implementation, you would integrate with the specific wallet
+      // For digital wallets, we'll use the process-wallet endpoint which handles the confirmation
+      const confirmedPayment = await this.fetchJSON<PaymentIntent>(`${this.baseUrl}/payments/process-wallet`, {
+        method: 'POST',
+        body: JSON.stringify({
+          walletType: walletData.walletType,
+          amount: walletData.amount,
+          currency: this.getCurrency(),
+          config: this.paymentConfig,
+        }),
+      });
+      
       const paymentDetails: PaymentDetails = {
         method: 'digital_wallet',
         amount: walletData.amount,
-        transactionId: paymentIntent.id,
+        transactionId: confirmedPayment.id,
         walletType: walletData.walletType,
       };
 

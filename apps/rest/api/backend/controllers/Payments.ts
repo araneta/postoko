@@ -26,21 +26,23 @@ export default class PaymentsController{
 			const multiplier = getCurrencyMultiplier(currency);
 			console.log('amount',amount);
             // Create payment intent with Stripe
-            const paymentIntent = await stripe.paymentIntents.create({
-              amount: Math.round(amount * multiplier), // Convert to smallest currency unit
-              currency: currency,
-              automatic_payment_methods: {
-                enabled: true,
-              },
-            });
-        
-            res.json({
-              id: paymentIntent.id,
-              amount: paymentIntent.amount / multiplier, // Convert back to original unit
-              currency: paymentIntent.currency,
-              status: paymentIntent.status,
-              client_secret: paymentIntent.client_secret,
-            });
+			const paymentIntent = await stripe.paymentIntents.create({
+			  amount: Math.round(amount * multiplier),
+			  currency: currency,
+			  automatic_payment_methods: {
+				enabled: true,
+				allow_redirects: 'never', // Prevent redirects for this implementation
+			  },
+			 // return_url: `${req.protocol}://${req.get('host')}/payment/return`, // Fallback URL
+			});
+
+			res.json({
+			  id: paymentIntent.id,
+			  amount: paymentIntent.amount / multiplier, // Convert back to original unit
+			  currency: paymentIntent.currency,
+			  status: paymentIntent.status,
+			  client_secret: paymentIntent.client_secret,
+			});
         } catch (error) {
             console.error('Error creating payment intent:', error);
             res.status(500).json({ error: 'Failed to create payment intent: '+error.raw.message });
@@ -49,7 +51,7 @@ export default class PaymentsController{
     
     static async confirm(req: Request, res: Response){
 		try {
-			const { paymentIntentId, paymentMethodId, config, currency = 'usd' } = req.body;
+			const { paymentIntentId, paymentMethodId, cardData, config, currency = 'usd' } = req.body;
 
 			if (!paymentIntentId) {
 			  return res.status(400).json({ error: 'Payment intent ID is required' });
@@ -61,16 +63,38 @@ export default class PaymentsController{
 
 			const stripe = new Stripe(config.stripeSecretKey);
 			const multiplier = getCurrencyMultiplier(currency);
+			let confirmOptions = {
+			  return_url: `${req.protocol}://${req.get('host')}/payment/return`, // Add return URL
+			};
+			
+			if (paymentMethodId) {
+			  // Use existing payment method
+			  confirmOptions.payment_method = paymentMethodId;
+			} else if (cardData) {
+			  // Use card data directly
+			  confirmOptions.payment_method_data = {
+				type: 'card',
+				card: {
+				  number: cardData.number,
+				  exp_month: cardData.exp_month,
+				  exp_year: cardData.exp_year,
+				  cvc: cardData.cvc,
+				},
+			  };
+			} else {
+			  return res.status(400).json({ error: 'Either paymentMethodId or cardData is required' });
+			}
+
 			// Confirm the payment intent
-			const paymentIntent = await stripe.paymentIntents.confirm(paymentIntentId, {
-			  payment_method: paymentMethodId,
-			});
+			const paymentIntent = await stripe.paymentIntents.confirm(paymentIntentId, confirmOptions);
 
 			res.json({
 			  id: paymentIntent.id,
 			  status: paymentIntent.status,
-			  amount: paymentIntent.amount / multiplier, // Convert back to original unit
+			  amount: paymentIntent.amount / multiplier,
 			  currency: paymentIntent.currency,
+			  client_secret: paymentIntent.client_secret,
+			  next_action: paymentIntent.next_action, // Include next_action for redirects
 			});
 		} catch (error) {
 			console.error('Error confirming payment:', error);
