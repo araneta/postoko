@@ -1,4 +1,5 @@
 import { PaymentMethod, PaymentDetails, PaymentConfig } from '../types';
+import useStore from '../store/useStore';
 
 export interface PaymentIntent {
   id: string;
@@ -24,6 +25,12 @@ export interface DigitalWalletData {
 class PaymentService {
   private baseUrl = 'http://localhost:3000/api';
   private paymentConfig: PaymentConfig | null = null;
+  private getToken?: () => Promise<string | null | undefined>;
+
+  // Set authentication token getter
+  setAuth(getToken?: () => Promise<string | null | undefined>) {
+    this.getToken = getToken;
+  }
 
   // Set payment configuration from user settings
   setPaymentConfig(config: PaymentConfig) {
@@ -33,6 +40,26 @@ class PaymentService {
   // Get payment configuration
   getPaymentConfig(): PaymentConfig | null {
     return this.paymentConfig;
+  }
+
+  // Get currency from store settings
+  private getCurrency(): string {
+    const settings = useStore.getState().settings;
+    return settings?.currency?.code || 'usd';
+  }
+
+  // Get current currency (public method for external use)
+  getCurrentCurrency(): string {
+    return this.getCurrency();
+  }
+
+  // Get decimal multiplier for currency (for Stripe API)
+  private getCurrencyMultiplier(currency: string): number {
+    // Zero-decimal currencies (no cents)
+    const zeroDecimalCurrencies = ['JPY', 'KRW', 'VND', 'CLP', 'PYG', 'ISK', 'BIF', 'DJF', 'GNF', 'KMF', 'MGA', 'PAB', 'STD', 'VUV', 'XAF', 'XOF', 'XPF'];
+    
+    const currencyCode = currency.toUpperCase();
+    return zeroDecimalCurrencies.includes(currencyCode) ? 1 : 100;
   }
 
   // Check if payment is enabled
@@ -45,30 +72,64 @@ class PaymentService {
     return this.paymentConfig?.paymentMethods?.includes(method) === true;
   }
 
+  // Private method to handle authenticated fetch requests
+  private async fetchJSON<T>(url: string, options: RequestInit = {}): Promise<T> {
+    const headers: Record<string, string> = { 
+      'Content-Type': 'application/json'
+    };
+    
+    // Add any additional headers from options
+    if (options.headers) {
+      Object.assign(headers, options.headers);
+    }
+    
+    // Always get the latest token before each request
+    if (this.getToken && typeof this.getToken === 'function') {
+      try {
+        const token = await this.getToken();
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+      } catch (error) {
+        console.warn('Failed to get token:', error);
+        // Continue without token if getToken fails
+      }
+    }
+
+    const res = await fetch(url, {
+      headers,
+      ...options,
+    });
+
+    if (res.status === 401) {
+      // Redirect to login page
+      window.location.href = "/sign-in";
+      // Optionally, return a rejected promise to stop further processing
+      return Promise.reject(new Error("Unauthorized"));
+    }
+
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+  }
+
   // Initialize Stripe payment intent
-  async createPaymentIntent(amount: number, currency: string = 'usd'): Promise<PaymentIntent> {
+  async createPaymentIntent(amount: number, currency?: string): Promise<PaymentIntent> {
     if (!this.isPaymentEnabled()) {
       throw new Error('Payment processing is not enabled');
     }
 
+    // Use provided currency, or get from settings, or default to 'usd'
+    const paymentCurrency = currency || this.getCurrency();
+
     try {
-      const response = await fetch(`${this.baseUrl}/payments/create-intent`, {
+      return await this.fetchJSON<PaymentIntent>(`${this.baseUrl}/payments/create-intent`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
-          amount: Math.round(amount * 100), // Convert to cents
-          currency,
-          config: this.paymentConfig, // Send config to backend
+          amount: amount, // Send original amount, let server handle conversion
+          currency: paymentCurrency,
+          config: this.paymentConfig,
         }),
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to create payment intent');
-      }
-
-      return await response.json();
     } catch (error) {
       console.error('Error creating payment intent:', error);
       throw error;
@@ -212,4 +273,11 @@ class PaymentService {
 }
 
 export const paymentService = new PaymentService();
+
+// Helper function to configure the payment service with auth
+export function configurePayment(getToken?: () => Promise<string | null | undefined>) {
+  console.log('Configuring Payment Service with getToken function');
+  paymentService.setAuth(getToken);
+}
+
 export default paymentService; 

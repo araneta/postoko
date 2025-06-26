@@ -5,6 +5,7 @@ import { View, ActivityIndicator } from 'react-native';
 import { ClerkProvider, useAuth, useUser } from '@clerk/clerk-expo'
 import { tokenCache } from '@clerk/clerk-expo/token-cache'
 import { configureAPI } from "../lib/api";
+import { configurePayment } from "../lib/payment";
 
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import useStore from '../store/useStore';
@@ -59,6 +60,7 @@ function AppContent() {
   useEffect(() => {
     if (getToken) {
       configureAPI(getToken);
+      configurePayment(getToken);
     }
   }, [getToken]);
 

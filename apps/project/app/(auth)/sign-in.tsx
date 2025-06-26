@@ -4,6 +4,7 @@ import { Text, TextInput, TouchableOpacity, View, StyleSheet, KeyboardAvoidingVi
 import React from 'react'
 import { Ionicons } from '@expo/vector-icons'
 import { login, configureAPI , getSettings} from '../../lib/api'
+import { configurePayment } from '../../lib/payment'
 
 export default function Page() {
   const { signIn, setActive, isLoaded } = useSignIn()
@@ -50,6 +51,7 @@ export default function Page() {
             // Configure the API client with the returned credentials
             //if (token) {              
               configureAPI(getToken);
+              configurePayment(getToken);
               const { id } = await login(emailAddress)
               console.log('id', id)  
               const storeInfo = await getSettings();

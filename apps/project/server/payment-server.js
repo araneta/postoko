@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const app = express();
 const PORT = process.env.PORT || 3000;
+const Stripe = require('stripe');
 
 // Middleware
 app.use(cors());
@@ -64,10 +65,19 @@ initializeSampleData();
 
 // Helper function to get Stripe instance with user's config
 const getStripeInstance = (config) => {
-  if (!config || !config.stripeSecretKey) {
-    throw new Error('Stripe secret key not configured');
+  if (!config.stripeSecretKey) {
+    throw new Error('Stripe secret key is required');
   }
-  return require('stripe')(config.stripeSecretKey);
+  return new Stripe(config.stripeSecretKey);
+};
+
+// Get decimal multiplier for currency (for Stripe API)
+const getCurrencyMultiplier = (currency) => {
+  // Zero-decimal currencies (no cents)
+  const zeroDecimalCurrencies = ['JPY', 'KRW', 'VND', 'CLP', 'PYG', 'ISK', 'BIF', 'DJF', 'GNF', 'KMF', 'MGA', 'PAB', 'STD', 'VUV', 'XAF', 'XOF', 'XPF'];
+  
+  const currencyCode = currency.toUpperCase();
+  return zeroDecimalCurrencies.includes(currencyCode) ? 1 : 100;
 };
 
 // Health check endpoint
@@ -89,10 +99,11 @@ app.post('/api/payments/create-intent', async (req, res) => {
     }
 
     const stripe = getStripeInstance(config);
+    const multiplier = getCurrencyMultiplier(currency);
 
     // Create payment intent with Stripe
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount * 100), // Convert to cents
+      amount: Math.round(amount * multiplier), // Convert to smallest currency unit
       currency: currency,
       automatic_payment_methods: {
         enabled: true,
@@ -101,7 +112,7 @@ app.post('/api/payments/create-intent', async (req, res) => {
 
     res.json({
       id: paymentIntent.id,
-      amount: paymentIntent.amount / 100, // Convert back to dollars
+      amount: paymentIntent.amount / multiplier, // Convert back to original unit
       currency: paymentIntent.currency,
       status: paymentIntent.status,
       client_secret: paymentIntent.client_secret,
@@ -115,7 +126,7 @@ app.post('/api/payments/create-intent', async (req, res) => {
 // Confirm payment
 app.post('/api/payments/confirm', async (req, res) => {
   try {
-    const { paymentIntentId, paymentMethodId, config } = req.body;
+    const { paymentIntentId, paymentMethodId, config, currency = 'usd' } = req.body;
 
     if (!paymentIntentId) {
       return res.status(400).json({ error: 'Payment intent ID is required' });
@@ -126,6 +137,7 @@ app.post('/api/payments/confirm', async (req, res) => {
     }
 
     const stripe = getStripeInstance(config);
+    const multiplier = getCurrencyMultiplier(currency);
 
     // Confirm the payment intent
     const paymentIntent = await stripe.paymentIntents.confirm(paymentIntentId, {
@@ -135,7 +147,7 @@ app.post('/api/payments/confirm', async (req, res) => {
     res.json({
       id: paymentIntent.id,
       status: paymentIntent.status,
-      amount: paymentIntent.amount / 100,
+      amount: paymentIntent.amount / multiplier,
       currency: paymentIntent.currency,
     });
   } catch (error) {
@@ -147,7 +159,7 @@ app.post('/api/payments/confirm', async (req, res) => {
 // Process card payment (simplified for demo)
 app.post('/api/payments/process-card', async (req, res) => {
   try {
-    const { cardNumber, expiryMonth, expiryYear, cvc, amount, config } = req.body;
+    const { cardNumber, expiryMonth, expiryYear, cvc, amount, config, currency = 'usd' } = req.body;
 
     // Basic validation
     if (!cardNumber || !expiryMonth || !expiryYear || !cvc || !amount) {
@@ -159,12 +171,13 @@ app.post('/api/payments/process-card', async (req, res) => {
     }
 
     const stripe = getStripeInstance(config);
+    const multiplier = getCurrencyMultiplier(currency);
 
     // In a real implementation, you would use Stripe's payment methods API
     // For demo purposes, we'll simulate a successful payment
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount * 100),
-      currency: 'usd',
+      amount: Math.round(amount * multiplier),
+      currency: currency,
       payment_method_data: {
         type: 'card',
         card: {
@@ -180,7 +193,7 @@ app.post('/api/payments/process-card', async (req, res) => {
     res.json({
       success: true,
       transactionId: paymentIntent.id,
-      amount: paymentIntent.amount / 100,
+      amount: paymentIntent.amount / multiplier,
       status: paymentIntent.status,
       cardLast4: cardNumber.slice(-4),
     });
@@ -193,7 +206,7 @@ app.post('/api/payments/process-card', async (req, res) => {
 // Process digital wallet payment
 app.post('/api/payments/process-wallet', async (req, res) => {
   try {
-    const { walletType, amount, config } = req.body;
+    const { walletType, amount, config, currency = 'usd' } = req.body;
 
     if (!walletType || !amount) {
       return res.status(400).json({ error: 'Missing required fields' });
@@ -204,12 +217,13 @@ app.post('/api/payments/process-wallet', async (req, res) => {
     }
 
     const stripe = getStripeInstance(config);
+    const multiplier = getCurrencyMultiplier(currency);
 
     // In a real implementation, you would integrate with the specific wallet
     // For demo purposes, we'll simulate a successful payment
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount * 100),
-      currency: 'usd',
+      amount: Math.round(amount * multiplier),
+      currency: currency,
       payment_method_types: ['card'], // Digital wallets typically use card networks
       confirm: true,
     });
@@ -217,7 +231,7 @@ app.post('/api/payments/process-wallet', async (req, res) => {
     res.json({
       success: true,
       transactionId: paymentIntent.id,
-      amount: paymentIntent.amount / 100,
+      amount: paymentIntent.amount / multiplier,
       status: paymentIntent.status,
       walletType: walletType,
     });

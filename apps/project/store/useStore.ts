@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { Product, CartItem, Order, Currency, Settings, StoreInfo, PrinterSettings, PaymentDetails, PaymentConfig } from '../types';
 import { apiClient, configureAPI } from '../lib/api';
-import { safeToFixed } from '../utils/formatters';
+import { safeToFixed, formatPriceByCurrency } from '../utils/formatters';
 import paymentService from '../lib/payment';
 
 interface StoreState {
@@ -82,6 +82,7 @@ const useStore = create<StoreState>((set, get) => ({
       
       // Add sample products with barcodes for testing if no products exist
       let finalProducts = products;
+      /*
       if (products.length === 0) {
         const sampleProducts: Product[] = [
           {
@@ -136,7 +137,7 @@ const useStore = create<StoreState>((set, get) => ({
         }
         
         finalProducts = sampleProducts;
-      }
+      }*/
       
       const finalSettings = settings
         ? {
@@ -288,6 +289,7 @@ const useStore = create<StoreState>((set, get) => ({
         currency
       };
       await apiClient.updateSettings(newSettings);
+      
       set({ settings: newSettings });
     } catch (error) {
       console.error('Failed to update currency:', error);
@@ -343,7 +345,10 @@ const useStore = create<StoreState>((set, get) => ({
 
   formatPrice: (price: number) => {
     const { settings } = get();
-    return `${settings?.currency?.symbol || '$'} ${safeToFixed(price)}`;
+    const currencyCode = settings?.currency?.code || 'USD';
+    const symbol = settings?.currency?.symbol || '$';
+    const formattedPrice = formatPriceByCurrency(price, currencyCode);
+    return `${symbol} ${formattedPrice}`;
   },
 
   clearStore: () => {
