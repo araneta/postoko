@@ -6,6 +6,8 @@ import { ClerkProvider, useAuth, useUser } from '@clerk/clerk-expo'
 import { tokenCache } from '@clerk/clerk-expo/token-cache'
 import { configureAPI } from "../lib/api";
 import { configurePayment } from "../lib/payment";
+import { configureStripeService } from "../lib/stripeService";
+import StripeProvider from '../components/StripeProvider';
 
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import useStore from '../store/useStore';
@@ -61,6 +63,7 @@ function AppContent() {
     if (getToken) {
       configureAPI(getToken);
       configurePayment(getToken);
+      configureStripeService(getToken);
     }
   }, [getToken]);
 
@@ -73,12 +76,14 @@ function AppContent() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(home)" options={{ headerShown: false }} />
-      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="+not-found" options={{ title: 'Oops!' }} />
-    </Stack>
+    <StripeProvider>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(home)" options={{ headerShown: false }} />
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="+not-found" options={{ title: 'Oops!' }} />
+      </Stack>
+    </StripeProvider>
   );
 }
 

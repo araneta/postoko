@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { PaymentConfig, PaymentMethod } from '../types';
 import useStore from '../store/useStore';
+import { stripeService } from '../lib/stripeService';
 
 interface PaymentSettingsProps {
   onClose: () => void;
@@ -59,6 +60,7 @@ export default function PaymentSettings({ onClose }: PaymentSettingsProps) {
       };
 
       await updatePaymentConfig(paymentConfig);
+      stripeService.setPaymentConfig(paymentConfig);
       Alert.alert('Success', 'Payment settings saved successfully!');
       onClose();
     } catch (error) {
