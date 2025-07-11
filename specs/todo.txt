@@ -1,6 +1,5 @@
 Implementation Recommendations
 Start with Barcode Scanning because: [done]
-payment method [working]
 Immediate ROI: Customers see instant value
 Competitive necessity: Most POS systems have this
 Technical feasibility: Can use existing camera

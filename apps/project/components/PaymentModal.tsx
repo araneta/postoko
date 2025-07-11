@@ -102,7 +102,6 @@ export default function PaymentModal({
             cvc,
             amount: total,
           };
-          console.log(cardData);
           const cardPayment = await paymentService.processCardPayment(cardData);
           paymentDetails = [cardPayment];
           break;

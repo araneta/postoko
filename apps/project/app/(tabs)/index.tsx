@@ -3,27 +3,18 @@ import { View, Text, StyleSheet, FlatList, Pressable, TextInput, Modal, Platform
 import { Ionicons } from '@expo/vector-icons';
 import ProductCard from '../../components/ProductCard';
 import BarcodeScanner from '../../components/BarcodeScanner';
-import StripePaymentModal from '../../components/StripePaymentModal';
-
+import PaymentModal from '../../components/PaymentModal';
 import useStore from '../../store/useStore';
 import { printReceipt } from '../../utils/printer';
 import { PaymentDetails } from '../../types';
-import { useStripePayment } from '../../hooks/useStripePayment';
 
 export default function POSScreen() {
   const { products, cart, addToCart, removeFromCart, updateCartItemQuantity, createOrder, settings, formatPrice } = useStore();
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showScannerModal, setShowScannerModal] = useState(false);
   const [barcodeInput, setBarcodeInput] = useState('');
   const [printError, setPrintError] = useState<string | null>(null);
   
-  // Use the Stripe payment hook
-  const {
-    isPaymentModalVisible,
-    showPaymentModal,
-    hidePaymentModal,
-    onPaymentComplete,
-    lastPaymentDetails,
-  } = useStripePayment();
 
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
@@ -31,7 +22,7 @@ export default function POSScreen() {
     try {
       const order = await createOrder(paymentDetails);
       console.log('order', order);
-      onPaymentComplete(paymentDetails);
+      setShowPaymentModal(false);
 
       if (order) {
         await printReceipt(order, settings, formatPrice);
@@ -144,14 +135,14 @@ export default function POSScreen() {
         <Pressable
           style={[styles.checkoutButton, cart.length === 0 && styles.disabledButton]}
           disabled={cart.length === 0}
-          onPress={() => showPaymentModal(total)}>
+          onPress={() => setShowPaymentModal(true)}>
           <Text style={styles.checkoutButtonText}>Complete Sale</Text>
         </Pressable>
       </View>
 
-      <StripePaymentModal
-        visible={isPaymentModalVisible}
-        onClose={hidePaymentModal}
+      <PaymentModal
+        visible={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
         onPaymentComplete={handlePaymentComplete}
         total={total}
         formatPrice={formatPrice}

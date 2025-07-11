@@ -29,20 +29,4 @@ export function safeToNumber(value: any): number {
 export function safeToInteger(value: any): number {
   const num = typeof value === 'string' ? parseInt(value, 10) : Number(value);
   return isNaN(num) ? 0 : Math.floor(num);
-}
-
-/**
- * Format price based on currency decimal places
- * @param price - The price to format
- * @param currencyCode - The currency code (e.g., 'USD', 'JPY')
- * @returns Formatted price string
- */
-export function formatPriceByCurrency(price: number, currencyCode: string): string {
-  // Zero-decimal currencies (no cents)
-  const zeroDecimalCurrencies = ['JPY', 'KRW', 'VND', 'CLP', 'PYG', 'ISK', 'BIF', 'DJF', 'GNF', 'KMF', 'MGA', 'PAB', 'STD', 'VUV', 'XAF', 'XOF', 'XPF'];
-  
-  const currency = currencyCode.toUpperCase();
-  const decimals = zeroDecimalCurrencies.includes(currency) ? 0 : 2;
-  
-  return safeToFixed(price, decimals);
 } 

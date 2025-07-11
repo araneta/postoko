@@ -3,7 +3,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth,useUser } from '@clerk/clerk-expo';
 import useStore from '@/store/useStore';
 import { login, configureAPI , getSettings} from '../../lib/api'
-import { configurePayment } from '../../lib/payment'
 import { useEffect } from 'react';
 
 export default function TabLayout() {
@@ -50,7 +49,6 @@ export default function TabLayout() {
             // Configure the API client with the returned credentials
             //if (token) {              
               configureAPI(getToken);
-              configurePayment(getToken);
               const { id } = await login(email)
               console.log('id', id)  
               const storeInfo = await getSettings();
