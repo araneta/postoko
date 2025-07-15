@@ -2,7 +2,7 @@ import { db } from '../db';
 import { ordersTable, orderItemsTable, storeInfoTable, productsTable } from '../db/schema';
 import { Request, Response } from 'express';
 import { getAuth } from '@clerk/express';
-import { eq,desc } from 'drizzle-orm';
+import { eq, desc, and, inArray } from 'drizzle-orm';
 
 export default class OrdersController {
     static async getOrders(req: Request, res: Response) {
@@ -110,6 +110,41 @@ export default class OrdersController {
 
             const storeInfoId = storeInfo[0].id;
 
+            // Extract product IDs from items
+            const productIds = items.map(item => item.id);
+
+            // Get current product stock information
+            const products = await db.select({
+                id: productsTable.id,
+                name: productsTable.name,
+                stock: productsTable.stock
+            })
+            .from(productsTable)
+            .where(
+                and(
+                    eq(productsTable.storeInfoId, storeInfoId),
+                    inArray(productsTable.id, productIds)
+                )
+            );
+
+            // Validate stock availability
+            const stockValidationErrors = [];
+            for (const item of items) {
+                const product = products.find(p => p.id === item.id);
+                if (!product) {
+                    stockValidationErrors.push(`Product with ID ${item.id} not found`);
+                } else if (product.stock < item.quantity) {
+                    stockValidationErrors.push(`Insufficient stock for ${product.name}. Available: ${product.stock}, Requested: ${item.quantity}`);
+                }
+            }
+
+            if (stockValidationErrors.length > 0) {
+                return res.status(400).json({ 
+                    message: 'Stock validation failed', 
+                    errors: stockValidationErrors 
+                });
+            }
+
             // Use a transaction to ensure data consistency
             const result = await db.transaction(async (tx) => {
                 // Create the order
@@ -130,6 +165,19 @@ export default class OrdersController {
                 }));
 
                 await tx.insert(orderItemsTable).values(orderItems);
+
+                // Update product stock
+                for (const item of items) {
+                    const product = products.find(p => p.id === item.id);
+                    if (product) {
+                        const newStock = product.stock - item.quantity;
+                        await tx.update(productsTable)
+                            .set({
+                                stock: newStock
+                            })
+                            .where(eq(productsTable.id, item.id));
+                    }
+                }
 
                 return newOrder[0];
             });

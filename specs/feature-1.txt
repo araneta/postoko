@@ -4,12 +4,12 @@ Why first: Dramatically speeds up checkout process
 Customer impact: 3x faster transactions, reduced errors
 Implementation: Use device camera to scan product barcodes
 Revenue justification: Essential for any serious retail business
-2. Multiple Payment Methods (HIGH PRIORITY)
+2. Multiple Payment Methods (HIGH PRIORITY) [pending]
 Why essential: Cash-only severely limits customer base
 Add: Credit/debit card processing, digital wallets
 Integration: Stripe or Square for payment processing
 Revenue impact: Increases average transaction size by 20-30%
-3. Low Stock Alerts (MEDIUM PRIORITY)
+3. Low Stock Alerts (MEDIUM PRIORITY) [done]
 Why valuable: Prevents lost sales from stockouts
 Implementation: Automatic notifications when inventory drops below threshold
 Customer pain point: Manual inventory tracking is time-consuming

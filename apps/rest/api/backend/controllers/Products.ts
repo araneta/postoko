@@ -39,7 +39,7 @@ export default class ProductsController {
             return res.status(401).send('Unauthorized');
         }
 
-        const { id, name, price, stock, category, description, image, barcode } = req.body;
+        const { id, name, price, stock, minStock, category, description, image, barcode } = req.body;
 
         // Validate required fields
         if (!id || !name || !price || !stock || !category) {
@@ -65,6 +65,7 @@ export default class ProductsController {
                 name: name,
                 price: price,
                 stock: stock,
+                minStock: minStock || 10, // Default to 10 if not provided
                 category: category,
                 description: description || null,
                 image: image||'',
@@ -85,7 +86,7 @@ export default class ProductsController {
             return res.status(401).send('Unauthorized');
         }
         const productId = req.params.id;
-        const {  name, price, stock, category, description, image, barcode } = req.body;
+        const {  name, price, stock, minStock, category, description, image, barcode } = req.body;
 
         // Validate required fields
         if (!name || !price || !stock || !category) {
@@ -99,6 +100,7 @@ export default class ProductsController {
                     name: name,
                     price: price,
                     stock: stock,
+                    minStock: minStock || 10, // Default to 10 if not provided
                     category: category,
                     description: description || null,
                     image: image||'',

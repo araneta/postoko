@@ -15,6 +15,7 @@ export const productsTable = pgTable("products", {
   description: text(),
   image: text(),
   stock: integer().notNull(),
+  minStock: integer().default(10), // Minimum stock threshold for notifications
   category: varchar({ length: 255 }).notNull(),
   barcode: varchar({ length: 255 }),
 });
