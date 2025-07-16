@@ -1,6 +1,6 @@
 Phase 2: Business Intelligence (Weeks 5-8)
-4. Sales Analytics Dashboard
-Daily/weekly/monthly sales reports
+4. Sales Analytics Dashboard [done]
+Daily/weekly/monthly sales reports [done]
 Best-selling products identification
 Peak hours analysis
 Profit margin tracking

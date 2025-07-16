@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, TextInput, Modal, Platform } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Pressable, TextInput, Modal, Platform, ActivityIndicator, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import ProductCard from '../../components/ProductCard';
 import BarcodeScanner from '../../components/BarcodeScanner';
@@ -36,6 +36,12 @@ export default function POSScreen() {
     message: '',
     type: 'info',
   });
+
+
+
+
+
+
 
   // Check for low stock alerts when component mounts
   useEffect(() => {
@@ -140,116 +146,120 @@ export default function POSScreen() {
   const quickAmounts = [10000, 20000, 50000, 100000];
 
   return (
-    <View style={styles.container}>
-      <View style={styles.productsContainer}>
-        <View style={styles.productsHeader}>
-          <Text style={styles.productsTitle}>Products</Text>
-          <View style={styles.barcodeContainer}>
-            <TextInput
-              style={styles.barcodeInput}
-              placeholder="Enter barcode"
-              value={barcodeInput}
-              onChangeText={setBarcodeInput}
-              onSubmitEditing={handleManualBarcodeInput}
-              returnKeyType="search"
-            />
-            <Pressable
-              style={styles.searchButton}
-              onPress={handleManualBarcodeInput}>
-              <Ionicons name="search" size={16} color="white" />
-            </Pressable>
-            <Pressable
-              style={styles.scanButton}
-              onPress={() => setShowScannerModal(true)}>
-              <Ionicons name="scan-outline" size={20} color="white" />
-              <Text style={styles.scanButtonText}>Scan</Text>
-            </Pressable>
-          </View>
-        </View>
-        <FlatList
-          data={products}
-          renderItem={({ item }) => (
-            <ProductCard
-              product={item}
-              onPress={() => handleAddToCart(item)}
-            />
-          )}
-          keyExtractor={(item) => item.id}
-        />
-      </View>
-
-      <View style={styles.cartContainer}>
-        <Text style={styles.cartTitle}>Current Order</Text>
-        {printError && (
-          <Text style={styles.errorMessage}>{printError}</Text>
-        )}
-        <FlatList
-          data={cart}
-          renderItem={({ item }) => (
-            <View style={styles.cartItem}>
-              <Text style={styles.cartItemName}>{item.name}</Text>
-              <View style={styles.quantityContainer}>
-                <Pressable
-                  onPress={() => updateCartItemQuantity(item.id, Math.max(0, item.quantity - 1))}
-                  style={styles.quantityButton}>
-                  <Ionicons name="remove" size={20} color="#007AFF" />
-                </Pressable>
-                <Text style={styles.quantity}>{item.quantity}</Text>
-                <Pressable
-                  onPress={() => updateCartItemQuantity(item.id, item.quantity + 1)}
-                  style={styles.quantityButton}>
-                  <Ionicons name="add" size={20} color="#007AFF" />
-                </Pressable>
-              </View>
-              <Text style={styles.cartItemPrice}>
-                {formatPrice(item.price * item.quantity)}
-              </Text>
-              <Pressable onPress={() => removeFromCart(item.id)}>
-                <Ionicons name="trash-outline" size={20} color="#FF3B30" />
+    <ScrollView style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
+     
+      {/* Existing POS UI */}
+      <View style={styles.container}>
+        <View style={styles.productsContainer}>
+          <View style={styles.productsHeader}>
+            <Text style={styles.productsTitle}>Products</Text>
+            <View style={styles.barcodeContainer}>
+              <TextInput
+                style={styles.barcodeInput}
+                placeholder="Enter barcode"
+                value={barcodeInput}
+                onChangeText={setBarcodeInput}
+                onSubmitEditing={handleManualBarcodeInput}
+                returnKeyType="search"
+              />
+              <Pressable
+                style={styles.searchButton}
+                onPress={handleManualBarcodeInput}>
+                <Ionicons name="search" size={16} color="white" />
+              </Pressable>
+              <Pressable
+                style={styles.scanButton}
+                onPress={() => setShowScannerModal(true)}>
+                <Ionicons name="scan-outline" size={20} color="white" />
+                <Text style={styles.scanButtonText}>Scan</Text>
               </Pressable>
             </View>
-          )}
-          keyExtractor={(item) => item.id}
-        />
-        <View style={styles.totalContainer}>
-          <Text style={styles.totalText}>Total:</Text>
-          <Text style={styles.totalAmount}>{formatPrice(total)}</Text>
+          </View>
+          <FlatList
+            data={products}
+            renderItem={({ item }) => (
+              <ProductCard
+                product={item}
+                onPress={() => handleAddToCart(item)}
+              />
+            )}
+            keyExtractor={(item) => item.id}
+          />
         </View>
-        <Pressable
-          style={[styles.checkoutButton, cart.length === 0 && styles.disabledButton]}
-          disabled={cart.length === 0}
-          onPress={() => setShowPaymentModal(true)}>
-          <Text style={styles.checkoutButtonText}>Complete Sale</Text>
-        </Pressable>
-      </View>
 
-      <PaymentModal
-        visible={showPaymentModal}
-        onClose={() => setShowPaymentModal(false)}
-        onPaymentComplete={handlePaymentComplete}
-        total={total}
-        formatPrice={formatPrice}
-      />
+        <View style={styles.cartContainer}>
+          <Text style={styles.cartTitle}>Current Order</Text>
+          {printError && (
+            <Text style={styles.errorMessage}>{printError}</Text>
+          )}
+          <FlatList
+            data={cart}
+            renderItem={({ item }) => (
+              <View style={styles.cartItem}>
+                <Text style={styles.cartItemName}>{item.name}</Text>
+                <View style={styles.quantityContainer}>
+                  <Pressable
+                    onPress={() => updateCartItemQuantity(item.id, Math.max(0, item.quantity - 1))}
+                    style={styles.quantityButton}>
+                    <Ionicons name="remove" size={20} color="#007AFF" />
+                  </Pressable>
+                  <Text style={styles.quantity}>{item.quantity}</Text>
+                  <Pressable
+                    onPress={() => updateCartItemQuantity(item.id, item.quantity + 1)}
+                    style={styles.quantityButton}>
+                    <Ionicons name="add" size={20} color="#007AFF" />
+                  </Pressable>
+                </View>
+                <Text style={styles.cartItemPrice}>
+                  {formatPrice(item.price * item.quantity)}
+                </Text>
+                <Pressable onPress={() => removeFromCart(item.id)}>
+                  <Ionicons name="trash-outline" size={20} color="#FF3B30" />
+                </Pressable>
+              </View>
+            )}
+            keyExtractor={(item) => item.id}
+          />
+          <View style={styles.totalContainer}>
+            <Text style={styles.totalText}>Total:</Text>
+            <Text style={styles.totalAmount}>{formatPrice(total)}</Text>
+          </View>
+          <Pressable
+            style={[styles.checkoutButton, cart.length === 0 && styles.disabledButton]}
+            disabled={cart.length === 0}
+            onPress={() => setShowPaymentModal(true)}>
+            <Text style={styles.checkoutButtonText}>Complete Sale</Text>
+          </Pressable>
+        </View>
 
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={showScannerModal}
-        onRequestClose={() => setShowScannerModal(false)}>
-        <BarcodeScanner
-          onProductScanned={handleProductScanned}
-          onClose={() => setShowScannerModal(false)}
+        <PaymentModal
+          visible={showPaymentModal}
+          onClose={() => setShowPaymentModal(false)}
+          onPaymentComplete={handlePaymentComplete}
+          total={total}
+          formatPrice={formatPrice}
         />
-      </Modal>
 
-      <CustomAlert
-        visible={customAlert.visible}
-        title={customAlert.title}
-        message={customAlert.message}
-        type={customAlert.type}
-        onClose={hideAlert}
-      />
-    </View>
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={showScannerModal}
+          onRequestClose={() => setShowScannerModal(false)}>
+          <BarcodeScanner
+            onProductScanned={handleProductScanned}
+            onClose={() => setShowScannerModal(false)}
+          />
+        </Modal>
+
+        <CustomAlert
+          visible={customAlert.visible}
+          title={customAlert.title}
+          message={customAlert.message}
+          type={customAlert.type}
+          onClose={hideAlert}
+        />
+      </View>
+    </ScrollView>
   );
 }
 

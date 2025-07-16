@@ -2,7 +2,7 @@ import { db } from '../db';
 import { ordersTable, orderItemsTable, storeInfoTable, productsTable } from '../db/schema';
 import { Request, Response } from 'express';
 import { getAuth } from '@clerk/express';
-import { eq, desc, and, inArray } from 'drizzle-orm';
+import { eq, desc, and, inArray, sql } from 'drizzle-orm';
 
 export default class OrdersController {
     static async getOrders(req: Request, res: Response) {
@@ -186,6 +186,81 @@ export default class OrdersController {
         } catch (error) {
             console.error(error);
             res.status(500).json({ message: 'Error creating order' });
+        }
+    }
+
+    static async getAnalytics(req: Request, res: Response) {
+        try {
+            const auth = getAuth(req);
+            if (!auth.userId) {
+                return res.status(401).send('Unauthorized');
+            }
+            // Get storeInfoId for the authenticated user
+            const storeInfo = await db.select().from(storeInfoTable).where(eq(storeInfoTable.userId, auth.userId));
+            if (storeInfo.length === 0) {
+                return res.status(200).json(null);
+            }
+            const storeInfoId = storeInfo[0].id;
+            // Total sales
+            const [{ totalSales = 0 } = {}] = await db.select({ totalSales: sql`COALESCE(SUM(${ordersTable.total}), 0)` })
+                .from(ordersTable)
+                .where(and(eq(ordersTable.storeInfoId, storeInfoId), eq(ordersTable.status, 'completed')));
+            // Number of orders
+            const [{ orderCount = 0 } = {}] = await db.select({ orderCount: sql`COUNT(*)` })
+                .from(ordersTable)
+                .where(and(eq(ordersTable.storeInfoId, storeInfoId), eq(ordersTable.status, 'completed')));
+            // Top 5 products by quantity sold
+            const topProducts = await db.select({
+                productId: orderItemsTable.productId,
+                quantitySold: sql`SUM(${orderItemsTable.quantity})`
+            })
+                .from(orderItemsTable)
+                .leftJoin(ordersTable, eq(orderItemsTable.orderId, ordersTable.id))
+                .where(and(eq(ordersTable.storeInfoId, storeInfoId), eq(ordersTable.status, 'completed')))
+                .groupBy(orderItemsTable.productId)
+                .orderBy(sql`SUM(${orderItemsTable.quantity}) DESC`)
+                .limit(5);
+            res.status(200).json({ totalSales, orderCount, topProducts });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ message: 'Error fetching analytics' });
+        }
+    }
+
+    static async getSalesReport(req: Request, res: Response) {
+        try {
+            const auth = getAuth(req);
+            if (!auth.userId) {
+                return res.status(401).send('Unauthorized');
+            }
+            const { period = 'daily' } = req.query;
+            // Get storeInfoId for the authenticated user
+            const storeInfo = await db.select().from(storeInfoTable).where(eq(storeInfoTable.userId, auth.userId));
+            if (storeInfo.length === 0) {
+                return res.status(200).json(null);
+            }
+            const storeInfoId = storeInfo[0].id;
+            let groupBySql;
+            if (period === 'monthly') {
+                groupBySql = sql`TO_CHAR(${ordersTable.date}::timestamp, 'YYYY-MM')`;
+            } else if (period === 'weekly') {
+                groupBySql = sql`TO_CHAR(${ordersTable.date}::timestamp, 'IYYY-IW')`;
+            } else {
+                groupBySql = sql`TO_CHAR(${ordersTable.date}::timestamp, 'YYYY-MM-DD')`;
+            }
+            const report = await db.select({
+                period: groupBySql,
+                totalSales: sql`SUM(${ordersTable.total})`,
+                orderCount: sql`COUNT(*)`
+            })
+                .from(ordersTable)
+                .where(and(eq(ordersTable.storeInfoId, storeInfoId), eq(ordersTable.status, 'completed')))
+                .groupBy(groupBySql)
+                .orderBy(groupBySql);
+            res.status(200).json(report);
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ message: 'Error fetching sales report' });
         }
     }
 }

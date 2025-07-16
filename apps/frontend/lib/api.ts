@@ -123,6 +123,15 @@ class APIClient {
       body: JSON.stringify({ email }),
     });
   }
+
+  // Analytics
+  async getAnalytics() {
+    return this.fetchJSON(`${BASE_URL}/orders/analytics`);
+  }
+
+  async getSalesReport(period: 'daily' | 'weekly' | 'monthly' = 'daily') {
+    return this.fetchJSON(`${BASE_URL}/orders/reports?period=${period}`);
+  }
 }
 
 // Create a singleton instance
