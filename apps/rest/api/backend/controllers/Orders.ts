@@ -263,4 +263,207 @@ export default class OrdersController {
             res.status(500).json({ message: 'Error fetching sales report' });
         }
     }
+
+    static async getBestSellers(req: Request, res: Response) {
+        try {
+            const auth = getAuth(req);
+            if (!auth.userId) {
+                return res.status(401).send('Unauthorized');
+            }
+
+            const { limit = 10, period = 'all' } = req.query;
+            const limitNum = parseInt(limit as string) || 10;
+
+            // Get storeInfoId for the authenticated user
+            const storeInfo = await db.select().from(storeInfoTable).where(eq(storeInfoTable.userId, auth.userId));
+            if (storeInfo.length === 0) {
+                return res.status(200).json([]);
+            }
+            const storeInfoId = storeInfo[0].id;
+
+            let whereCondition = and(
+                eq(ordersTable.storeInfoId, storeInfoId),
+                eq(ordersTable.status, 'completed')
+            );
+
+            // Add date filtering if period is specified
+            if (period !== 'all') {
+                const now = new Date();
+                let startDate: Date;
+                
+                switch (period) {
+                    case 'week':
+                        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                        break;
+                    case 'month':
+                        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+                        break;
+                    case 'year':
+                        startDate = new Date(now.getFullYear(), 0, 1);
+                        break;
+                    default:
+                        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); // 30 days default
+                }
+                
+                whereCondition = and(
+                    whereCondition,
+                    sql`${ordersTable.date}::timestamp >= ${startDate.toISOString()}`
+                );
+            }
+
+            const bestSellers = await db.select({
+                productId: orderItemsTable.productId,
+                productName: productsTable.name,
+                totalQuantity: sql`SUM(${orderItemsTable.quantity})`,
+                totalRevenue: sql`SUM(${orderItemsTable.quantity} * ${productsTable.price})`,
+                averagePrice: sql`AVG(${productsTable.price})`
+            })
+                .from(orderItemsTable)
+                .leftJoin(ordersTable, eq(orderItemsTable.orderId, ordersTable.id))
+                .leftJoin(productsTable, eq(orderItemsTable.productId, productsTable.id))
+                .where(whereCondition)
+                .groupBy(orderItemsTable.productId, productsTable.name)
+                .orderBy(sql`SUM(${orderItemsTable.quantity}) DESC`)
+                .limit(limitNum);
+
+            res.status(200).json(bestSellers);
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ message: 'Error fetching best sellers' });
+        }
+    }
+
+    static async getPeakHours(req: Request, res: Response) {
+        try {
+            const auth = getAuth(req);
+            if (!auth.userId) {
+                return res.status(401).send('Unauthorized');
+            }
+
+            const { days = 30 } = req.query;
+            const daysNum = parseInt(days as string) || 30;
+
+            // Get storeInfoId for the authenticated user
+            const storeInfo = await db.select().from(storeInfoTable).where(eq(storeInfoTable.userId, auth.userId));
+            if (storeInfo.length === 0) {
+                return res.status(200).json([]);
+            }
+            const storeInfoId = storeInfo[0].id;
+
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - daysNum);
+
+            const peakHours = await db.select({
+                hour: sql`EXTRACT(HOUR FROM ${ordersTable.date}::timestamp)`,
+                orderCount: sql`COUNT(*)`,
+                totalSales: sql`SUM(${ordersTable.total})`,
+                averageOrderValue: sql`AVG(${ordersTable.total})`
+            })
+                .from(ordersTable)
+                .where(and(
+                    eq(ordersTable.storeInfoId, storeInfoId),
+                    eq(ordersTable.status, 'completed'),
+                    sql`${ordersTable.date}::timestamp >= ${startDate.toISOString()}`
+                ))
+                .groupBy(sql`EXTRACT(HOUR FROM ${ordersTable.date}::timestamp)`)
+                .orderBy(sql`EXTRACT(HOUR FROM ${ordersTable.date}::timestamp)`);
+
+            // Fill in missing hours with zero values
+            const hourData = Array.from({ length: 24 }, (_, i) => {
+                const existingHour = peakHours.find(h => h.hour === i);
+                return {
+                    hour: i,
+                    orderCount: existingHour?.orderCount || 0,
+                    totalSales: existingHour?.totalSales || 0,
+                    averageOrderValue: existingHour?.averageOrderValue || 0
+                };
+            });
+
+            res.status(200).json(hourData);
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ message: 'Error fetching peak hours' });
+        }
+    }
+
+    static async getProfitMargin(req: Request, res: Response) {
+        try {
+            const auth = getAuth(req);
+            if (!auth.userId) {
+                return res.status(401).send('Unauthorized');
+            }
+
+            const { period = 'month' } = req.query;
+
+            // Get storeInfoId for the authenticated user
+            const storeInfo = await db.select().from(storeInfoTable).where(eq(storeInfoTable.userId, auth.userId));
+            if (storeInfo.length === 0) {
+                return res.status(200).json(null);
+            }
+            const storeInfoId = storeInfo[0].id;
+
+            // Calculate date range based on period
+            const now = new Date();
+            let startDate: Date;
+            
+            switch (period) {
+                case 'week':
+                    startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                    break;
+                case 'month':
+                    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+                    break;
+                case 'year':
+                    startDate = new Date(now.getFullYear(), 0, 1);
+                    break;
+                default:
+                    startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); // 30 days default
+            }
+
+            // Get profit margin data
+            const profitData = await db.select({
+                totalRevenue: sql`SUM(${orderItemsTable.quantity} * ${productsTable.price})`,
+                totalCost: sql`SUM(${orderItemsTable.quantity} * ${productsTable.cost})`,
+                totalProfit: sql`SUM(${orderItemsTable.quantity} * (${productsTable.price} - ${productsTable.cost}))`,
+                orderCount: sql`COUNT(DISTINCT ${ordersTable.id})`,
+                averageOrderValue: sql`AVG(${ordersTable.total})`
+            })
+                .from(orderItemsTable)
+                .leftJoin(ordersTable, eq(orderItemsTable.orderId, ordersTable.id))
+                .leftJoin(productsTable, eq(orderItemsTable.productId, productsTable.id))
+                .where(and(
+                    eq(ordersTable.storeInfoId, storeInfoId),
+                    eq(ordersTable.status, 'completed'),
+                    sql`${ordersTable.date}::timestamp >= ${startDate.toISOString()}`
+                ));
+
+            const data = profitData[0];
+            if (!data) {
+                return res.status(200).json({
+                    totalRevenue: 0,
+                    totalCost: 0,
+                    totalProfit: 0,
+                    profitMargin: 0,
+                    orderCount: 0,
+                    averageOrderValue: 0
+                });
+            }
+
+            const profitMargin = Number(data.totalRevenue) > 0 
+                ? ((Number(data.totalProfit) / Number(data.totalRevenue)) * 100) 
+                : 0;
+
+            res.status(200).json({
+                totalRevenue: Number(data.totalRevenue),
+                totalCost: Number(data.totalCost),
+                totalProfit: Number(data.totalProfit),
+                profitMargin: Number(profitMargin.toFixed(2)),
+                orderCount: Number(data.orderCount),
+                averageOrderValue: Number(data.averageOrderValue)
+            });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ message: 'Error fetching profit margin' });
+        }
+    }
 }

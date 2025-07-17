@@ -21,6 +21,7 @@ import { pickImage, takePhoto, uploadImageToImageKit, checkFileSize } from '../.
 const initialFormData = {
   name: '',
   price: '',
+  cost: '',
   stock: '',
   category: '',
   description: '',
@@ -45,6 +46,7 @@ export default function ProductsScreen() {
       id: editingProduct?.id || Date.now().toString(),
       name: formData.name,
       price: parseFloat(formData.price),
+      cost: parseFloat(formData.cost) || 0,
       stock: parseInt(formData.stock),
       category: formData.category,
       description: formData.description,
@@ -73,6 +75,7 @@ export default function ProductsScreen() {
     setFormData({
       name: product.name,
       price: product.price.toString(),
+      cost: product.cost.toString(),
       stock: product.stock.toString(),
       category: product.category,
       description: product.description || '',
@@ -260,6 +263,14 @@ export default function ProductsScreen() {
               placeholder="Price"
               value={formData.price}
               onChangeText={(text) => setFormData({ ...formData, price: text })}
+              keyboardType="decimal-pad"
+            />
+
+            <TextInput
+              style={styles.input}
+              placeholder="Cost"
+              value={formData.cost}
+              onChangeText={(text) => setFormData({ ...formData, cost: text })}
               keyboardType="decimal-pad"
             />
 

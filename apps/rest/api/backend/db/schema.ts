@@ -12,6 +12,7 @@ export const productsTable = pgTable("products", {
   storeInfoId: integer().notNull().references(() => storeInfoTable.id),
   name: varchar({ length: 255 }).notNull(),
   price: numeric({ precision: 10, scale: 2 }).notNull(),
+  cost: numeric({ precision: 10, scale: 2 }).notNull().default('0.00'), // Cost for profit margin tracking
   description: text(),
   image: text(),
   stock: integer().notNull(),

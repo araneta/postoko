@@ -1,9 +1,9 @@
 Phase 2: Business Intelligence (Weeks 5-8)
 4. Sales Analytics Dashboard [done]
 Daily/weekly/monthly sales reports [done]
-Best-selling products identification
-Peak hours analysis
-Profit margin tracking
+Best-selling products identification [done]
+Peak hours analysis [done]
+Profit margin tracking [done]
 Why critical: Data-driven decisions increase profitability
 5. Customer Management
 Customer profiles with purchase history

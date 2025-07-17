@@ -132,6 +132,18 @@ class APIClient {
   async getSalesReport(period: 'daily' | 'weekly' | 'monthly' = 'daily') {
     return this.fetchJSON(`${BASE_URL}/orders/reports?period=${period}`);
   }
+
+  async getBestSellers(limit: number = 10, period: 'all' | 'week' | 'month' | 'year' = 'all') {
+    return this.fetchJSON(`${BASE_URL}/orders/best-sellers?limit=${limit}&period=${period}`);
+  }
+
+  async getPeakHours(days: number = 30) {
+    return this.fetchJSON(`${BASE_URL}/orders/peak-hours?days=${days}`);
+  }
+
+  async getProfitMargin(period: 'week' | 'month' | 'year' = 'month') {
+    return this.fetchJSON(`${BASE_URL}/orders/profit-margin?period=${period}`);
+  }
 }
 
 // Create a singleton instance

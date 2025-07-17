@@ -21,7 +21,7 @@ Apply migrations:
 npx drizzle-kit migrate
 
 Read more about migration process in documentation.
-
+cd /media/araneta/projects/postoko/apps/rest && npx drizzle-kit introspect
 ====================
   "sid": "sess_2yofugjid1Qra5PXVZsA5IIZ6ox",
   "sub": "user_2ykTcZH9mvaFNnY53joXNkTTq55",
