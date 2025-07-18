@@ -5,8 +5,8 @@ Best-selling products identification [done]
 Peak hours analysis [done]
 Profit margin tracking [done]
 Why critical: Data-driven decisions increase profitability
-5. Customer Management
-Customer profiles with purchase history
+5. Customer Management 
+Customer profiles with purchase history [done]
 Basic loyalty points system
 Customer search and lookup
 Why important: Repeat customers spend 67% more

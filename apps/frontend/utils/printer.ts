@@ -104,6 +104,13 @@ const webPrinter = {
               margin-top: 20px;
               font-size: 0.9em;
             }
+            .customer-info {
+              margin: 10px 0;
+              font-size: 0.95em;
+              background: #f7f7f7;
+              border-radius: 4px;
+              padding: 8px;
+            }
             @media print {
               body {
                 margin: 0;
@@ -125,7 +132,14 @@ const webPrinter = {
             <div>${settings.storeInfo?.website || 'N/A'}</div>
             <div>${settings.storeInfo?.taxId || 'N/A'}</div>
           </div>
-
+          ${order.customer ? `
+            <div class="customer-info">
+              <div><strong>Customer:</strong> ${order.customer.name}</div>
+              ${order.customer.email ? `<div>Email: ${order.customer.email}</div>` : ''}
+              ${order.customer.phone ? `<div>Phone: ${order.customer.phone}</div>` : ''}
+              ${order.customer.address ? `<div>Address: ${order.customer.address}</div>` : ''}
+            </div>
+          ` : ''}
           <div>
             <div>Order #${order.id || 'N/A'}</div>
             <div>Date: ${order.date ? new Date(order.date).toLocaleDateString() : 'N/A'}</div>

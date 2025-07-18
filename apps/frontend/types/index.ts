@@ -42,6 +42,7 @@ export interface Order {
   paymentMethod: string;
   paymentDetails?: PaymentDetails[];
   status: 'completed' | 'refunded' | 'pending';
+  customer?: Customer; // Added for POS customer selection
 }
 
 export interface Currency {
@@ -87,4 +88,21 @@ export interface StockAlert {
   threshold: number;
   createdAt: string;
   isRead: boolean;
+}
+
+export interface Customer {
+  id: string;
+  storeInfoId: number;
+  name: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  createdAt: string;
+}
+
+export interface CustomerPurchase {
+  purchaseId: number;
+  orderId: string;
+  purchaseDate: string;
+  order: Order;
 }

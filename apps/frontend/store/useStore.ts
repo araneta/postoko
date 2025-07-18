@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Product, CartItem, Order, Currency, Settings, StoreInfo, PrinterSettings, PaymentDetails, PaymentConfig, StockAlert } from '../types';
+import { Product, CartItem, Order, Currency, Settings, StoreInfo, PrinterSettings, PaymentDetails, PaymentConfig, StockAlert, Customer } from '../types';
 import { apiClient, configureAPI } from '../lib/api';
 import { safeToFixed } from '../utils/formatters';
 import paymentService from '../lib/payment';
@@ -20,7 +20,7 @@ interface StoreState {
   removeFromCart: (productId: string) => void;
   updateCartItemQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
-  createOrder: (paymentDetails: PaymentDetails[]) => Promise<Order | undefined>;
+  createOrder: (paymentDetails: PaymentDetails[], customer?: Customer) => Promise<Order | undefined>;
   updateCurrency: (currency: Currency) => Promise<void>;
   updatePrinterSettings: (printerSettings: PrinterSettings) => Promise<void>;
   updateStoreInfo: (storeInfo: StoreInfo) => Promise<void>;
@@ -256,7 +256,7 @@ const useStore = create<StoreState>((set, get) => ({
     set({ cart: [] });
   },
 
-  createOrder: async (paymentDetails: PaymentDetails[]) => {
+  createOrder: async (paymentDetails: PaymentDetails[], customer?: Customer) => {
     const { cart, products } = get();
     if (cart.length === 0) return;
 
@@ -278,7 +278,8 @@ const useStore = create<StoreState>((set, get) => ({
       date: new Date().toISOString(),
       paymentMethod: primaryPaymentMethod,
       paymentDetails,
-      status: 'completed'
+      status: 'completed',
+      customer, // Add customer to order
     };
 
     try {

@@ -8,6 +8,8 @@ import CustomAlert from '../../components/CustomAlert';
 import useStore from '../../store/useStore';
 import { printReceipt } from '../../utils/printer';
 import { PaymentDetails } from '../../types';
+import { getCustomers } from '../../lib/api';
+import { Customer } from '../../types';
 
 export default function POSScreen() {
   const { 
@@ -36,6 +38,9 @@ export default function POSScreen() {
     message: '',
     type: 'info',
   });
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
 
 
 
@@ -46,6 +51,15 @@ export default function POSScreen() {
   // Check for low stock alerts when component mounts
   useEffect(() => {
     checkLowStockAlerts();
+    // Fetch customers for selection
+    (async () => {
+      try {
+        const data = await getCustomers();
+        setCustomers(data);
+      } catch (error) {
+        console.error('Failed to fetch customers', error);
+      }
+    })();
   }, []);
 
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -68,9 +82,17 @@ export default function POSScreen() {
     });
   };
 
+  const handleSelectCustomer = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setShowCustomerModal(false);
+  };
+
   const handlePaymentComplete = async (paymentDetails: PaymentDetails[]) => {
     try {
-      const order = await createOrder(paymentDetails);
+      // Pass customer to createOrder if selected
+      const order = selectedCustomer
+        ? await createOrder(paymentDetails, selectedCustomer)
+        : await createOrder(paymentDetails);
       console.log('order', order);
       setShowPaymentModal(false);
 
@@ -188,6 +210,37 @@ export default function POSScreen() {
         </View>
 
         <View style={styles.cartContainer}>
+          {/* Customer Selection */}
+          <View style={{ marginBottom: 16 }}>
+            <Text style={{ fontWeight: '600', fontSize: 16, marginBottom: 4 }}>Customer:</Text>
+            <Pressable
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                padding: 8,
+                borderWidth: 1,
+                borderColor: '#e5e5e5',
+                borderRadius: 8,
+                backgroundColor: '#fafafa',
+                marginBottom: 4,
+              }}
+              onPress={() => setShowCustomerModal(true)}
+            >
+              <Ionicons name="person-circle" size={20} color="#007AFF" style={{ marginRight: 8 }} />
+              <Text style={{ fontSize: 16 }}>
+                {selectedCustomer ? selectedCustomer.name : 'No customer selected'}
+              </Text>
+            </Pressable>
+            <Pressable
+              style={{ alignSelf: 'flex-start', marginTop: 2, marginLeft: 2 }}
+              onPress={() => setSelectedCustomer(null)}
+              disabled={!selectedCustomer}
+            >
+              <Text style={{ color: selectedCustomer ? '#FF3B30' : '#ccc', fontSize: 12 }}>
+                {selectedCustomer ? 'Clear' : ''}
+              </Text>
+            </Pressable>
+          </View>
           <Text style={styles.cartTitle}>Current Order</Text>
           {printError && (
             <Text style={styles.errorMessage}>{printError}</Text>
@@ -239,6 +292,42 @@ export default function POSScreen() {
           total={total}
           formatPrice={formatPrice}
         />
+        {/* Customer Picker Modal */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={showCustomerModal}
+          onRequestClose={() => setShowCustomerModal(false)}
+        >
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.2)', justifyContent: 'center', alignItems: 'center' }}>
+            <View style={{ backgroundColor: 'white', borderRadius: 12, padding: 24, width: 350, maxHeight: 500 }}>
+              <Text style={{ fontSize: 20, fontWeight: '600', marginBottom: 16 }}>Select Customer</Text>
+              <FlatList
+                data={customers}
+                keyExtractor={item => item.id}
+                renderItem={({ item }) => (
+                  <Pressable
+                    style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#eee' }}
+                    onPress={() => handleSelectCustomer(item)}
+                  >
+                    <Ionicons name="person-circle" size={24} color="#007AFF" style={{ marginRight: 12 }} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 16, fontWeight: '500' }}>{item.name}</Text>
+                      <Text style={{ fontSize: 13, color: '#888' }}>{item.email}</Text>
+                    </View>
+                  </Pressable>
+                )}
+                style={{ maxHeight: 350 }}
+              />
+              <Pressable
+                style={{ marginTop: 16, alignSelf: 'flex-end' }}
+                onPress={() => setShowCustomerModal(false)}
+              >
+                <Text style={{ color: '#007AFF', fontWeight: '600', fontSize: 16 }}>Close</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
 
         <Modal
           animationType="slide"

@@ -76,3 +76,20 @@ export const settingsTable = pgTable("settings", {
   printerSettingsId: integer().notNull().references(() => printerSettingsTable.id),
   storeInfoId: integer().references(() => storeInfoTable.id),
 });
+
+export const customersTable = pgTable("customers", {
+  id: varchar({ length: 36 }).primaryKey(),
+  storeInfoId: integer().notNull().references(() => storeInfoTable.id),
+  name: varchar({ length: 255 }).notNull(),
+  email: varchar({ length: 255 }).notNull().unique(),
+  phone: varchar({ length: 50 }),
+  address: varchar({ length: 255 }),
+  createdAt: timestamp().notNull().defaultNow(),
+});
+
+export const customerPurchasesTable = pgTable("customer_purchases", {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  customerId: varchar({ length: 36 }).notNull().references(() => customersTable.id),
+  orderId: varchar({ length: 36 }).notNull().references(() => ordersTable.id),
+  purchaseDate: timestamp().notNull().defaultNow(),
+});

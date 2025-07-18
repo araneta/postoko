@@ -1,7 +1,7 @@
 //const BASE_URL = 'https://api.example.com';
 const BASE_URL = 'http://localhost:3000/api';
 
-import { Product, Order, Settings } from '../types';
+import { Product, Order, Settings, Customer, CustomerPurchase } from '../types';
 import { safeToNumber, safeToInteger } from '../utils/formatters';
 
 // API Client class to handle authentication
@@ -144,6 +144,29 @@ class APIClient {
   async getProfitMargin(period: 'week' | 'month' | 'year' = 'month') {
     return this.fetchJSON(`${BASE_URL}/orders/profit-margin?period=${period}`);
   }
+
+  // Customers
+  async getCustomers(): Promise<Customer[]> {
+    return this.fetchJSON<Customer[]>(`${BASE_URL}/customers`);
+  }
+
+  async addCustomer(customer: Customer): Promise<void> {
+    await this.fetchJSON(`${BASE_URL}/customers`, {
+      method: 'POST',
+      body: JSON.stringify(customer),
+    });
+  }
+
+  async updateCustomer(customer: Customer): Promise<void> {
+    await this.fetchJSON(`${BASE_URL}/customers/${customer.id}`, {
+      method: 'PUT',
+      body: JSON.stringify(customer),
+    });
+  }
+
+  async getCustomerPurchases(customerId: string): Promise<CustomerPurchase[]> {
+    return this.fetchJSON<CustomerPurchase[]>(`${BASE_URL}/customers/${customerId}/purchases`);
+  }
 }
 
 // Create a singleton instance
@@ -168,3 +191,7 @@ export const addOrder = (order: Order) => apiClient.addOrder(order);
 export const getSettings = () => apiClient.getSettings();
 export const updateSettings = (settings: Settings) => apiClient.updateSettings(settings);
 export const login = (email: string) => apiClient.login(email); 
+export const getCustomers = () => apiClient.getCustomers();
+export const addCustomer = (customer: Customer) => apiClient.addCustomer(customer);
+export const updateCustomer = (customer: Customer) => apiClient.updateCustomer(customer);
+export const getCustomerPurchases = (customerId: string) => apiClient.getCustomerPurchases(customerId); 
