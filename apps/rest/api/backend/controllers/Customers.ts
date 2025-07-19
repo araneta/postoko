@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { getAuth } from '@clerk/express';
 import { db } from '../db';
 import { customersTable, customerPurchasesTable, storeInfoTable, ordersTable, orderItemsTable, productsTable, customerLoyaltyPointsTable, loyaltyTransactionsTable, loyaltySettingsTable } from '../db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, sql, and } from 'drizzle-orm';
 
 export default class CustomersController {
     static async getCustomers(req: Request, res: Response) {
@@ -19,7 +19,10 @@ export default class CustomersController {
             }
             const storeInfoId = storeInfo[0].id;
             const customers = await db.select().from(customersTable)
-                .where(eq(customersTable.storeInfoId, storeInfoId));
+                .where(and(
+                  eq(customersTable.storeInfoId, storeInfoId),
+                  sql`${customersTable.deletedAt} IS NULL`
+                ));
             res.status(200).json(customers);
         } catch (error) {
             console.error(error);
@@ -81,6 +84,28 @@ export default class CustomersController {
         } catch (error) {
             console.error(error);
             res.status(500).json({ message: 'Error updating customer' });
+        }
+    }
+
+    static async deleteCustomer(req: Request, res: Response) {
+        const auth = getAuth(req);
+        if (!auth.userId) {
+            return res.status(401).send('Unauthorized');
+        }
+        const customerId = req.params.id;
+        try {
+            // Soft delete: set deletedAt to now
+            const deletedCustomer = await db.update(customersTable)
+                .set({ deletedAt: new Date() })
+                .where(eq(customersTable.id, customerId))
+                .returning();
+            if (deletedCustomer.length === 0) {
+                return res.status(404).json({ message: 'Customer not found' });
+            }
+            res.status(200).json({ message: 'Customer deleted (soft)', customer: deletedCustomer[0] });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ message: 'Error deleting customer' });
         }
     }
 

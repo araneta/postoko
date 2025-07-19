@@ -85,6 +85,7 @@ export const customersTable = pgTable("customers", {
   phone: varchar({ length: 50 }),
   address: varchar({ length: 255 }),
   createdAt: timestamp().notNull().defaultNow(),
+  deletedAt: timestamp(), // Soft delete field
 });
 
 export const customerPurchasesTable = pgTable("customer_purchases", {

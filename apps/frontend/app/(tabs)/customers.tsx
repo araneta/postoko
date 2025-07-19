@@ -16,7 +16,7 @@ const initialFormData = {
 };
 
 const CustomersScreen = () => {
-  const { formatPrice } = useStore();
+  const { formatPrice, settings } = useStore();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -233,12 +233,19 @@ const CustomersScreen = () => {
                 ) : loyaltyTransactions.length === 0 ? (
                   <Text style={{ color: '#888' }}>No transactions</Text>
                 ) : (
-                  loyaltyTransactions.map((tx, idx) => (
-                    <View key={tx.id || idx} style={{ marginBottom: 4 }}>
-                      <Text style={{ color: tx.type === 'earned' ? '#007AFF' : '#FF3B30' }}>{tx.type === 'earned' ? '+' : ''}{tx.points} pts - {tx.description}</Text>
-                      <Text style={{ color: '#888', fontSize: 12 }}>{new Date(tx.transactionDate).toLocaleString()}</Text>
-                    </View>
-                  ))
+                  loyaltyTransactions.map((tx, idx) => {
+                    let desc = tx.description;
+                    if (tx.type === 'redeemed' && settings?.currency?.symbol) {
+                      // Replace $ with selected currency symbol in the discount part
+                      desc = desc.replace(/\$(\d+(?:\.\d+)?)/, `${settings.currency.symbol}$1`);
+                    }
+                    return (
+                      <View key={tx.id || idx} style={{ marginBottom: 4 }}>
+                        <Text style={{ color: tx.type === 'earned' ? '#007AFF' : '#FF3B30' }}>{tx.type === 'earned' ? '+' : ''}{tx.points} pts - {desc}</Text>
+                        <Text style={{ color: '#888', fontSize: 12 }}>{new Date(tx.transactionDate).toLocaleString()}</Text>
+                      </View>
+                    );
+                  })
                 )}
               </View>
               {/* Purchase History */}
@@ -361,7 +368,7 @@ const CustomersScreen = () => {
           <View style={styles.deleteModalContent}>
             <Text style={{ fontSize: 18, marginBottom: 16 }}>Delete this customer?</Text>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Button title="Cancel" onPress={() => setShowDeleteModal(false)} />
+              <Button title="Cancel" onPress={() => setShowDeleteModal(false)} />&nbsp; &nbsp;
               <Button title="Delete" color="#FF3B30" onPress={handleConfirmDelete} />
             </View>
           </View>
