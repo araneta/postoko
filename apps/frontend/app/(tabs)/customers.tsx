@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Button, Modal, TextInput, Alert, Pressable, ScrollView } from 'react-native';
-import { getCustomers, addCustomer, updateCustomer, getCustomerPurchases } from '../../lib/api';
+import { getCustomers, addCustomer, updateCustomer, getCustomerPurchases, deleteCustomer } from '../../lib/api';
 import loyaltyService from '../../lib/loyalty';
 import { Customer, CustomerPurchase } from '../../types';
 import { Ionicons } from '@expo/vector-icons';
@@ -119,11 +119,15 @@ const CustomersScreen = () => {
 
   const handleConfirmDelete = async () => {
     if (customerToDelete) {
-      // Soft delete: just remove from UI for now
-      setCustomers(customers.filter(c => c.id !== customerToDelete.id));
-      setShowDeleteModal(false);
-      setCustomerToDelete(null);
-      // TODO: Implement backend delete if available
+      try {
+        await deleteCustomer(customerToDelete.id);
+        setCustomers(customers.filter(c => c.id !== customerToDelete.id));
+        setShowDeleteModal(false);
+        setCustomerToDelete(null);
+        fetchCustomers(); // Refresh list from backend
+      } catch (error) {
+        Alert.alert('Error', 'Failed to delete customer.');
+      }
     }
   };
 

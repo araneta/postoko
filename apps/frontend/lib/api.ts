@@ -164,6 +164,12 @@ class APIClient {
     });
   }
 
+  async deleteCustomer(id: string): Promise<void> {
+    await this.fetchJSON(`${BASE_URL}/customers/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
   async getCustomerPurchases(customerId: string): Promise<CustomerPurchase[]> {
     return this.fetchJSON<CustomerPurchase[]>(`${BASE_URL}/customers/${customerId}/purchases`);
   }
@@ -228,6 +234,7 @@ export const login = (email: string) => apiClient.login(email);
 export const getCustomers = () => apiClient.getCustomers();
 export const addCustomer = (customer: Customer) => apiClient.addCustomer(customer);
 export const updateCustomer = (customer: Customer) => apiClient.updateCustomer(customer);
+export const deleteCustomer = (id: string) => apiClient.deleteCustomer(id);
 export const getCustomerPurchases = (customerId: string) => apiClient.getCustomerPurchases(customerId); 
 
 // Loyalty exports
