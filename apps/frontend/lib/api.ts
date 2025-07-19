@@ -167,6 +167,40 @@ class APIClient {
   async getCustomerPurchases(customerId: string): Promise<CustomerPurchase[]> {
     return this.fetchJSON<CustomerPurchase[]>(`${BASE_URL}/customers/${customerId}/purchases`);
   }
+
+  // Loyalty
+  async getCustomerPoints(customerId: string) {
+    return this.fetchJSON(`${BASE_URL}/loyalty/customers/${customerId}/points`);
+  }
+
+  async getCustomerTransactions(customerId: string) {
+    return this.fetchJSON(`${BASE_URL}/loyalty/customers/${customerId}/transactions`);
+  }
+
+  async earnPoints({ customerId, orderId, amount }: { customerId: string, orderId: string, amount: string }) {
+    return this.fetchJSON(`${BASE_URL}/loyalty/earn`, {
+      method: 'POST',
+      body: JSON.stringify({ customerId, orderId, amount }),
+    });
+  }
+
+  async redeemPoints({ customerId, pointsToRedeem, orderId }: { customerId: string, pointsToRedeem: number, orderId?: string }) {
+    return this.fetchJSON(`${BASE_URL}/loyalty/redeem`, {
+      method: 'POST',
+      body: JSON.stringify({ customerId, pointsToRedeem, orderId }),
+    });
+  }
+
+  async getLoyaltySettings() {
+    return this.fetchJSON(`${BASE_URL}/loyalty/settings`);
+  }
+
+  async updateLoyaltySettings(settings: any) {
+    return this.fetchJSON(`${BASE_URL}/loyalty/settings`, {
+      method: 'PUT',
+      body: JSON.stringify(settings),
+    });
+  }
 }
 
 // Create a singleton instance
@@ -195,3 +229,11 @@ export const getCustomers = () => apiClient.getCustomers();
 export const addCustomer = (customer: Customer) => apiClient.addCustomer(customer);
 export const updateCustomer = (customer: Customer) => apiClient.updateCustomer(customer);
 export const getCustomerPurchases = (customerId: string) => apiClient.getCustomerPurchases(customerId); 
+
+// Loyalty exports
+export const getCustomerPoints = (customerId: string) => apiClient.getCustomerPoints(customerId);
+export const getCustomerTransactions = (customerId: string) => apiClient.getCustomerTransactions(customerId);
+export const earnPoints = (params: { customerId: string, orderId: string, amount: string }) => apiClient.earnPoints(params);
+export const redeemPoints = (params: { customerId: string, pointsToRedeem: number, orderId?: string }) => apiClient.redeemPoints(params); 
+export const getLoyaltySettings = () => apiClient.getLoyaltySettings();
+export const updateLoyaltySettings = (settings: any) => apiClient.updateLoyaltySettings(settings); 

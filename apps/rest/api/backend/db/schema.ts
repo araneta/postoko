@@ -93,3 +93,32 @@ export const customerPurchasesTable = pgTable("customer_purchases", {
   orderId: varchar({ length: 36 }).notNull().references(() => ordersTable.id),
   purchaseDate: timestamp().notNull().defaultNow(),
 });
+
+export const customerLoyaltyPointsTable = pgTable("customer_loyalty_points", {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  customerId: varchar({ length: 36 }).notNull().references(() => customersTable.id),
+  points: integer().notNull().default(0),
+  totalEarned: integer().notNull().default(0),
+  totalRedeemed: integer().notNull().default(0),
+  lastUpdated: timestamp().notNull().defaultNow(),
+});
+
+export const loyaltyTransactionsTable = pgTable("loyalty_transactions", {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  customerId: varchar({ length: 36 }).notNull().references(() => customersTable.id),
+  orderId: varchar({ length: 36 }).references(() => ordersTable.id),
+  type: varchar({ length: 20 }).notNull(), // 'earned' | 'redeemed' | 'expired' | 'adjusted'
+  points: integer().notNull(),
+  description: text(),
+  transactionDate: timestamp().notNull().defaultNow(),
+});
+
+export const loyaltySettingsTable = pgTable("loyalty_settings", {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  storeInfoId: integer().notNull().references(() => storeInfoTable.id),
+  pointsPerDollar: numeric({ precision: 5, scale: 2 }).notNull().default('1.00'),
+  redemptionRate: numeric({ precision: 5, scale: 2 }).notNull().default('0.01'), // $0.01 per point
+  minimumRedemption: integer().notNull().default(100), // Minimum points needed for redemption
+  pointsExpiryMonths: integer().default(12), // Points expire after X months
+  enabled: boolean().notNull().default(true),
+});

@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { getAuth } from '@clerk/express';
 import { db } from '../db';
-import { customersTable, customerPurchasesTable, storeInfoTable, ordersTable, orderItemsTable, productsTable } from '../db/schema';
+import { customersTable, customerPurchasesTable, storeInfoTable, ordersTable, orderItemsTable, productsTable, customerLoyaltyPointsTable, loyaltyTransactionsTable, loyaltySettingsTable } from '../db/schema';
 import { eq } from 'drizzle-orm';
 
 export default class CustomersController {
@@ -106,6 +106,11 @@ export default class CustomersController {
             .leftJoin(productsTable, eq(orderItemsTable.productId, productsTable.id))
             .where(eq(customerPurchasesTable.customerId, customerId));
 
+            // Get customer's loyalty points
+            const loyaltyPoints = await db.select()
+                .from(customerLoyaltyPointsTable)
+                .where(eq(customerLoyaltyPointsTable.customerId, customerId));
+
             // Group the results by purchase/order
             const purchasesMap = new Map();
             
@@ -148,7 +153,20 @@ export default class CustomersController {
             });
 
             const purchases = Array.from(purchasesMap.values());
-            res.status(200).json(purchases);
+            
+            // Include loyalty points in response
+            const response = {
+                purchases,
+                loyaltyPoints: loyaltyPoints.length > 0 ? loyaltyPoints[0] : {
+                    customerId,
+                    points: 0,
+                    totalEarned: 0,
+                    totalRedeemed: 0,
+                    lastUpdated: new Date()
+                }
+            };
+            
+            res.status(200).json(response);
         } catch (error) {
             console.error(error);
             res.status(500).json({ message: 'Error fetching customer purchases' });

@@ -10,6 +10,7 @@ import { printReceipt } from '../../utils/printer';
 import { PaymentDetails } from '../../types';
 import { getCustomers } from '../../lib/api';
 import { Customer } from '../../types';
+import loyaltyService from '../../lib/loyalty';
 
 export default function POSScreen() {
   const { 
@@ -101,6 +102,22 @@ export default function POSScreen() {
         // Check for low stock alerts after order completion
         await checkLowStockAlerts();
         
+        // Award loyalty points if customer exists
+        if (selectedCustomer && order.id && order.total) {
+          try {
+            await loyaltyService.earnPoints({
+              customerId: selectedCustomer.id,
+              orderId: order.id,
+              amount: String(order.total)
+            });
+            showAlert('Points Earned!', 'Loyalty points have been added to the customer.', 'success');
+          } catch (e) {
+            let errorMsg = 'Failed to award loyalty points.';
+            if (e instanceof Error) errorMsg = e.message;
+            else if (typeof e === 'string') errorMsg = e;
+            showAlert('Loyalty Error', errorMsg, 'error');
+          }
+        }
         // Show success alert
         showAlert(
           'Order Completed!',

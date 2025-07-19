@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Button, Modal, TextInput, Alert, Pressable, ScrollView } from 'react-native';
 import { getCustomers, addCustomer, updateCustomer, getCustomerPurchases } from '../../lib/api';
+import loyaltyService from '../../lib/loyalty';
 import { Customer, CustomerPurchase } from '../../types';
 import { Ionicons } from '@expo/vector-icons';
 import { v4 as uuidv4 } from 'uuid';
@@ -28,6 +29,18 @@ const CustomersScreen = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
   const [formError, setFormError] = useState('');
+  const [loyaltyPoints, setLoyaltyPoints] = useState<any>(null);
+  const [loyaltyTransactions, setLoyaltyTransactions] = useState<any[]>([]);
+  const [loyaltyLoading, setLoyaltyLoading] = useState(false);
+  const [showRedeemModal, setShowRedeemModal] = useState(false);
+  const [redeemInput, setRedeemInput] = useState('');
+  const [redeemLoading, setRedeemLoading] = useState(false);
+
+  // Replace with your actual auth token logic
+  const getToken = async () => {
+    // e.g. return await auth().getToken();
+    return 'YOUR_AUTH_TOKEN';
+  };
 
   useEffect(() => {
     fetchCustomers();
@@ -48,13 +61,27 @@ const CustomersScreen = () => {
     setSelectedCustomer(customer);
     setShowProfile(true);
     setPurchasesLoading(true);
+    setLoyaltyLoading(true);
     try {
       const purchases = await getCustomerPurchases(customer.id);
-      setPurchases(purchases);
+      let purchaseList: any[] = Array.isArray(purchases)
+        ? purchases
+        : (typeof purchases === 'object' && Array.isArray((purchases as any).purchases))
+        ? (purchases as any).purchases
+        : [];
+      setPurchases(purchaseList);
+      // Loyalty points
+      const points = await loyaltyService.getCustomerPoints(customer.id);
+      setLoyaltyPoints(points);
+      const txs = await loyaltyService.getCustomerTransactions(customer.id);
+      setLoyaltyTransactions(Array.isArray(txs) ? txs : []);
     } catch (error) {
       setPurchases([]);
+      setLoyaltyPoints(null);
+      setLoyaltyTransactions([]);
     } finally {
       setPurchasesLoading(false);
+      setLoyaltyLoading(false);
     }
   };
 
@@ -184,6 +211,37 @@ const CustomersScreen = () => {
               <Text style={styles.profileEmail}>{selectedCustomer.email}</Text>
               <Text style={styles.profileInfo}>Phone: {selectedCustomer.phone || '-'}</Text>
               <Text style={styles.profileInfo}>Address: {selectedCustomer.address || '-'}</Text>
+              {/* Loyalty Points Section */}
+              <View style={{ marginTop: 16, marginBottom: 8 }}>
+                <Text style={{ fontWeight: 'bold', fontSize: 18 }}>Loyalty Points</Text>
+                {loyaltyLoading ? (
+                  <ActivityIndicator size="small" color="#007AFF" style={{ marginTop: 8 }} />
+                ) : loyaltyPoints ? (
+                  <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#007AFF', marginTop: 4 }}>{loyaltyPoints.points} pts</Text>
+                ) : (
+                  <Text style={{ color: '#888' }}>No points</Text>
+                )}
+                <TouchableOpacity style={{ marginTop: 8, backgroundColor: '#007AFF', padding: 10, borderRadius: 8, alignItems: 'center' }} onPress={() => setShowRedeemModal(true)}>
+                  <Text style={{ color: 'white', fontWeight: 'bold' }}>Redeem Points</Text>
+                </TouchableOpacity>
+              </View>
+              {/* Loyalty Transactions */}
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 4 }}>Points History</Text>
+                {loyaltyLoading ? (
+                  <ActivityIndicator size="small" color="#007AFF" />
+                ) : loyaltyTransactions.length === 0 ? (
+                  <Text style={{ color: '#888' }}>No transactions</Text>
+                ) : (
+                  loyaltyTransactions.map((tx, idx) => (
+                    <View key={tx.id || idx} style={{ marginBottom: 4 }}>
+                      <Text style={{ color: tx.type === 'earned' ? '#007AFF' : '#FF3B30' }}>{tx.type === 'earned' ? '+' : ''}{tx.points} pts - {tx.description}</Text>
+                      <Text style={{ color: '#888', fontSize: 12 }}>{new Date(tx.transactionDate).toLocaleString()}</Text>
+                    </View>
+                  ))
+                )}
+              </View>
+              {/* Purchase History */}
               <Text style={styles.profileSubtitle}>Purchase History</Text>
               {purchasesLoading ? (
                 <ActivityIndicator size="small" color="#007AFF" style={{ marginTop: 10 }} />
@@ -206,6 +264,47 @@ const CustomersScreen = () => {
             </>
           )}
         </ScrollView>
+        {/* Redeem Points Modal */}
+        <Modal visible={showRedeemModal} animationType="slide" transparent onRequestClose={() => setShowRedeemModal(false)}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' }}>
+            <View style={{ backgroundColor: '#fff', padding: 24, borderRadius: 12, width: 320 }}>
+              <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 12 }}>Redeem Points</Text>
+              <Text>Enter points to redeem:</Text>
+              <TextInput
+                value={redeemInput}
+                onChangeText={setRedeemInput}
+                keyboardType="numeric"
+                style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 6, padding: 10, marginVertical: 12, fontSize: 16 }}
+                placeholder="e.g. 100"
+              />
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+                <Button title="Cancel" onPress={() => setShowRedeemModal(false)} />
+                <View style={{ width: 12 }} />
+                <Button
+                  title={redeemLoading ? 'Processing...' : 'Redeem'}
+                  onPress={async () => {
+                    setRedeemLoading(true);
+                    try {
+                      await loyaltyService.redeemPoints({ customerId: selectedCustomer!.id, pointsToRedeem: parseInt(redeemInput) });
+                      Alert.alert('Success', 'Points redeemed!');
+                      setShowRedeemModal(false);
+                      setRedeemInput('');
+                      // Refresh loyalty info
+                      const points = await loyaltyService.getCustomerPoints(selectedCustomer!.id);
+                      setLoyaltyPoints(points);
+                      const txs = await loyaltyService.getCustomerTransactions(selectedCustomer!.id);
+                      setLoyaltyTransactions(Array.isArray(txs) ? txs : []);
+                    } catch (e: any) {
+                      Alert.alert('Error', e.message || 'Failed to redeem points');
+                    }
+                    setRedeemLoading(false);
+                  }}
+                  disabled={redeemLoading || !redeemInput}
+                />
+              </View>
+            </View>
+          </View>
+        </Modal>
       </Modal>
       {/* Add/Edit Customer Modal */}
       <Modal visible={showFormModal} animationType="slide" onRequestClose={() => setShowFormModal(false)}>

@@ -8,6 +8,13 @@
       "when": 1752793232167,
       "tag": "0000_nifty_clea",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1752892045495,
+      "tag": "0001_loose_newton_destine",
+      "breakpoints": true
     }
   ]
 }

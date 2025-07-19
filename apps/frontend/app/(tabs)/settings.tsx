@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, Switch, Modal, FlatList, ActivityIndicator, TextInput, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Switch, Modal, FlatList, ActivityIndicator, TextInput, ScrollView, Alert, Button } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import useStore from '../../store/useStore';
 import { Currency, PrinterDevice } from '../../types';
 import { scanPrinters } from '../../utils/printer';
 import { Platform } from 'react-native';
 import PaymentSettings from '../../components/PaymentSettings';
+import loyaltyService from '../../lib/loyalty';
 
 const currencies: Currency[] = [
   { code: 'USD', symbol: '$', name: 'US Dollar' },
@@ -36,9 +37,9 @@ const initialSettings = {
 
 export default function SettingsScreen() {
   const { settings, updateCurrency, updatePrinterSettings, updateStoreInfo } = useStore();
-  if (!settings) {
-    return <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}><ActivityIndicator size="large" color="#007AFF" /></View>;
-  }
+  const [loyaltySettings, setLoyaltySettings] = useState<any>(null);
+  const [loyaltyLoading, setLoyaltyLoading] = useState(true);
+  const [loyaltySaving, setLoyaltySaving] = useState(false);
   const [showCurrencyModal, setShowCurrencyModal] = useState(false);
   const [showPrinterModal, setShowPrinterModal] = useState(false);
   const [showStoreInfoModal, setShowStoreInfoModal] = useState(false);
@@ -62,6 +63,37 @@ export default function SettingsScreen() {
     website: storeInfoDefaults.website || '',
     taxId: storeInfoDefaults.taxId || '',
   });
+  const [showLoyaltyModal, setShowLoyaltyModal] = useState(false);
+
+  useEffect(() => {
+    fetchLoyaltySettings();
+  }, []);
+
+  const fetchLoyaltySettings = async () => {
+    setLoyaltyLoading(true);
+    try {
+      const data = await loyaltyService.getLoyaltySettings();
+      setLoyaltySettings(data);
+    } catch (e: any) {
+      setLoyaltySettings(null);
+    }
+    setLoyaltyLoading(false);
+  };
+
+  const handleSaveLoyaltySettings = async () => {
+    setLoyaltySaving(true);
+    try {
+      await loyaltyService.updateLoyaltySettings(loyaltySettings);
+      Alert.alert('Success', 'Loyalty settings updated!');
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'Failed to update loyalty settings');
+    }
+    setLoyaltySaving(false);
+  };
+
+  if (!settings) {
+    return <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}><ActivityIndicator size="large" color="#007AFF" /></View>;
+  }
 
   const handleScanPrinters = async () => {
     if (Platform.OS === 'web') {
@@ -171,6 +203,111 @@ export default function SettingsScreen() {
           </View>
           <Ionicons name="chevron-forward" size={24} color="#666" />
         </Pressable>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Loyalty Settings</Text>
+        <Pressable
+          style={styles.settingItem}
+          onPress={() => setShowLoyaltyModal(true)}
+        >
+          <View style={styles.settingContent}>
+            <Ionicons name="star" size={24} color="#007AFF" />
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingText}>Loyalty Settings</Text>
+              <Text style={styles.settingDetail}>
+                {loyaltyLoading
+                  ? 'Loading...'
+                  : loyaltySettings
+                  ? (loyaltySettings.enabled ? 'Enabled' : 'Disabled') +
+                    ` • ${loyaltySettings.pointsPerDollar} pts/${settings.currency?.symbol || '$'}1`
+                  : 'Not configured'}
+              </Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={24} color="#666" />
+        </Pressable>
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={showLoyaltyModal}
+          onRequestClose={() => setShowLoyaltyModal(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Loyalty Settings</Text>
+                <Pressable
+                  onPress={() => setShowLoyaltyModal(false)}
+                  style={styles.closeButton}
+                >
+                  <Ionicons name="close" size={24} color="#666" />
+                </Pressable>
+              </View>
+              {loyaltyLoading ? (
+                <ActivityIndicator style={{ marginTop: 16 }} />
+              ) : loyaltySettings ? (
+                <View style={styles.loyaltyCard}>
+                  <View style={styles.loyaltyRow}>
+                    <Text style={styles.label}>Points Per {settings.currency?.symbol || '$'}1</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={String(loyaltySettings.pointsPerDollar)}
+                      onChangeText={v => setLoyaltySettings({ ...loyaltySettings, pointsPerDollar: v })}
+                      keyboardType="numeric"
+                      placeholder={`e.g. 1`}
+                    />
+                  </View>
+                  <View style={styles.loyaltyRow}>
+                    <Text style={styles.label}>Redemption Rate ({settings.currency?.symbol || '$'} per point)</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={String(loyaltySettings.redemptionRate)}
+                      onChangeText={v => setLoyaltySettings({ ...loyaltySettings, redemptionRate: v })}
+                      keyboardType="numeric"
+                      placeholder={`e.g. 0.01`}
+                    />
+                  </View>
+                  <View style={styles.loyaltyRow}>
+                    <Text style={styles.label}>Minimum Redemption (points)</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={String(loyaltySettings.minimumRedemption)}
+                      onChangeText={v => setLoyaltySettings({ ...loyaltySettings, minimumRedemption: v })}
+                      keyboardType="numeric"
+                      placeholder="e.g. 100"
+                    />
+                  </View>
+                  <View style={styles.loyaltyRow}>
+                    <Text style={styles.label}>Points Expiry (months, 0 = never)</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={String(loyaltySettings.pointsExpiryMonths || 0)}
+                      onChangeText={v => setLoyaltySettings({ ...loyaltySettings, pointsExpiryMonths: v })}
+                      keyboardType="numeric"
+                      placeholder="e.g. 12"
+                    />
+                  </View>
+                  <View style={[styles.loyaltyRow, { alignItems: 'center', marginTop: 8 }] }>
+                    <Text style={styles.label}>Enabled</Text>
+                    <Button
+                      title={loyaltySettings.enabled ? 'Yes' : 'No'}
+                      onPress={() => setLoyaltySettings({ ...loyaltySettings, enabled: !loyaltySettings.enabled })}
+                    />
+                  </View>
+                  <Button
+                    title={loyaltySaving ? 'Saving...' : 'Save Loyalty Settings'}
+                    onPress={handleSaveLoyaltySettings}
+                    disabled={loyaltySaving}
+                    color="#007AFF"
+                  />
+                </View>
+              ) : (
+                <Text style={{ color: '#888' }}>Loyalty settings not available.</Text>
+              )}
+            </View>
+          </View>
+        </Modal>
       </View>
 
       <View style={styles.section}>
@@ -651,15 +788,15 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   label: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 16,
+    marginTop: 16,
     marginBottom: 4,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#e5e5e5',
-    borderRadius: 8,
-    padding: 12,
+    borderColor: '#ccc',
+    borderRadius: 6,
+    padding: 10,
     fontSize: 16,
   },
   multilineInput: {
@@ -692,5 +829,19 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     color: 'white',
+  },
+  loyaltyCard: {
+    backgroundColor: '#f8fafd',
+    borderRadius: 10,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#e5e5e5',
+    marginBottom: 8,
+  },
+  loyaltyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
   },
 });
