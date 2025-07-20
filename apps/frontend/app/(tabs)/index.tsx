@@ -42,6 +42,7 @@ export default function POSScreen() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
+  const [searchCustomer, setSearchCustomer] = useState('');
 
 
 
@@ -184,6 +185,13 @@ export default function POSScreen() {
 
   const quickAmounts = [10000, 20000, 50000, 100000];
 
+  // Filtered customers for picker modal
+  const filteredCustomers = customers.filter(
+    c =>
+      c.name.toLowerCase().includes(searchCustomer.toLowerCase()) ||
+      c.email.toLowerCase().includes(searchCustomer.toLowerCase())
+  );
+
   return (
     <ScrollView style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
      
@@ -319,8 +327,19 @@ export default function POSScreen() {
           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.2)', justifyContent: 'center', alignItems: 'center' }}>
             <View style={{ backgroundColor: 'white', borderRadius: 12, padding: 24, width: 350, maxHeight: 500 }}>
               <Text style={{ fontSize: 20, fontWeight: '600', marginBottom: 16 }}>Select Customer</Text>
+              {/* Search Box */}
+              <View style={styles.searchContainer}>
+                <Ionicons name="search" size={18} color="#888" style={{ marginRight: 8 }} />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search customers by name or email"
+                  value={searchCustomer}
+                  onChangeText={setSearchCustomer}
+                  autoCapitalize="none"
+                />
+              </View>
               <FlatList
-                data={customers}
+                data={filteredCustomers}
                 keyExtractor={item => item.id}
                 renderItem={({ item }) => (
                   <Pressable
@@ -623,5 +642,20 @@ const styles = StyleSheet.create({
   },
   completeButtonText: {
     color: 'white',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    marginBottom: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    paddingVertical: 6,
+    color: '#333',
   },
 });

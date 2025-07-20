@@ -35,6 +35,7 @@ const CustomersScreen = () => {
   const [showRedeemModal, setShowRedeemModal] = useState(false);
   const [redeemInput, setRedeemInput] = useState('');
   const [redeemLoading, setRedeemLoading] = useState(false);
+  const [search, setSearch] = useState('');
 
   // Replace with your actual auth token logic
   const getToken = async () => {
@@ -187,17 +188,35 @@ const CustomersScreen = () => {
     </View>
   );
 
+  // Filtered customers based on search
+  const filteredCustomers = customers.filter(
+    c =>
+      c.name.toLowerCase().includes(search.toLowerCase()) ||
+      c.email.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Customers</Text>
         <Button title="Add Customer" onPress={handleAddCustomer} />
       </View>
+      {/* Search Box */}
+      <View style={styles.searchContainer}>
+        <Ionicons name="search" size={18} color="#888" style={{ marginRight: 8 }} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search customers by name or email"
+          value={search}
+          onChangeText={setSearch}
+          autoCapitalize="none"
+        />
+      </View>
       {loading ? (
         <ActivityIndicator size="large" color="#007AFF" style={{ marginTop: 40 }} />
       ) : (
         <FlatList
-          data={customers}
+          data={filteredCustomers}
           keyExtractor={item => item.id}
           renderItem={renderCustomer}
           contentContainerStyle={{ paddingBottom: 40 }}
@@ -386,6 +405,22 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16 },
   title: { fontSize: 24, fontWeight: 'bold' },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    paddingVertical: 6,
+    color: '#333',
+  },
   customerItem: { flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderColor: '#eee' },
   customerName: { fontSize: 18, fontWeight: '500' },
   customerEmail: { fontSize: 14, color: '#888' },
