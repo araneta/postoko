@@ -106,3 +106,20 @@ export interface CustomerPurchase {
   purchaseDate: string;
   order: Order;
 }
+
+export interface Role {
+  id: number;
+  name: string;
+  description?: string;
+}
+
+export interface Employee {
+  id: string;
+  storeInfoId: number;
+  name: string;
+  email: string;
+  roleId: number;
+  role?: Role;
+  createdAt: string;
+  deletedAt?: string;
+}

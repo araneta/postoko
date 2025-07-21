@@ -3,7 +3,7 @@ import {  getAuth } from '@clerk/express';
 import { asc, between, count, eq, getTableColumns, sql } from 'drizzle-orm';
 
 import { db } from '../db';
-import { storeInfoTable, settingsTable, printerSettingsTable, currenciesTable, paymentSettingsTable } from '../db/schema';
+import { storeInfoTable, settingsTable, printerSettingsTable, currenciesTable, paymentSettingsTable, employeesTable, rolesTable } from '../db/schema';
 
 export default class SettingsController {
     static async getSettings(req: Request, res: Response) {
@@ -105,6 +105,7 @@ export default class SettingsController {
                     currency: currency ? { code: currency.code, symbol: currency.symbol, name: currency.name } : null,
                     printer: printer ? { type: printer.type } : null,
                     storeInfo: {
+                        id: settingsData.store_info.id,
                         name: settingsData.store_info.name,
                         address: settingsData.store_info.address,
                         phone: settingsData.store_info.phone,
@@ -119,6 +120,41 @@ export default class SettingsController {
                         enabled: payment.enabled
                     } : null
                 });
+            }
+            // After fetching storeInfo, ensure user is admin employee
+            // Get storeInfoId for this user
+            const storeInfoId = settings.length > 0 ? settings[0].store_info.id : undefined;
+            if (storeInfoId) {
+                // Check if user is in employees
+                const existing = await db.select().from(employeesTable).where(eq(employeesTable.id, auth.userId));
+                if (existing.length === 0) {
+                    // Get admin roleId
+                    const roles = await db.select().from(rolesTable).where(eq(rolesTable.name, 'admin'));
+                    if (roles.length > 0) {
+                        const roleId = roles[0].id;
+                        // Get user info from Clerk
+                        let name = 'Admin';
+                        let email = '';
+                        if (auth.sessionClaims && typeof auth.sessionClaims.email === 'string') {
+                            email = auth.sessionClaims.email;
+                        } else if (auth.sessionClaims && typeof auth.sessionClaims['email_address'] === 'string') {
+                            email = auth.sessionClaims['email_address'];
+                        } else {
+                            email = auth.userId + '@example.com';
+                        }
+                        if (auth.sessionClaims && typeof auth.sessionClaims.name === 'string') {
+                            name = auth.sessionClaims.name;
+                        }
+                        await db.insert(employeesTable).values({
+                            id: auth.userId,
+                            storeInfoId,
+                            name,
+                            email,
+                            password: '', // Not used with Clerk
+                            roleId,
+                        });
+                    }
+                }
             }
         } catch (error) {
             console.error(error);

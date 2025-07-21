@@ -1,7 +1,7 @@
 //const BASE_URL = 'https://api.example.com';
 const BASE_URL = 'http://localhost:3000/api';
 
-import { Product, Order, Settings, Customer, CustomerPurchase } from '../types';
+import { Product, Order, Settings, Customer, CustomerPurchase, Employee, Role } from '../types';
 import { safeToNumber, safeToInteger } from '../utils/formatters';
 
 // API Client class to handle authentication
@@ -207,6 +207,32 @@ class APIClient {
       body: JSON.stringify(settings),
     });
   }
+
+  // Employees
+  async getEmployees(): Promise<Employee[]> {
+    return this.fetchJSON<Employee[]>(`${BASE_URL}/employees`);
+  }
+  async addEmployee(employee: Partial<Employee> & { password: string }): Promise<void> {
+    await this.fetchJSON(`${BASE_URL}/employees`, {
+      method: 'POST',
+      body: JSON.stringify(employee),
+    });
+  }
+  async updateEmployee(employee: Partial<Employee> & { id: string; password?: string }): Promise<void> {
+    await this.fetchJSON(`${BASE_URL}/employees/${employee.id}`, {
+      method: 'PUT',
+      body: JSON.stringify(employee),
+    });
+  }
+  async deleteEmployee(id: string): Promise<void> {
+    await this.fetchJSON(`${BASE_URL}/employees/${id}`, {
+      method: 'DELETE',
+    });
+  }
+  // Roles (assuming endpoint /api/roles in the future)
+  async getRoles(): Promise<Role[]> {
+    return this.fetchJSON<Role[]>(`${BASE_URL}/roles`);
+  }
 }
 
 // Create a singleton instance
@@ -244,3 +270,10 @@ export const earnPoints = (params: { customerId: string, orderId: string, amount
 export const redeemPoints = (params: { customerId: string, pointsToRedeem: number, orderId?: string }) => apiClient.redeemPoints(params); 
 export const getLoyaltySettings = () => apiClient.getLoyaltySettings();
 export const updateLoyaltySettings = (settings: any) => apiClient.updateLoyaltySettings(settings); 
+
+// Employee exports
+export const getEmployees = () => apiClient.getEmployees();
+export const addEmployee = (employee: Partial<Employee> & { password: string }) => apiClient.addEmployee(employee);
+export const updateEmployee = (employee: Partial<Employee> & { id: string; password?: string }) => apiClient.updateEmployee(employee);
+export const deleteEmployee = (id: string) => apiClient.deleteEmployee(id);
+export const getRoles = () => apiClient.getRoles(); 

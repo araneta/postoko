@@ -123,3 +123,20 @@ export const loyaltySettingsTable = pgTable("loyalty_settings", {
   pointsExpiryMonths: integer().default(12), // Points expire after X months
   enabled: boolean().notNull().default(true),
 });
+
+export const rolesTable = pgTable("roles", {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  name: varchar({ length: 50 }).notNull().unique(),
+  description: text(),
+});
+
+export const employeesTable = pgTable("employees", {
+  id: varchar({ length: 36 }).primaryKey(),
+  storeInfoId: integer().notNull().references(() => storeInfoTable.id),
+  name: varchar({ length: 255 }).notNull(),
+  email: varchar({ length: 255 }).notNull().unique(),
+  password: varchar({ length: 255 }).notNull(), // hashed password
+  roleId: integer().notNull().references(() => rolesTable.id),
+  createdAt: timestamp().notNull().defaultNow(),
+  deletedAt: timestamp(), // Soft delete
+});

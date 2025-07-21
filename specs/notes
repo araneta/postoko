@@ -25,3 +25,9 @@ cd /media/araneta/projects/postoko/apps/rest && npx drizzle-kit introspect
 ====================
   "sid": "sess_2yofugjid1Qra5PXVZsA5IIZ6ox",
   "sub": "user_2ykTcZH9mvaFNnY53joXNkTTq55",
+
+seed
+curl http://localhost:3000/api/roles/seed-default
+curl http://localhost:3000/api/roles/promote-me-admin
+curl -X GET http://localhost:3000/api/roles/promote-me-admin \
+  -H "Authorization: Bearer eyJhbGciOiJSUzI1NiIsImNhdCI6ImNsX0I3ZDRQRDExMUFBQSIsImtpZCI6Imluc18yeWpET2I1YkdKUEM0VTBld2VEam12UDMyV3UiLCJ0eXAiOiJKV1QifQ.eyJhenAiOiJodHRwOi8vbG9jYWxob3N0OjgwODEiLCJleHAiOjE3NTMwNTkyNjYsImZ2YSI6WzI0NjUsLTFdLCJpYXQiOjE3NTMwNTkyMDYsImlzcyI6Imh0dHBzOi8vb24tZ2xvd3dvcm0tOTcuY2xlcmsuYWNjb3VudHMuZGV2IiwibmJmIjoxNzUzMDU5MTk2LCJzaWQiOiJzZXNzXzMwNUl4TERCcExWOHBUVklTWWxpTFBlUmRxUSIsInN1YiI6InVzZXJfMnlrVGNaSDltdmFGTm5ZNTNqb1hOa1RUcTU1IiwidiI6Mn0.XLQg5aIeaJLm_wXRFWLt9KAF7tKx1CDTYQ-f778LAC-Eil_wpB7MVR2-2gtIYuZTBPVqEmDcbnpkd56Z0BN8k1MxuILGLd22T9XDTbffJLQeduUxFF_zqP9ga1RjmlyigNAaACv3L8uBL-xKds3_9l2Zlw_mLbVR5gl7Sz8nlKSDeAGUOxKihF_irHcWRRl-0BtPaPB66NMYbKBdxl9ApJApvM1OdQUga588W7pTAXRyWQUl0Dy0cL-xHPl4a_oznl-4zH-FH3nhxZXHiCUYUcb0eNw6wSJ_u4T6cMjOp4CJuVOW8BfDBoQGtsthjeVz_lFn45Zz8MJ3cBKoRKTIVA"

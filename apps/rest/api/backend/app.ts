@@ -15,6 +15,8 @@ import authRoutes from './routes/auth';
 import settingsRoutes from './routes/settings';
 import customersRoutes from './routes/customers';
 import loyaltyRoutes from './routes/loyalty';
+import employeesRoutes from './routes/employees';
+import rolesRoutes from './routes/roles';
 const app = express();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -35,6 +37,8 @@ app.use('/api/orders',ordersRoutes);
 app.use('/api/settings',settingsRoutes);
 app.use('/api/customers',customersRoutes);
 app.use('/api/loyalty',loyaltyRoutes);
+app.use('/api/employees',employeesRoutes);
+app.use('/api/roles',rolesRoutes);
 //imagekit auth endpoint
 // This endpoint is used to generate a signature for ImageKit uploads
 

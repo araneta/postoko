@@ -1,5 +1,5 @@
 Phase 3: Operational Efficiency (Weeks 9-12)
-6. Employee Management
+6. Employee Management [working]
 Multiple user accounts with different permissions
 Sales tracking by employee
 Secure PIN login
@@ -9,3 +9,8 @@ Bulk product import via CSV
 Product categories and filtering
 Supplier information tracking
 Why valuable: Saves hours of manual data entry
+
+
+
+curl -X GET http://localhost:3000/api/roles/promote-me-admin \
+  -H "Authorization: Bearer eyJhbGciOiJSUzI1NiIsImNhdCI6ImNsX0I3ZDRQRDExMUFBQSIsImtpZCI6Imluc18yeWpET2I1YkdKUEM0VTBld2VEam12UDMyV3UiLCJ0eXAiOiJKV1QifQ.eyJhenAiOiJodHRwOi8vbG9jYWxob3N0OjgwODEiLCJleHAiOjE3NTMwNzc0NjgsImZ2YSI6WzI3NjksLTFdLCJpYXQiOjE3NTMwNzc0MDgsImlzcyI6Imh0dHBzOi8vb24tZ2xvd3dvcm0tOTcuY2xlcmsuYWNjb3VudHMuZGV2IiwibmJmIjoxNzUzMDc3Mzk4LCJzaWQiOiJzZXNzXzMwNUl4TERCcExWOHBUVklTWWxpTFBlUmRxUSIsInN1YiI6InVzZXJfMnlrVGNaSDltdmFGTm5ZNTNqb1hOa1RUcTU1IiwidiI6Mn0.eR2HBk8m7RidzXDFup4F9uViAbnXLM6wofBUk6wSrS4T26YmhzLxvA7USPD6Avk0J90Q5hq9fzNlE94RR52ALkZ08UUn0Mv7nUcSQr9doc0XJAoGPrYlbBh94X8N8HsKkwoR3anyfV19yNVoZBDG2CHljujjKqrE706YAvQmUAiCox9SQ8_bYjOn6gO71VzPpqj5aX6lKZgeiW-PkFRxhsUoztAl24vSAcUG1yWoNccwTUyWRqNo8ETHJk26cA4bYszECt1iCJTl7TmaNCr_fHBFL_ruPNQpWM2qO1i1BGak-yDgtbBQXMxGn7Y9pTIfkyJcruv18wJUULN11RX3PA"
