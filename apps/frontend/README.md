@@ -1,4 +1,4 @@
-# BoltexPOS - Point of Sale System
+# TokoPOS - Point of Sale System
 
 A modern point of sale system built with React Native, Expo, and Clerk authentication.
 
