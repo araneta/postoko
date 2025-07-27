@@ -8,6 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { fileURLToPath } from 'url';
 import 'dotenv/config';
 import { clerkMiddleware,requireAuth } from '@clerk/express';
+import Stripe from 'stripe';
 
 import productsRoutes from './routes/products';
 import ordersRoutes from './routes/orders';
@@ -17,6 +18,7 @@ import customersRoutes from './routes/customers';
 import loyaltyRoutes from './routes/loyalty';
 import employeesRoutes from './routes/employees';
 import rolesRoutes from './routes/roles';
+
 const app = express();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -88,5 +90,35 @@ app.post('/api/imagekit/auth', (req, res) => {
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'ImageKit auth server is running' });
 });
+// Create checkout session
+function convertToLineItems(products) {
+  return products.map(item => ({
+    price_data: {
+      currency: 'usd',
+      product_data: {
+        name: item.name,
+        description: item.description,
+        images: [item.image],
+      },
+      unit_amount: item.price, // Stripe expects amount in cents
+    },
+    quantity: item.quantity || 1,
+  }));
+}
 
+app.post('/api/create-checkout-session', async (req, res) => {
+	const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+	const linex = convertToLineItems(req.body);
+	console.log('linex',linex);
+  const session = await stripe.checkout.sessions.create({
+    payment_method_types: ['card'],
+    line_items: linex,
+    mode: 'payment',
+    success_url: 'http://localhost:3000/success.html',
+    cancel_url: 'http://localhost:3000/cancel.html',
+  });
+
+  res.json({ url: session.url }); // preferred: redirect via URL
+});
 export default app;

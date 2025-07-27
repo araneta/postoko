@@ -11,7 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { PaymentMethod, PaymentDetails } from '../types';
+import { PaymentMethod, PaymentDetails, CartItem } from '../types';
 import paymentService from '../lib/payment';
 
 interface PaymentModalProps {
@@ -20,6 +20,7 @@ interface PaymentModalProps {
   onPaymentComplete: (paymentDetails: PaymentDetails[]) => void;
   total: number;
   formatPrice: (price: number) => string;
+  cart: CartItem[];
 }
 
 interface CustomAlert {
@@ -34,6 +35,7 @@ export default function PaymentModal({
   onPaymentComplete,
   total,
   formatPrice,
+  cart
 }: PaymentModalProps) {
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('cash');
   const [amountPaid, setAmountPaid] = useState('');
@@ -92,9 +94,10 @@ export default function PaymentModal({
           break;
 
         case 'card':
-          if (!validateCardInputs()) {
+          /*if (!validateCardInputs()) {
             return;
           }
+          
           const cardData = {
             cardNumber: cardNumber.replace(/\s/g, ''),
             expiryMonth: parseInt(expiryMonth),
@@ -104,6 +107,14 @@ export default function PaymentModal({
           };
           const cardPayment = await paymentService.processCardPayment(cardData);
           paymentDetails = [cardPayment];
+          */
+          const url = await paymentService.processCardPaymentStripe(cart);
+
+          //const data = await res.json();
+          // Redirect user to Stripe Checkout
+          //window.location.href = url; // preferred over sessionId
+          window.open(url, '_blank');
+
           break;
 
         case 'digital_wallet':
@@ -345,7 +356,8 @@ export default function PaymentModal({
       case 'cash':
         return renderCashPayment();
       case 'card':
-        return renderCardPayment();
+        //return renderCardPayment();
+        return <></>;
       case 'digital_wallet':
         return renderDigitalWalletPayment();
       default:
@@ -358,7 +370,8 @@ export default function PaymentModal({
       case 'cash':
         return parseFloat(amountPaid) >= total;
       case 'card':
-        return cardNumber && expiryMonth && expiryYear && cvc;
+        //return cardNumber && expiryMonth && expiryYear && cvc;
+        return true; // Placeholder, card validation is not implemented
       case 'digital_wallet':
         return true;
       default:

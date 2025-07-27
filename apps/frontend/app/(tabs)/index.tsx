@@ -316,6 +316,7 @@ export default function POSScreen() {
           onPaymentComplete={handlePaymentComplete}
           total={total}
           formatPrice={formatPrice}
+          cart={cart}
         />
         {/* Customer Picker Modal */}
         <Modal

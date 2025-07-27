@@ -1,6 +1,6 @@
 Phase 3: Operational Efficiency (Weeks 9-12)
-6. Employee Management [working]
-Multiple user accounts with different permissions
+6. Employee Management [done]
+Multiple user accounts with different permissions [done]
 Sales tracking by employee
 Secure PIN login
 Why needed: Multi-employee businesses need accountability

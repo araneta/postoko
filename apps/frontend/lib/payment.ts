@@ -1,4 +1,4 @@
-import { PaymentMethod, PaymentDetails, PaymentConfig } from '../types';
+import { PaymentMethod, PaymentDetails, PaymentConfig, CartItem } from '../types';
 
 export interface PaymentIntent {
   id: string;
@@ -121,6 +121,30 @@ class PaymentService {
       return paymentDetails;
     } catch (error) {
       console.error('Error processing digital wallet payment:', error);
+      throw error;
+    }
+  }
+
+  async processCardPaymentStripe(cart:CartItem[]): Promise<string> {
+    if (!this.isPaymentMethodEnabled('card')) {
+      throw new Error('Card payments are not enabled');
+    }
+
+    try {
+      const response = await fetch(`${this.baseUrl}/create-checkout-session`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(cart),
+      });
+      console.log('Response from create-checkout-session:', response);
+      // In a real implementation, you would use Stripe's SDK to confirm the payment
+      // For now, we'll simulate a successful payment
+      const data = await response.json();
+      return data.url; // Use URL for redirection to Stripe Checkout
+    } catch (error) {
+      console.error('Error processing card payment:', error);
       throw error;
     }
   }

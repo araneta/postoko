@@ -28,6 +28,7 @@
 		"mongoose-unique-validator": "^4.0.1",
 		"multer": "^1.4.5-lts.2",
 		"pg": "^8.16.2",
+		"stripe": "^18.3.0",
 		"uuid": "^11.1.0"
 	},
 	"devDependencies": {
