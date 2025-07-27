@@ -87,4 +87,56 @@ export default class StripeController {
       res.status(500).json({ message: error.message });
     }
   }
+
+
+  static async checkSession(req: Request, res: Response) {
+    const auth = getAuth(req);
+    console.log('check session');
+    const sessionId = req.query.session_id;
+    if (!sessionId || typeof sessionId !== 'string') {
+      return res.status(400).json({ message: 'Session ID is required' });
+    }
+    if (!auth.userId) {
+      return res.status(401).send('Unauthorized');
+    }
+
+    try {
+      // Get storeInfoId for the authenticated user
+      const storeInfo = await db.select()
+        .from(storeInfoTable)
+        .where(eq(storeInfoTable.userId, auth.userId));
+
+      if (storeInfo.length === 0) {
+        return res.status(400).json({ message: 'Store information not found. Please set up your store first.' });
+      }
+
+      const storeInfoId = storeInfo[0].id;
+
+      // Get store info and settings
+      const storeSettings = await db.select()
+        .from(settingsTable)
+        .where(eq(settingsTable.storeInfoId, storeInfoId));
+
+      if (storeSettings.length === 0) {
+        return res.status(400).json({ message: 'Store settings not found. Please set up your store settings first.' });
+      }
+      const settingsData = storeSettings[0];
+      const [payment] = await db.select().from(paymentSettingsTable).where(eq(paymentSettingsTable.storeInfoId, settingsData.storeInfoId));
+      if (!payment.stripeSecretKey) {
+        return res.status(400).json({ message: 'Stripe secret key not found. Please set up your Stripe secret key first.' });
+      }
+      const stripe = new Stripe(payment.stripeSecretKey);
+
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      res.json(session);
+
+      
+    } catch (error:any) {
+      console.error(error);
+      res.status(500).json({ message: error.message });
+    }
+
+    
+  }
+
 }
