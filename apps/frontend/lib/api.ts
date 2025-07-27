@@ -1,7 +1,7 @@
 //const BASE_URL = 'https://api.example.com';
 const BASE_URL = 'http://localhost:3000/api';
 
-import { Product, Order, Settings, Customer, CustomerPurchase, Employee, Role } from '../types';
+import { Product, Order, Settings, Customer, CustomerPurchase, Employee, Role, CartItem, StripeSessionData } from '../types';
 import { safeToNumber, safeToInteger } from '../utils/formatters';
 
 // API Client class to handle authentication
@@ -233,6 +233,14 @@ class APIClient {
   async getRoles(): Promise<Role[]> {
     return this.fetchJSON<Role[]>(`${BASE_URL}/roles`);
   }
+
+  async processCardPaymentStripe(cart:CartItem[]): Promise<StripeSessionData> {
+      const data = await this.fetchJSON<StripeSessionData>(`${BASE_URL}/stripe/create-checkout-session`, {
+        method: 'POST',
+        body: JSON.stringify(cart),
+      });
+      return data; // Use URL for redirection to Stripe Checkout
+    }
 }
 
 // Create a singleton instance
@@ -277,3 +285,6 @@ export const addEmployee = (employee: Partial<Employee> & { password: string }) 
 export const updateEmployee = (employee: Partial<Employee> & { id: string; password?: string }) => apiClient.updateEmployee(employee);
 export const deleteEmployee = (id: string) => apiClient.deleteEmployee(id);
 export const getRoles = () => apiClient.getRoles(); 
+
+//stripe payment processing
+export const processCardPaymentStripe = (cart: CartItem[]) => apiClient.processCardPaymentStripe(cart);

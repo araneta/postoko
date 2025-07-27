@@ -123,3 +123,8 @@ export interface Employee {
   createdAt: string;
   deletedAt?: string;
 }
+
+export interface StripeSessionData {
+  id: string;
+  url: string;  
+}

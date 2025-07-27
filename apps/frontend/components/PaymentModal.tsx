@@ -13,6 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { PaymentMethod, PaymentDetails, CartItem } from '../types';
 import paymentService from '../lib/payment';
+import {processCardPaymentStripe} from '../lib/api'; // Import the function to process card payment
 
 interface PaymentModalProps {
   visible: boolean;
@@ -108,12 +109,12 @@ export default function PaymentModal({
           const cardPayment = await paymentService.processCardPayment(cardData);
           paymentDetails = [cardPayment];
           */
-          const url = await paymentService.processCardPaymentStripe(cart);
+          const sessionData = await processCardPaymentStripe(cart);
 
           //const data = await res.json();
           // Redirect user to Stripe Checkout
           //window.location.href = url; // preferred over sessionId
-          window.open(url, '_blank');
+          await window.open(sessionData.url, '_blank');
 
           break;
 
