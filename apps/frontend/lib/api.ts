@@ -86,6 +86,10 @@ class APIClient {
   async getOrders(): Promise<Order[]> {
     const orders = await this.fetchJSON<Order[]>(`${BASE_URL}/orders`);
     // Normalize the data to ensure totals and item prices are numbers
+    if (!Array.isArray(orders)) {
+        return [];
+    }
+
     return orders.map(order => ({
       ...order,
       total: safeToNumber(order.total),

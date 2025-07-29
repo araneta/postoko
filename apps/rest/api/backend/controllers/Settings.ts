@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import {  getAuth } from '@clerk/express';
+import {  getAuth,clerkClient,  } from '@clerk/express';
 import { asc, between, count, eq, getTableColumns, sql } from 'drizzle-orm';
 
 import { db } from '../db';
@@ -14,70 +14,14 @@ export default class SettingsController {
         }
         console.log('userId',auth.userId);
         
-        try {
+        try {            
             // Get store info and settings
             const settings = await db.select()
                 .from(storeInfoTable)
                 .leftJoin(settingsTable, eq(storeInfoTable.id, settingsTable.storeInfoId))
                 .where(eq(storeInfoTable.userId, auth.userId));
             if(settings.length === 0){
-                // Insert dummy store info
-                const insertedStore = await db.insert(storeInfoTable).values({
-                    userId: auth.userId,
-                    name: 'Demo Store',
-                    address: '123 Demo St',
-                    phone: '1234567890',
-                    email: 'demo@store.com',
-                    website: 'www.demostore.com',
-                    taxId: 'TAX123456'
-                }).returning();
-                const storeInfoId = insertedStore[0].id;
-
-                // Insert dummy printer
-                const insertedPrinter = await db.insert(printerSettingsTable).values({
-                    type: 'thermal'
-                }).returning();
-                const printerSettingsId = insertedPrinter[0].id;
-
-                // Insert dummy currency
-                const dummyCurrency = { code: 'USD', symbol: '$', name: 'US Dollar' };
-                await db.insert(currenciesTable).values(dummyCurrency);
-
-                // Insert dummy payment settings
-                await db.insert(paymentSettingsTable).values({
-                    storeInfoId: storeInfoId,
-                    stripePublishableKey: '',
-                    stripeSecretKey: '',
-                    paymentMethods: JSON.stringify(['cash']),
-                    enabled: false
-                });
-
-                // Insert dummy settings
-                await db.insert(settingsTable).values({
-                    currencyCode: dummyCurrency.code,
-                    printerSettingsId: printerSettingsId,
-                    storeInfoId: storeInfoId
-                });
-
-                // Return the dummy data in the same format as the rest of the method
-                return res.status(200).json({
-                    currency: dummyCurrency,
-                    printer: { type: 'thermal' },
-                    storeInfo: {
-                        name: 'Demo Store',
-                        address: '123 Demo St',
-                        phone: '1234567890',
-                        email: 'demo@store.com',
-                        website: 'www.demostore.com',
-                        taxId: 'TAX123456'
-                    },
-                    payment: {
-                        stripePublishableKey: '',
-                        stripeSecretKey: '',
-                        paymentMethods: ['cash'],
-                        enabled: false
-                    }
-                });
+                res.status(500).json({ message: 'no settings' });
             } else {
                 const settingsData = settings[0];
                 if (!settingsData.settings) {
@@ -121,44 +65,10 @@ export default class SettingsController {
                     } : null
                 });
             }
-            // After fetching storeInfo, ensure user is admin employee
-            // Get storeInfoId for this user
-            const storeInfoId = settings.length > 0 ? settings[0].store_info.id : undefined;
-            if (storeInfoId) {
-                // Check if user is in employees
-                const existing = await db.select().from(employeesTable).where(eq(employeesTable.id, auth.userId));
-                if (existing.length === 0) {
-                    // Get admin roleId
-                    const roles = await db.select().from(rolesTable).where(eq(rolesTable.name, 'admin'));
-                    if (roles.length > 0) {
-                        const roleId = roles[0].id;
-                        // Get user info from Clerk
-                        let name = 'Admin';
-                        let email = '';
-                        if (auth.sessionClaims && typeof auth.sessionClaims.email === 'string') {
-                            email = auth.sessionClaims.email;
-                        } else if (auth.sessionClaims && typeof auth.sessionClaims['email_address'] === 'string') {
-                            email = auth.sessionClaims['email_address'];
-                        } else {
-                            email = auth.userId + '@example.com';
-                        }
-                        if (auth.sessionClaims && typeof auth.sessionClaims.name === 'string') {
-                            name = auth.sessionClaims.name;
-                        }
-                        await db.insert(employeesTable).values({
-                            id: auth.userId,
-                            storeInfoId,
-                            name,
-                            email,
-                            password: '', // Not used with Clerk
-                            roleId,
-                        });
-                    }
-                }
-            }
+            
         } catch (error) {
             console.error(error);
-            res.status(500).json({ message: 'Error fetching products' });
+            res.status(500).json({ message: 'Error fetching settings' });
         }
     }
 

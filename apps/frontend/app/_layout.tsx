@@ -51,6 +51,7 @@ function AppContent() {
 
   useEffect(() => {
     // Only initialize store if user is signed in
+    console.log('isLoaded:', isLoaded, 'isSignedIn:', isSignedIn, 'user:', user);
     if (isLoaded && isSignedIn && user) {
       const initializeWithToken = async () => {
         //const token = await getToken();
@@ -61,7 +62,7 @@ function AppContent() {
         });
       };
       
-      initializeWithToken();
+      //initializeWithToken();
     } else if (isLoaded && !isSignedIn) {
       // User is not signed in, clear store and set initializing to false
       clearStore();

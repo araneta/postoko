@@ -39,43 +39,6 @@ export default function TabLayout() {
     }
   }
 
-  // Use useEffect to handle async operations
-  useEffect(() => {
-    const handleLogin = async () => {
-      // Redirect to settings if storeInfo is missing or empty
-      if (!settings?.storeInfo || !settings.storeInfo.name) {
-        if(email){
-          try {
-            
-            // Configure the API client with the returned credentials
-            //if (token) {              
-              configureAPI(getToken);
-              const { id } = await login(email)
-              console.log('id', id)  
-              const storeInfo = await getSettings();
-              console.log('settings', storeInfo);
-              if(!storeInfo){
-                router.replace('/(tabs)/settings')
-                return;
-              }
-              
-            //}else{
-            //  console.log('Failed to get token or user ID')
-            //}
-            
-            
-          } catch (apiError) {
-            console.error('Backend login failed:', apiError)
-            // Continue with the flow even if backend login fails
-            // The user is still authenticated with Clerk
-          }
-        }
-        //return <Redirect href="/settings" />;
-      }
-    };
-
-    handleLogin();
-  }, [email, settings, getToken]);
 
   return (
     <Tabs

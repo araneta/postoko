@@ -3,8 +3,8 @@ import { Link, useRouter, Redirect } from 'expo-router'
 import { Text, TextInput, TouchableOpacity, View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native'
 import React from 'react'
 import { Ionicons } from '@expo/vector-icons'
-import { login, configureAPI , getSettings} from '../../lib/api'
-
+import { login, configureAPI, getSettings } from '../../lib/api'
+import useStore from '../../store/useStore';
 export default function Page() {
   const { signIn, setActive, isLoaded } = useSignIn()
   const { isSignedIn, userId, getToken } = useAuth()
@@ -14,6 +14,7 @@ export default function Page() {
   const [password, setPassword] = React.useState('')
   const [isLoading, setIsLoading] = React.useState(false)
   const [error, setError] = React.useState('')
+  const initializeStore = useStore(state => state.initializeStore);
   // Redirect if already signed in
   if (isSignedIn) {
     return <Redirect href="/(tabs)" />
@@ -37,40 +38,34 @@ export default function Page() {
       // and redirect the user
       if (signInAttempt.status === 'complete') {
         await setActive({ session: signInAttempt.createdSessionId })
-        
+
         // Get the user ID from Clerk
         const userIdx = signInAttempt.createdSessionId
-        
+
         // Call our backend login API with email and Clerk user ID
         if (userIdx) {
           try {
             const token = await getToken();
             console.log('token', token);
-            
-            // Configure the API client with the returned credentials
-            //if (token) {              
-              configureAPI(getToken);
-              const { id } = await login(emailAddress)
-              console.log('id', id)  
-              const storeInfo = await getSettings();
-              console.log('settings', storeInfo);
-              if(!storeInfo){
-                router.replace('/(tabs)/settings')
-                return;
-              }
-              
-            //}else{
-            //  console.log('Failed to get token or user ID')
-            //}
-            
-            
+
+
+            configureAPI(getToken);
+            const { id } = await login(emailAddress)
+            console.log('id', id)
+            initializeStore().finally(() => {
+
+              window.frameworkReady?.();
+            });
+
+
+
           } catch (apiError) {
             console.error('Backend login failed:', apiError)
             // Continue with the flow even if backend login fails
             // The user is still authenticated with Clerk
           }
         }
-        
+
         router.replace('/(tabs)')
       } else {
         // If the status isn't complete, check why. User might need to
@@ -89,11 +84,11 @@ export default function Page() {
   }
 
   return (
-    <KeyboardAvoidingView 
+    <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.scrollContainer}
         keyboardShouldPersistTaps="handled"
       >
@@ -137,7 +132,7 @@ export default function Page() {
               />
             </View>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.signInButton, isLoading && styles.disabledButton]}
               onPress={onSignInPress}
               disabled={isLoading}

@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import {  getAuth,clerkClient } from '@clerk/express';
 import { db } from '../db';
-import { usersTable } from '../db/schema';
+import { currenciesTable, employeesTable, paymentSettingsTable, printerSettingsTable, rolesTable, settingsTable, storeInfoTable, usersTable } from '../db/schema';
 import { eq, and } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 
@@ -19,13 +19,14 @@ export default class UsersController {
 			const clerkuser = await clerkClient.users.getUser(userId);
 			console.log('user',clerkuser);
 			const emails = clerkuser.emailAddresses;
+			
 			if(emails.length === 0){
 				return res.status(401).send('Unauthorized');
 			}
 			const email = emails[0].emailAddress;
 			console.log('searching email',email);
 			const user = await db.select()
-			.from(usersTable).where(eq(usersTable.email, email));
+			.from(usersTable).where(eq(usersTable.id, userId));
 			if (user.length === 0) {
 				//create user
 				const newUser = await db.insert(usersTable).values({
@@ -45,6 +46,63 @@ export default class UsersController {
 					.where(eq(usersTable.email, email))
 					.returning();
 				res.status(200).json(updatedUser[0]);
+			}
+			// Get store info and settings
+			const settings = await db.select()
+				.from(storeInfoTable)
+				.leftJoin(settingsTable, eq(storeInfoTable.id, settingsTable.storeInfoId))
+				.where(eq(storeInfoTable.userId, auth.userId));
+			if(settings.length === 0){
+				// Insert dummy store info
+				
+				const insertedStore = await db.insert(storeInfoTable).values({
+					userId: auth.userId,
+					name: email,
+					address: '123 Demo St',
+					phone: '1234567890',
+					email: email,
+					website: 'www.demostore.com',
+					taxId: 'TAX123456'
+				}).returning();
+				const storeInfoId = insertedStore[0].id;
+
+				// Insert dummy printer
+				const insertedPrinter = await db.insert(printerSettingsTable).values({
+					type: 'thermal'
+				}).returning();
+				const printerSettingsId = insertedPrinter[0].id;				
+
+				// Insert dummy payment settings
+				await db.insert(paymentSettingsTable).values({
+					storeInfoId: storeInfoId,
+					stripePublishableKey: '',
+					stripeSecretKey: '',
+					paymentMethods: JSON.stringify(['cash']),
+					enabled: false
+				});
+
+				// Insert dummy settings
+				await db.insert(settingsTable).values({
+					currencyCode: 'USD',
+					printerSettingsId: printerSettingsId,
+					storeInfoId: storeInfoId
+				});
+					// Get admin roleId
+				const roles = await db.select().from(rolesTable).where(eq(rolesTable.name, 'admin'));
+				if (roles.length > 0) {
+					const roleId = roles[0].id;
+					// Get user info from Clerk
+					
+					await db.insert(employeesTable).values({
+						id: auth.userId,
+						storeInfoId,
+						name:email,
+						email,
+						password: '', // Not used with Clerk
+						roleId,
+					});
+				}
+				
 			}
 		} catch (error) {
             console.error(error);

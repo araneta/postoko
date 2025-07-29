@@ -82,7 +82,7 @@ const useStore = create<StoreState>((set, get) => ({
     }
     
     set({ initializing: true });
-    try {
+    //try {
       const [products, orders, settings] = await Promise.all([
         apiClient.getProducts(),
         apiClient.getOrders(),
@@ -92,9 +92,17 @@ const useStore = create<StoreState>((set, get) => ({
       // Add sample products with barcodes for testing if no products exist
       let finalProducts = products;
       if (products.length === 0) {
+        // Helper to generate a GUID
+        const generateGuid = () => {
+          return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+            const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+          });
+        };
+
         const sampleProducts: Product[] = [
           {
-            id: '1',
+            id: generateGuid(),
             name: 'Coca Cola 330ml',
             price: 1500,
             description: 'Refreshing carbonated soft drink',
@@ -105,7 +113,7 @@ const useStore = create<StoreState>((set, get) => ({
             minStock: 20
           },
           {
-            id: '2',
+            id: generateGuid(),
             name: 'Lay\'s Classic Chips',
             price: 2500,
             description: 'Crispy potato chips',
@@ -116,7 +124,7 @@ const useStore = create<StoreState>((set, get) => ({
             minStock: 15
           },
           {
-            id: '3',
+            id: generateGuid(),
             name: 'Nestle Pure Life Water',
             price: 800,
             description: 'Pure spring water',
@@ -127,7 +135,7 @@ const useStore = create<StoreState>((set, get) => ({
             minStock: 30
           },
           {
-            id: '4',
+            id: generateGuid(),
             name: 'Snickers Chocolate Bar',
             price: 1200,
             description: 'Chocolate bar with caramel and peanuts',
@@ -176,10 +184,10 @@ const useStore = create<StoreState>((set, get) => ({
         settings: finalSettings,
         initializing: false,
       });
-    } catch (error) {
-      console.error('Failed to initialize store:', error);
-      set({ initializing: false });
-    }
+    //} catch (error) {
+      //console.error('Failed to initialize store:', error);
+      //set({ initializing: false });
+    //}
   },
 
   addProduct: async (product) => {
