@@ -62,7 +62,7 @@ function AppContent() {
         });
       };
       
-      //initializeWithToken();
+      initializeWithToken();
     } else if (isLoaded && !isSignedIn) {
       // User is not signed in, clear store and set initializing to false
       clearStore();

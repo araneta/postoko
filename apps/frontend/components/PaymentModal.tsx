@@ -72,6 +72,20 @@ export default function PaymentModal({
 
   const change = parseFloat(amountPaid) - total;
 
+  const handleStripePayment = async () => {
+    console.log('handleStripePayment');
+    if (isProcessing) return;
+    if (!isPaymentEnabled) {
+      showAlert('Payment Disabled', 'Payment processing is not enabled. Please contact your administrator.');
+      return;
+    }
+    const sessionData = await processCardPaymentStripe(cart);
+
+    //const data = await res.json();
+    // Redirect user to Stripe Checkout
+    //window.location.href = url; // preferred over sessionId
+    await window.open(sessionData.url, '_blank');
+  }
   const handlePayment = async () => {
     console.log('handlePayment');
     if (isProcessing) return;
@@ -268,7 +282,25 @@ export default function PaymentModal({
     </View>
   );
 
+  const renderStipePayment = () => (
+    <View style={styles.paymentSection}>
+      <Text style={styles.sectionTitle}>Stripe Payment</Text>
+      <Pressable
+          style={[
+            styles.button,
+            styles.completeButton,
+            
+          ]}          
+          onPress={handleStripePayment}>
+          <Text style={[styles.buttonText, styles.completeButtonText]}>
+            Pay using Stripe
+          </Text>
+        </Pressable>
+    </View>
+  );
+
   const renderCardPayment = () => (
+    
     <View style={styles.paymentSection}>
       <Text style={styles.sectionTitle}>Card Payment</Text>
       
@@ -358,7 +390,7 @@ export default function PaymentModal({
         return renderCashPayment();
       case 'card':
         //return renderCardPayment();
-        return <></>;
+        return renderStipePayment();
       case 'digital_wallet':
         return renderDigitalWalletPayment();
       default:
