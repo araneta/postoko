@@ -34,6 +34,8 @@ export const orderItemsTable = pgTable("order_items", {
   orderId: varchar({ length: 36 }).notNull().references(() => ordersTable.id),
   productId: varchar({ length: 36 }).notNull().references(() => productsTable.id),
   quantity: integer().notNull(),
+  unitPrice: numeric({ precision: 10, scale: 2 }).notNull(), // <-- NEW
+  unitCost: numeric({ precision: 10, scale: 2 }).notNull().default('0.00'), // <-- Optional, for historical cost
   // Composite primary key
 }, (table) => ({
   pk: primaryKey({ columns: [table.orderId, table.productId] })

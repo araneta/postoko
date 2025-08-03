@@ -3,6 +3,7 @@ import { ordersTable, orderItemsTable, storeInfoTable, productsTable, customersT
 import { Request, Response } from 'express';
 import { getAuth } from '@clerk/express';
 import { eq, desc, and, inArray, sql } from 'drizzle-orm';
+import { randomUUID } from 'crypto';
 
 export default class OrdersController {
     static async getOrders(req: Request, res: Response) {
@@ -89,12 +90,12 @@ export default class OrdersController {
             return res.status(401).send('Unauthorized');
         }
 
-        const { id, items, total, date, paymentMethod, status, customer } = req.body;
+        const { items, total, date, paymentMethod, status, customer } = req.body;
 
         // Validate required fields
-        if (!id || !items || !Array.isArray(items) || items.length === 0 || !total || !date || !paymentMethod || !status) {
+        if ( !items || !Array.isArray(items) || items.length === 0 || !total || !date || !paymentMethod || !status) {
             return res.status(400).json({ 
-                message: 'Missing required fields: id, items (array), total, date, paymentMethod, status' 
+                message: 'Missing required fields: items (array), total, date, paymentMethod, status' 
             });
         }
 
@@ -117,7 +118,9 @@ export default class OrdersController {
             const products = await db.select({
                 id: productsTable.id,
                 name: productsTable.name,
-                stock: productsTable.stock
+                stock: productsTable.stock,
+                price: productsTable.price,
+                cost: productsTable.cost,
             })
             .from(productsTable)
             .where(
@@ -153,6 +156,7 @@ export default class OrdersController {
                     return res.status(400).json({ message: 'Customer not found' });
                 }
             }
+            const id = randomUUID(); // Or let Postgres handle this
             // Use a transaction to ensure data consistency
             const result = await db.transaction(async (tx) => {
                 // Create the order
@@ -166,11 +170,17 @@ export default class OrdersController {
                 }).returning();
 
                 // Create order items
-                const orderItems = items.map(item => ({
-                    orderId: id,
-                    productId: item.id,
-                    quantity: item.quantity
-                }));
+                const orderItems = items.map(item => {
+					const product = products.find(p => p.id === item.id);
+					console.log('product',product);
+					return {
+						orderId: id,
+						productId: item.id,
+						quantity: item.quantity,
+						unitPrice: product?.price ?? 0,  // fallback to 0 if not found
+						unitCost: product?.cost ?? 0
+					};
+				});
                 //create customer purchase
                 if (customer) {
                     await tx.insert(customerPurchasesTable).values({
@@ -437,11 +447,11 @@ export default class OrdersController {
 
             // Get profit margin data
             const profitData = await db.select({
-                totalRevenue: sql`SUM(${orderItemsTable.quantity} * ${productsTable.price})`,
-                totalCost: sql`SUM(${orderItemsTable.quantity} * ${productsTable.cost})`,
-                totalProfit: sql`SUM(${orderItemsTable.quantity} * (${productsTable.price} - ${productsTable.cost}))`,
-                orderCount: sql`COUNT(DISTINCT ${ordersTable.id})`,
-                averageOrderValue: sql`AVG(${ordersTable.total})`
+					totalRevenue: sql`SUM(${orderItemsTable.quantity} * ${orderItemsTable.unitPrice})`,
+					totalCost: sql`SUM(${orderItemsTable.quantity} * ${orderItemsTable.unitCost})`,
+					totalProfit: sql`SUM(${orderItemsTable.quantity} * (${orderItemsTable.unitPrice} - ${orderItemsTable.unitCost}))`,
+					orderCount: sql`COUNT(DISTINCT ${ordersTable.id})`,
+					averageOrderValue: sql`AVG(${ordersTable.total})`
             })
                 .from(orderItemsTable)
                 .leftJoin(ordersTable, eq(orderItemsTable.orderId, ordersTable.id))
