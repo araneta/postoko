@@ -125,6 +125,115 @@ export interface Employee {
 }
 
 export interface StripeSessionData {
-  id: string;
+  session_id: string;
   url: string;  
+}
+export interface StripeSessionDetails {
+  id: string;
+  object: "checkout.session";
+  adaptive_pricing: {
+    enabled: boolean;
+  };
+  after_expiration: null;
+  allow_promotion_codes: null;
+  amount_subtotal: number;
+  amount_total: number;
+  automatic_tax: {
+    enabled: boolean;
+    liability: null;
+    provider: null;
+    status: null;
+  };
+  billing_address_collection: null;
+  cancel_url: string;
+  client_reference_id: string | null;
+  client_secret: string | null;
+  collected_information: null;
+  consent: null;
+  consent_collection: null;
+  created: number;
+  currency: string;
+  currency_conversion: null;
+  custom_fields: any[]; // define structure if known
+  custom_text: {
+    after_submit: null;
+    shipping_address: null;
+    submit: null;
+    terms_of_service_acceptance: null;
+  };
+  customer: string | null;
+  customer_creation: "if_required" | string;
+  customer_details: {
+    address: {
+      city: string | null;
+      country: string;
+      line1: string | null;
+      line2: string | null;
+      postal_code: string | null;
+      state: string | null;
+    };
+    email: string;
+    name: string;
+    phone: string | null;
+    tax_exempt: "none" | string;
+    tax_ids: any[]; // define structure if known
+  } | null;
+  customer_email: string | null;
+  discounts: any[];
+  expires_at: number;
+  invoice: string | null;
+  invoice_creation: {
+    enabled: boolean;
+    invoice_data: {
+      account_tax_ids: null;
+      custom_fields: null;
+      description: null;
+      footer: null;
+      issuer: null;
+      metadata: Record<string, string>;
+      rendering_options: null;
+    };
+  };
+  livemode: boolean;
+  locale: string | null;
+  metadata: Record<string, string>;
+  mode: "payment" | string;
+  origin_context: null;
+  payment_intent: string;
+  payment_link: string | null;
+  payment_method_collection: "if_required" | string;
+  payment_method_configuration_details: null;
+  payment_method_options: {
+    card: {
+      request_three_d_secure: "automatic" | string;
+    };
+  };
+  payment_method_types: string[];
+  payment_status: "paid" | string;
+  permissions: null;
+  phone_number_collection: {
+    enabled: boolean;
+  };
+  presentment_details: {
+    presentment_amount: number;
+    presentment_currency: string;
+  };
+  recovered_from: null;
+  saved_payment_method_options: null;
+  setup_intent: null;
+  shipping_address_collection: null;
+  shipping_cost: null;
+  shipping_options: any[];
+  status: "complete" | string;
+  submit_type: string | null;
+  subscription: string | null;
+  success_url: string;
+  total_details: {
+    amount_discount: number;
+    amount_shipping: number;
+    amount_tax: number;
+  };
+  ui_mode: "hosted" | string;
+  url: string | null;
+  wallet_options: null;
 }

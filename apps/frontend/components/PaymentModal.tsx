@@ -13,7 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { PaymentMethod, PaymentDetails, CartItem } from '../types';
 import paymentService from '../lib/payment';
-import {processCardPaymentStripe} from '../lib/api'; // Import the function to process card payment
+import {processCardPaymentStripe, getStripeSession} from '../lib/api'; // Import the function to process card payment
 
 interface PaymentModalProps {
   visible: boolean;
@@ -51,7 +51,7 @@ export default function PaymentModal({
     title: '',
     message: '',
   });
-
+  let interval: NodeJS.Timeout;
   // Get available payment methods from payment service
   const availableMethods = paymentService.getAvailablePaymentMethods();
   const isPaymentEnabled = paymentService.isPaymentEnabled();
@@ -72,6 +72,29 @@ export default function PaymentModal({
 
   const change = parseFloat(amountPaid) - total;
 
+  const checkSession = async (sessionID: string) => {
+    try {
+      const sessionData = await getStripeSession(sessionID);
+      console.log('Stripe session data:', sessionData);
+      if (sessionData && sessionData.payment_status=== 'paid') {
+        //return sessionData; // Return session data for redirection
+        var paymentDetailx: PaymentDetails = {
+          method: 'card',
+          amount: total,
+          transactionId: sessionData.id,
+        };
+        clearInterval(interval); // Stop polling
+        onPaymentComplete([paymentDetailx]);
+        resetForm();
+
+      } else {
+        throw new Error('Invalid session data received');
+      }
+    } catch (error) {
+      console.error('Error checking Stripe session:', error);
+      throw new Error('Failed to retrieve payment session. Please try again.');
+    }
+  };
   const handleStripePayment = async () => {
     console.log('handleStripePayment');
     if (isProcessing) return;
@@ -79,13 +102,24 @@ export default function PaymentModal({
       showAlert('Payment Disabled', 'Payment processing is not enabled. Please contact your administrator.');
       return;
     }
-    const sessionData = await processCardPaymentStripe(cart);
 
-    //const data = await res.json();
-    // Redirect user to Stripe Checkout
-    //window.location.href = url; // preferred over sessionId
-    await window.open(sessionData.url, '_blank');
-  }
+    const sessionData = await processCardPaymentStripe(cart);
+    const sessionID = sessionData.session_id;
+    console.log('Stripe session data:', sessionData);
+    // Open Stripe checkout in a new tab
+    const checkoutWindow = window.open(sessionData.url, '_blank');
+
+    // Poll every 1 second to check session status
+    interval = setInterval(async () => {
+      try {
+        const updatedSession = await checkSession(sessionID);
+        
+      } catch (error) {
+        console.error('Polling error:', error);
+        // Optionally handle error, e.g., stop polling if session not found
+      }
+    }, 1000);
+  };
   const handlePayment = async () => {
     console.log('handlePayment');
     if (isProcessing) return;
@@ -106,6 +140,7 @@ export default function PaymentModal({
             return;
           }
           paymentDetails = [paymentService.processCashPayment(parseFloat(amountPaid), total)];
+          console.log('Cash payment details:', paymentDetails);
           break;
 
         case 'card':
@@ -123,12 +158,7 @@ export default function PaymentModal({
           const cardPayment = await paymentService.processCardPayment(cardData);
           paymentDetails = [cardPayment];
           */
-          const sessionData = await processCardPaymentStripe(cart);
-
-          //const data = await res.json();
-          // Redirect user to Stripe Checkout
-          //window.location.href = url; // preferred over sessionId
-          await window.open(sessionData.url, '_blank');
+         
 
           break;
 
@@ -404,7 +434,7 @@ export default function PaymentModal({
         return parseFloat(amountPaid) >= total;
       case 'card':
         //return cardNumber && expiryMonth && expiryYear && cvc;
-        return true; // Placeholder, card validation is not implemented
+        return false; // Placeholder, card validation is not implemented
       case 'digital_wallet':
         return true;
       default:

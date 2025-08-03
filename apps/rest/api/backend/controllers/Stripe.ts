@@ -92,7 +92,8 @@ export default class StripeController {
   static async checkSession(req: Request, res: Response) {
     const auth = getAuth(req);
     console.log('check session');
-    const sessionId = req.query.session_id;
+    //const sessionId = req.query.session_id;
+	const sessionId = req.params.id;
     if (!sessionId || typeof sessionId !== 'string') {
       return res.status(400).json({ message: 'Session ID is required' });
     }
