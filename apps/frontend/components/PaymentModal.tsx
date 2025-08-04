@@ -59,7 +59,7 @@ export default function PaymentModal({
   const paymentMethods = [
     { id: 'cash', name: 'Cash', icon: 'cash-outline', color: '#34C759' },
     { id: 'card', name: 'Card', icon: 'card-outline', color: '#007AFF' },
-    { id: 'digital_wallet', name: 'Digital Wallet', icon: 'phone-portrait-outline', color: '#FF9500' },
+    //{ id: 'digital_wallet', name: 'Digital Wallet', icon: 'phone-portrait-outline', color: '#FF9500' },
   ].filter(method => availableMethods.includes(method.id as PaymentMethod));
 
   const digitalWallets = [

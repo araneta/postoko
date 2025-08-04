@@ -30,7 +30,7 @@ export default function PaymentSettings({ onClose }: PaymentSettingsProps) {
   const paymentMethodOptions = [
     { id: 'cash', name: 'Cash', icon: 'cash-outline', color: '#34C759' },
     { id: 'card', name: 'Credit/Debit Cards', icon: 'card-outline', color: '#007AFF' },
-    { id: 'digital_wallet', name: 'Digital Wallets', icon: 'phone-portrait-outline', color: '#FF9500' },
+    //{ id: 'digital_wallet', name: 'Digital Wallets', icon: 'phone-portrait-outline', color: '#FF9500' },
   ];
 
   const handleSave = async () => {
