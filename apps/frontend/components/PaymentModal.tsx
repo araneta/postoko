@@ -59,12 +59,12 @@ export default function PaymentModal({
   const paymentMethods = [
     { id: 'cash', name: 'Cash', icon: 'cash-outline', color: '#34C759' },
     { id: 'card', name: 'Card', icon: 'card-outline', color: '#007AFF' },
-    //{ id: 'digital_wallet', name: 'Digital Wallet', icon: 'phone-portrait-outline', color: '#FF9500' },
+    { id: 'digital_wallet', name: 'Digital Wallet', icon: 'phone-portrait-outline', color: '#FF9500' },
   ].filter(method => availableMethods.includes(method.id as PaymentMethod));
 
   const digitalWallets = [
-    { id: 'apple_pay', name: 'Apple Pay', icon: 'logo-apple' },
-    { id: 'google_pay', name: 'Google Pay', icon: 'logo-google' },
+    //{ id: 'apple_pay', name: 'Apple Pay', icon: 'logo-apple' },
+    //{ id: 'google_pay', name: 'Google Pay', icon: 'logo-google' },
     { id: 'paypal', name: 'PayPal', icon: 'logo-paypal' },
   ];
 
@@ -95,6 +95,7 @@ export default function PaymentModal({
       throw new Error('Failed to retrieve payment session. Please try again.');
     }
   };
+
   const handleStripePayment = async () => {
     console.log('handleStripePayment');
     if (isProcessing) return;
@@ -120,6 +121,33 @@ export default function PaymentModal({
       }
     }, 1000);
   };
+
+  const handlePaypalPayment = async () => {
+    console.log('handlePaypalPayment');
+    if (isProcessing) return;
+    if (!isPaymentEnabled) {
+      showAlert('Payment Disabled', 'Payment processing is not enabled. Please contact your administrator.');
+      return;
+    }
+    /*
+    const sessionData = await processCardPaymentStripe(cart);
+    const sessionID = sessionData.session_id;
+    console.log('Stripe session data:', sessionData);
+    // Open Stripe checkout in a new tab
+    const checkoutWindow = window.open(sessionData.url, '_blank');
+
+    // Poll every 1 second to check session status
+    interval = setInterval(async () => {
+      try {
+        const updatedSession = await checkSession(sessionID);
+        
+      } catch (error) {
+        console.error('Polling error:', error);
+        // Optionally handle error, e.g., stop polling if session not found
+      }
+    }, 1000);*/
+  };
+
   const handlePayment = async () => {
     console.log('handlePayment');
     if (isProcessing) return;
@@ -383,7 +411,35 @@ export default function PaymentModal({
       </View>
     </View>
   );
-
+  const renderPaypalPayment = () => (
+    <View style={styles.paymentSection}>
+      <Text style={styles.sectionTitle}>Digital Wallet</Text>
+      
+      <View style={styles.walletOptions}>
+        
+          <Pressable
+            key={'paypal'}
+            style={[
+              styles.walletOption,
+              walletType === 'paypal' && styles.selectedWallet
+            ]}
+            onPress={handlePaypalPayment}>
+            <Ionicons 
+              name={'logo-paypal' as any} 
+              size={24} 
+              color={walletType === 'paypal' ? '#007AFF' : '#666'} 
+            />
+            <Text style={[
+              styles.walletText,
+              walletType === 'paypal' && styles.selectedWalletText
+            ]}>
+              {"Paypal"}
+            </Text>
+          </Pressable>
+        
+      </View>
+    </View>
+  );
   const renderDigitalWalletPayment = () => (
     <View style={styles.paymentSection}>
       <Text style={styles.sectionTitle}>Digital Wallet</Text>
@@ -422,7 +478,8 @@ export default function PaymentModal({
         //return renderCardPayment();
         return renderStipePayment();
       case 'digital_wallet':
-        return renderDigitalWalletPayment();
+        //return renderDigitalWalletPayment();
+        return renderPaypalPayment();
       default:
         return null;
     }
