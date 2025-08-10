@@ -22,6 +22,10 @@ export default function PaymentSettings({ onClose }: PaymentSettingsProps) {
   const [isEnabled, setIsEnabled] = useState(settings.payment?.enabled || false);
   const [publishableKey, setPublishableKey] = useState(settings.payment?.stripePublishableKey || '');
   const [secretKey, setSecretKey] = useState(settings.payment?.stripeSecretKey || '');
+
+  const [paypalClientID, setPaypalClientID] = useState(settings.payment?.paypalClientId || '');
+  const [paypalClientSecret, setPaypalClientSecret] = useState(settings.payment?.paypalClientSecret || '');
+
   const [selectedMethods, setSelectedMethods] = useState<PaymentMethod[]>(
     settings.payment?.paymentMethods || ['cash']
   );
@@ -54,6 +58,8 @@ export default function PaymentSettings({ onClose }: PaymentSettingsProps) {
       const paymentConfig: PaymentConfig = {
         stripePublishableKey: publishableKey.trim(),
         stripeSecretKey: secretKey.trim(),
+        paypalClientId: paypalClientID.trim(),
+        paypalClientSecret: paypalClientSecret.trim(),
         paymentMethods: selectedMethods,
         enabled: isEnabled,
       };
@@ -136,6 +142,36 @@ export default function PaymentSettings({ onClose }: PaymentSettingsProps) {
                 value={secretKey}
                 onChangeText={setSecretKey}
                 placeholder="sk_test_your_secret_key"
+                autoCapitalize="none"
+                autoCorrect={false}
+                secureTextEntry
+              />
+            </View>
+
+            <Text style={styles.sectionTitle}>Paypal Configuration</Text>
+            <Text style={styles.description}>
+              Enter your Paypal Client ID and Client Secret to enable card and digital wallet payments.
+            </Text>
+            
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Client Id</Text>
+              <TextInput
+                style={styles.input}
+                value={paypalClientID}
+                onChangeText={setPaypalClientID}
+                placeholder="Client ID"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Client Secret</Text>
+              <TextInput
+                style={styles.input}
+                value={paypalClientSecret}
+                onChangeText={setPaypalClientSecret}
+                placeholder="Client Secret"
                 autoCapitalize="none"
                 autoCorrect={false}
                 secureTextEntry

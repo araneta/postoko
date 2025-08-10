@@ -54,6 +54,8 @@ const defaultStoreInfo = {
 const defaultPaymentConfig: PaymentConfig = {
   stripePublishableKey: '',
   stripeSecretKey: '',
+  paypalClientId: '',
+  paypalClientSecret: '',
   paymentMethods: ['cash'],
   enabled: false,
 };

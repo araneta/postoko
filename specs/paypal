@@ -1,0 +1,92 @@
+🔧 Example: Express + TypeScript with DB-loaded PayPal credentials
+Assume you have a function like:
+
+ts
+Copy
+Edit
+async function getPayPalCredentialsFromDB(): Promise<{ clientId: string, clientSecret: string }> {
+  // Example: fetch from your DB
+  return {
+    clientId: 'your-db-client-id',
+    clientSecret: 'your-db-client-secret',
+  };
+}
+🛠️ Update: paypal.ts util — dynamic client builder
+ts
+Copy
+Edit
+import paypal from '@paypal/checkout-server-sdk';
+
+export async function getPayPalClient() {
+  const { clientId, clientSecret } = await getPayPalCredentialsFromDB();
+
+  const environment = new paypal.core.SandboxEnvironment(clientId, clientSecret);
+  return new paypal.core.PayPalHttpClient(environment);
+}
+🔁 Updated PayPal route
+routes/paypal.ts
+ts
+Copy
+Edit
+import { Router } from 'express';
+import paypal from '@paypal/checkout-server-sdk';
+import { getPayPalClient } from '../utils/paypal';
+
+const router = Router();
+
+// Create PayPal order
+router.post('/create-order', async (req, res) => {
+  try {
+    const client = await getPayPalClient();
+    const request = new paypal.orders.OrdersCreateRequest();
+    request.prefer('return=representation');
+    request.requestBody({
+      intent: 'CAPTURE',
+      purchase_units: [{
+        amount: {
+          currency_code: 'USD',
+          value: '20.00',
+        },
+      }],
+    });
+
+    const response = await client.execute(request);
+    res.json({ orderID: response.result.id });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to create PayPal order' });
+  }
+});
+
+// Capture PayPal order
+router.post('/capture-order', async (req, res) => {
+  try {
+    const { orderID } = req.body;
+    const client = await getPayPalClient();
+
+    const request = new paypal.orders.OrdersCaptureRequest(orderID);
+    request.requestBody({});
+
+    const response = await client.execute(request);
+    res.json(response.result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to capture PayPal order' });
+  }
+});
+
+export default router;
+🔒 Security Notes
+Make sure access to your credentials in the DB is secured and encrypted.
+
+Never expose clientSecret to the frontend.
+
+Cache the credentials if you query them often to reduce DB load.
+
+✅ Summary
+Task	Update
+Credentials source	DB instead of .env
+PayPal client initialization	Moved inside each route, dynamically per request
+Security	Use secure DB access, never send secret to client
+
+Let me know what DB you're using (e.g. PostgreSQL, MySQL, MongoDB), and I can help write the exact getPayPalCredentialsFromDB() function too.

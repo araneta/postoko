@@ -77,6 +77,8 @@ export default class UsersController {
 					storeInfoId: storeInfoId,
 					stripePublishableKey: '',
 					stripeSecretKey: '',
+					paypalClientId: '',
+					paypalClientSecret: '',
 					paymentMethods: JSON.stringify(['cash']),
 					enabled: false
 				});

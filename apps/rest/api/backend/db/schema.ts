@@ -68,6 +68,8 @@ export const paymentSettingsTable = pgTable("payment_settings", {
   storeInfoId: integer().notNull().references(() => storeInfoTable.id),
   stripePublishableKey: varchar({ length: 255 }),
   stripeSecretKey: varchar({ length: 255 }),
+  paypalClientId: varchar({ length: 255 }),
+  paypalClientSecret: varchar({ length: 255 }),
   paymentMethods: text().notNull(), // JSON array of payment methods
   enabled: boolean().notNull().default(true),
 });

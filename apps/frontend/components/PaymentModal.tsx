@@ -13,7 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { PaymentMethod, PaymentDetails, CartItem } from '../types';
 import paymentService from '../lib/payment';
-import {processCardPaymentStripe, getStripeSession} from '../lib/api'; // Import the function to process card payment
+import {processCardPaymentStripe, getStripeSession, processPaypal} from '../lib/api'; // Import the function to process card payment
 
 interface PaymentModalProps {
   visible: boolean;
@@ -129,8 +129,8 @@ export default function PaymentModal({
       showAlert('Payment Disabled', 'Payment processing is not enabled. Please contact your administrator.');
       return;
     }
-    /*
-    const sessionData = await processCardPaymentStripe(cart);
+    
+    const sessionData = await processPaypal(cart);
     const sessionID = sessionData.session_id;
     console.log('Stripe session data:', sessionData);
     // Open Stripe checkout in a new tab
@@ -145,7 +145,7 @@ export default function PaymentModal({
         console.error('Polling error:', error);
         // Optionally handle error, e.g., stop polling if session not found
       }
-    }, 1000);*/
+    }, 1000);
   };
 
   const handlePayment = async () => {

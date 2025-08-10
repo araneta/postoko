@@ -60,6 +60,8 @@ export default class SettingsController {
                     payment: payment ? {
                         stripePublishableKey: payment.stripePublishableKey || '',
                         stripeSecretKey: payment.stripeSecretKey || '',
+                        paypalClientId: payment.paypalClientId || '',
+                        paypalClientSecret: payment.paypalClientSecret || '',
                         paymentMethods: payment.paymentMethods ? JSON.parse(payment.paymentMethods) : ['cash'],
                         enabled: payment.enabled
                     } : null
@@ -136,6 +138,8 @@ export default class SettingsController {
                     storeInfoId: storeInfoId,
                     stripePublishableKey: payment?.stripePublishableKey || '',
                     stripeSecretKey: payment?.stripeSecretKey || '',
+                    paypalClientId: payment?.paypalClientId || '',
+                    paypalClientSecret: payment?.paypalClientSecret || '',
                     paymentMethods: JSON.stringify(payment?.paymentMethods || ['cash']),
                     enabled: payment?.enabled !== undefined ? payment.enabled : false
                 });
@@ -144,6 +148,8 @@ export default class SettingsController {
                     .set({
                         stripePublishableKey: payment?.stripePublishableKey || '',
                         stripeSecretKey: payment?.stripeSecretKey || '',
+                        paypalClientId: payment?.paypalClientId || '',
+                        paypalClientSecret: payment?.paypalClientSecret || '',
                         paymentMethods: JSON.stringify(payment?.paymentMethods || ['cash']),
                         enabled: payment?.enabled !== undefined ? payment.enabled : false
                     })

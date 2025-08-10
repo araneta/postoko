@@ -1,7 +1,7 @@
 //const BASE_URL = 'https://api.example.com';
 const BASE_URL = 'http://localhost:3000/api';
 
-import { Product, Order, Settings, Customer, CustomerPurchase, Employee, Role, CartItem, StripeSessionData, StripeSessionDetails } from '../types';
+import { Product, Order, Settings, Customer, CustomerPurchase, Employee, Role, CartItem, StripeSessionData, StripeSessionDetails, PayPalOrderResponse } from '../types';
 import { safeToNumber, safeToInteger } from '../utils/formatters';
 
 // API Client class to handle authentication
@@ -252,6 +252,14 @@ class APIClient {
       });
       return data; // Use URL for redirection to Stripe Checkout
     }
+
+     async processPaypal(cart:CartItem[]): Promise<PayPalOrderResponse> {
+      const data = await this.fetchJSON<PayPalOrderResponse>(`${BASE_URL}/paypal/create-checkout-session`, {
+        method: 'POST',
+        body: JSON.stringify(cart),
+      });
+      return data; // Use URL for redirection to Stripe Checkout
+    }
 }
 
 // Create a singleton instance
@@ -300,3 +308,5 @@ export const getRoles = () => apiClient.getRoles();
 //stripe payment processing
 export const processCardPaymentStripe = (cart: CartItem[]) => apiClient.processCardPaymentStripe(cart);
 export const getStripeSession = (sessionID: string) => apiClient.getStripeSession(sessionID);          
+//paypal payment processing
+export const processPaypal = (cart: CartItem[]) => apiClient.processPaypal(cart); // Export the function to process PayPal payments
