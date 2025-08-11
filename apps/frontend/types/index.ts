@@ -241,42 +241,58 @@ export interface StripeSessionDetails {
 }
 
 
-export interface PayPalOrderResponse {
-  result: {
-    id: string;
-    intent: string;
-    status: string;
-    purchase_units: {
-      reference_id: string;
-      amount: {
-        currency_code: string;
-        value: string;
-        breakdown: {
-          item_total: {
-            currency_code: string;
-            value: string;
-          };
-        };
-      };
-      payee: {
-        email_address: string;
-        merchant_id: string;
-      };
-      items: {
-        name: string;
-        unit_amount: {
-          currency_code: string;
-          value: string;
-        };
-        quantity: string;
-        description: string;
-      }[];
-    }[];
-    create_time: string;
-    links: {
-      href: string;
-      rel: string;
-      method: string;
-    }[];
-  };
+export interface PayPalOrdersCreateRequest {
+  order_id: string;
+  url: string;  
 };
+
+
+export interface OrdersGetRequest {
+  id: string;
+  intent: "CAPTURE" | "AUTHORIZE";
+  status: string;
+  purchase_units: PurchaseUnit[];
+  create_time: string;
+  links: PaypalLink[];
+}
+
+export interface PurchaseUnit {
+  reference_id: string;
+  amount: Amount;
+  payee: Payee;
+  items: PaypalItem[];
+}
+
+export interface Amount {
+  currency_code: string;
+  value: string;
+  breakdown: {
+    item_total: {
+      currency_code: string;
+      value: string;
+    };
+  };
+}
+
+export interface Payee {
+  email_address: string;
+  merchant_id: string;
+  display_data: {
+    brand_name: string;
+  };
+}
+
+export interface PaypalItem {
+  name: string;
+  unit_amount: {
+    currency_code: string;
+    value: string;
+  };
+  quantity: string;
+}
+
+export interface PaypalLink {
+  href: string;
+  rel: string;
+  method: string;
+}

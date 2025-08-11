@@ -1,7 +1,7 @@
 //const BASE_URL = 'https://api.example.com';
 const BASE_URL = 'http://localhost:3000/api';
 
-import { Product, Order, Settings, Customer, CustomerPurchase, Employee, Role, CartItem, StripeSessionData, StripeSessionDetails, PayPalOrderResponse } from '../types';
+import { Product, Order, Settings, Customer, CustomerPurchase, Employee, Role, CartItem, StripeSessionData, StripeSessionDetails, PayPalOrdersCreateRequest,OrdersGetRequest } from '../types';
 import { safeToNumber, safeToInteger } from '../utils/formatters';
 
 // API Client class to handle authentication
@@ -253,10 +253,17 @@ class APIClient {
       return data; // Use URL for redirection to Stripe Checkout
     }
 
-     async processPaypal(cart:CartItem[]): Promise<PayPalOrderResponse> {
-      const data = await this.fetchJSON<PayPalOrderResponse>(`${BASE_URL}/paypal/create-checkout-session`, {
+     async processPaypal(cart:CartItem[]): Promise<PayPalOrdersCreateRequest> {
+      const data = await this.fetchJSON<PayPalOrdersCreateRequest>(`${BASE_URL}/paypal/create-checkout-session`, {
         method: 'POST',
         body: JSON.stringify(cart),
+      });
+      return data; // Use URL for redirection to Stripe Checkout
+    }
+
+    async getPaypalSession(sessionID:string): Promise<OrdersGetRequest> {
+      const data = await this.fetchJSON<OrdersGetRequest>(`${BASE_URL}/paypal/check-session/${sessionID}`, {
+        method: 'GET',        
       });
       return data; // Use URL for redirection to Stripe Checkout
     }
@@ -310,3 +317,4 @@ export const processCardPaymentStripe = (cart: CartItem[]) => apiClient.processC
 export const getStripeSession = (sessionID: string) => apiClient.getStripeSession(sessionID);          
 //paypal payment processing
 export const processPaypal = (cart: CartItem[]) => apiClient.processPaypal(cart); // Export the function to process PayPal payments
+export const getPaypalSession = (sessionID: string) => apiClient.getPaypalSession(sessionID);          

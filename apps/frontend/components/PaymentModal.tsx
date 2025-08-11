@@ -13,7 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { PaymentMethod, PaymentDetails, CartItem } from '../types';
 import paymentService from '../lib/payment';
-import {processCardPaymentStripe, getStripeSession, processPaypal} from '../lib/api'; // Import the function to process card payment
+import {processCardPaymentStripe, getStripeSession, processPaypal, getPaypalSession} from '../lib/api'; // Import the function to process card payment
 
 interface PaymentModalProps {
   visible: boolean;
@@ -51,7 +51,8 @@ export default function PaymentModal({
     title: '',
     message: '',
   });
-  let interval: NodeJS.Timeout;
+  let stripeInterval: NodeJS.Timeout;
+  let paypalInterval: NodeJS.Timeout;
   // Get available payment methods from payment service
   const availableMethods = paymentService.getAvailablePaymentMethods();
   const isPaymentEnabled = paymentService.isPaymentEnabled();
@@ -72,7 +73,7 @@ export default function PaymentModal({
 
   const change = parseFloat(amountPaid) - total;
 
-  const checkSession = async (sessionID: string) => {
+  const checkStripeSession = async (sessionID: string) => {
     try {
       const sessionData = await getStripeSession(sessionID);
       console.log('Stripe session data:', sessionData);
@@ -83,7 +84,7 @@ export default function PaymentModal({
           amount: total,
           transactionId: sessionData.id,
         };
-        clearInterval(interval); // Stop polling
+        clearInterval(stripeInterval); // Stop polling
         onPaymentComplete([paymentDetailx]);
         resetForm();
 
@@ -111,15 +112,40 @@ export default function PaymentModal({
     const checkoutWindow = window.open(sessionData.url, '_blank');
 
     // Poll every 1 second to check session status
-    interval = setInterval(async () => {
+    stripeInterval = setInterval(async () => {
       try {
-        const updatedSession = await checkSession(sessionID);
+        const updatedSession = await checkStripeSession(sessionID);
         
       } catch (error) {
         console.error('Polling error:', error);
         // Optionally handle error, e.g., stop polling if session not found
       }
     }, 1000);
+  };
+
+
+  const checkPaypalSession = async (sessionID: string) => {
+    try {
+      const sessionData = await getPaypalSession(sessionID);
+      console.log('Paypal session data:', sessionData);
+      if (sessionData && sessionData.status=== 'COMPLETED') {
+        //return sessionData; // Return session data for redirection
+        var paymentDetailx: PaymentDetails = {
+          method: 'card',
+          amount: total,
+          transactionId: sessionData.id,
+        };
+        clearInterval(paypalInterval); // Stop polling
+        onPaymentComplete([paymentDetailx]);
+        resetForm();
+
+      } else {
+        throw new Error('Invalid session data received');
+      }
+    } catch (error) {
+      console.error('Error checking paypal session:', error);
+      throw new Error('Failed to retrieve payment session. Please try again.');
+    }
   };
 
   const handlePaypalPayment = async () => {
@@ -131,15 +157,15 @@ export default function PaymentModal({
     }
     
     const sessionData = await processPaypal(cart);
-    const sessionID = sessionData.session_id;
+    const sessionID = sessionData.order_id;
     console.log('Stripe session data:', sessionData);
     // Open Stripe checkout in a new tab
     const checkoutWindow = window.open(sessionData.url, '_blank');
 
     // Poll every 1 second to check session status
-    interval = setInterval(async () => {
+    paypalInterval = setInterval(async () => {
       try {
-        const updatedSession = await checkSession(sessionID);
+        const updatedSession = await checkPaypalSession(sessionID);
         
       } catch (error) {
         console.error('Polling error:', error);
@@ -493,7 +519,7 @@ export default function PaymentModal({
         //return cardNumber && expiryMonth && expiryYear && cvc;
         return false; // Placeholder, card validation is not implemented
       case 'digital_wallet':
-        return true;
+        return false;
       default:
         return false;
     }
