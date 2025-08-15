@@ -1,5 +1,5 @@
 import { db } from '../db';
-import { settingsTable, storeInfoTable, productsTable, customersTable, paymentSettingsTable } from '../db/schema';
+import { settingsTable, storeInfoTable, productsTable, customersTable, paymentSettingsTable, currenciesTable } from '../db/schema';
 import { Request, Response } from 'express';
 import { getAuth } from '@clerk/express';
 import { eq, desc, and, inArray, sql } from 'drizzle-orm';
@@ -19,10 +19,10 @@ type Product = {
   quantity: number;
 };
 
-function convertToLineItems(products:Product[]) {
+function convertToLineItems(products:Product[], currencyCode: string) {
   return products.map(item => ({
     price_data: {
-      currency: 'usd',
+      currency: currencyCode,
       product_data: {
         name: item.name,
         description: item.description,
@@ -81,9 +81,12 @@ export default class StripeController {
       if (!payment.stripeSecretKey) {
         return res.status(400).json({ message: 'Stripe secret key not found. Please set up your Stripe secret key first.' });
       }
+
+      const [currency] = await db.select().from(currenciesTable).where(eq(currenciesTable.code, settingsData.currencyCode));
+      
       const stripe = new Stripe(payment.stripeSecretKey);
 
-      const linex = convertToLineItems(req.body);
+      const linex = convertToLineItems(req.body, currency.code);
       console.log('linex', linex);
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],

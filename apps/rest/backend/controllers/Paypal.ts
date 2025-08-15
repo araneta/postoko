@@ -1,5 +1,5 @@
 import { db } from '../db';
-import { settingsTable, storeInfoTable, paymentSettingsTable } from '../db/schema';
+import { settingsTable, storeInfoTable, paymentSettingsTable, currenciesTable } from '../db/schema';
 import { Request, Response } from 'express';
 import { getAuth } from '@clerk/express';
 import { eq } from 'drizzle-orm';
@@ -20,13 +20,13 @@ type Product = {
   quantity: number;
 };
 
-function convertToPaypalItems(products: Product[]) {
+function convertToPaypalItems(products: Product[], currencyCode: string) {
   // Import the Category enum from PayPal SDK if available, otherwise use the correct string literal type
   // For most SDKs, valid values are 'PHYSICAL_GOODS' or 'DIGITAL_GOODS'
   return products.map(item => ({
     name: item.name,
     unit_amount: {
-      currency_code: 'USD',
+      currency_code: currencyCode,
       value: (item.price / 100).toFixed(2), // Convert cents to dollars
     },
     quantity: String(item.quantity || 1),
@@ -67,6 +67,8 @@ export default class PaypalController {
       }
       const settingsData = storeSettings[0];
 
+      const [currency] = await db.select().from(currenciesTable).where(eq(currenciesTable.code, settingsData.currencyCode));
+
       // Get payment settings (PayPal)
       const [payment] = await db.select()
         .from(paymentSettingsTable)
@@ -84,7 +86,7 @@ export default class PaypalController {
       const client = new paypal.core.PayPalHttpClient(environment);
 
       // Convert cart items
-      const paypalItems = convertToPaypalItems(req.body);
+      const paypalItems = convertToPaypalItems(req.body, currency.code);
 
       // Calculate total
       const totalAmount = paypalItems.reduce(
@@ -100,35 +102,35 @@ export default class PaypalController {
         purchase_units: [
           {
             amount: {
-              currency_code: 'USD',
+              currency_code: currency.code,
               value: totalAmount.toFixed(2),
               breakdown: {
                 item_total: {
-                  currency_code: 'USD',
+                  currency_code: currency.code,
                   value: totalAmount.toFixed(2),
                 },
                 discount: {
-                  currency_code: 'USD',
+                  currency_code: currency.code,
                   value: '0.00',
                 },
                 handling: {
-                  currency_code: 'USD',
+                  currency_code: currency.code,
                   value: '0.00',
                 },
                 insurance: {
-                  currency_code: 'USD',
+                  currency_code: currency.code,
                   value: '0.00',
                 },
                 shipping: {
-                  currency_code: 'USD',
+                  currency_code: currency.code,
                   value: '0.00',
                 },
                 shipping_discount: {
-                  currency_code: 'USD',
+                  currency_code: currency.code,
                   value: '0.00',
                 },
                 tax_total: {
-                  currency_code: 'USD',
+                  currency_code: currency.code,
                   value: '0.00',
                 },
               },
