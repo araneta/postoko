@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "typeRoots": ["./types", "./node_modules/@types"],
     "target": "ES2020",
     "module": "ESNext",
     "moduleResolution": "Node",
@@ -12,6 +13,6 @@
     "resolveJsonModule": true,
     "allowJs": false
   },
-  "include": ["api/**/*"],
+  "include": ["api/**/*", "backend/**/*", "types/**/*"],
   "exclude": ["node_modules", "dist"]
-} 
+}

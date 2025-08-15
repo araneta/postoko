@@ -1,51 +1,56 @@
-import app from "./backend/app";
+// api/index.ts
 import http from "http";
+import serverless from "serverless-http";
+import app from "../backend/app.js"; // keep .js for build output
 
+// --- Port Normalization ---
 const normalizePort = (val: string | number) => {
-  var port = parseInt(val.toString(), 10);
-
-  if (isNaN(port)) {
-    // named pipe
-    return val;
-  }
-
-  if (port >= 0) {
-    // port number
-    return port;
-  }
-
+  const port = parseInt(val.toString(), 10);
+  if (isNaN(port)) return val;
+  if (port >= 0) return port;
   return false;
 };
 
-const onError = (error: NodeJS.ErrnoException) => {
-  if (error.syscall !== "listen") {
-    throw error;
-  }
-  const bind = typeof port === "string" ? "pipe " + port : "port " + port;
+// --- Error Handler ---
+const onError = (server: http.Server, error: NodeJS.ErrnoException) => {
+  if (error.syscall !== "listen") throw error;
+  const addr = server.address();
+  const bind =
+    typeof addr === "string" ? `pipe ${addr}` : `port ${addr?.port ?? ""}`;
   switch (error.code) {
     case "EACCES":
-      console.error(bind + " requires elevated privileges");
+      console.error(`${bind} requires elevated privileges`);
       process.exit(1);
-      break;
     case "EADDRINUSE":
-      console.error(bind + " is already in use");
+      console.error(`${bind} is already in use`);
       process.exit(1);
-      break;
     default:
       throw error;
   }
 };
 
-const onListening = () => {
+// --- Listening Log ---
+const onListening = (server: http.Server) => {
   const addr = server.address();
-  const bind = typeof port === "string" ? "pipe " + port : "port " + port;
-  console.log("Listening on " + bind);
+  const bind =
+    typeof addr === "string" ? `pipe ${addr}` : `port ${addr?.port ?? ""}`;
+  console.log(`Listening on ${bind}`);
 };
 
+// --- Setup Port ---
 const port = normalizePort(process.env.PORT || "3000");
 app.set("port", port);
 
-const server = http.createServer(app);
-server.on("error", onError);
-server.on("listening", onListening);
-server.listen(port);
+// --- Local vs Vercel ---
+let vercelHandler: any;
+if (process.env.VERCEL) {
+  vercelHandler = serverless(app);
+} else {
+  const server = http.createServer(app);
+  server.on("error", (error) => onError(server, error));
+  server.on("listening", () => onListening(server));
+  server.listen(port);
+}
+
+// Always export for Vercel, but undefined locally
+export default vercelHandler;
