@@ -9,6 +9,8 @@ import {
   Alert,
   Switch,
 } from 'react-native';
+import { Picker } from '@react-native-picker/picker'; // 👈 add picker
+
 import { Ionicons } from '@expo/vector-icons';
 import { PaymentConfig, PaymentMethod } from '../types';
 import useStore from '../store/useStore';
@@ -23,6 +25,7 @@ export default function PaymentSettings({ onClose }: PaymentSettingsProps) {
   const [publishableKey, setPublishableKey] = useState(settings.payment?.stripePublishableKey || '');
   const [secretKey, setSecretKey] = useState(settings.payment?.stripeSecretKey || '');
 
+  const [paypalMode, setPaypalMode] = useState(settings.payment?.paypalMode || 'sandbox'); // 👈 add paypalMode
   const [paypalClientID, setPaypalClientID] = useState(settings.payment?.paypalClientId || '');
   const [paypalClientSecret, setPaypalClientSecret] = useState(settings.payment?.paypalClientSecret || '');
 
@@ -58,6 +61,7 @@ export default function PaymentSettings({ onClose }: PaymentSettingsProps) {
       const paymentConfig: PaymentConfig = {
         stripePublishableKey: publishableKey.trim(),
         stripeSecretKey: secretKey.trim(),
+        paypalMode, // 👈 include paypalMode
         paypalClientId: paypalClientID.trim(),
         paypalClientSecret: paypalClientSecret.trim(),
         paymentMethods: selectedMethods,
@@ -152,7 +156,18 @@ export default function PaymentSettings({ onClose }: PaymentSettingsProps) {
             <Text style={styles.description}>
               Enter your Paypal Client ID and Client Secret to enable card and digital wallet payments.
             </Text>
-            
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>PayPal Mode</Text>
+              <View style={styles.pickerWrapper}>
+                <Picker
+                  selectedValue={paypalMode}
+                  onValueChange={(itemValue) => setPaypalMode(itemValue)}
+                  style={styles.picker}>
+                  <Picker.Item label="Sandbox" value="sandbox" />
+                  <Picker.Item label="Live" value="live" />
+                </Picker>
+              </View>
+            </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Client Id</Text>
               <TextInput
@@ -359,5 +374,16 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     color: 'white',
+  },
+   pickerWrapper: {
+    borderWidth: 1,
+    borderColor: '#e5e5e5',
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#f9f9f9',
+  },
+  picker: {
+    height: 50,
+    fontSize: 16,
   },
 }); 

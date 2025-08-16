@@ -70,6 +70,8 @@ export const paymentSettingsTable = pgTable("payment_settings", {
   stripeSecretKey: varchar({ length: 255 }),
   paypalClientId: varchar({ length: 255 }),
   paypalClientSecret: varchar({ length: 255 }),
+  paypalMode: varchar({ length: 20 }).notNull().default("sandbox"), // default to sandbox
+
   paymentMethods: text().notNull(), // JSON array of payment methods
   enabled: boolean().notNull().default(true),
 });

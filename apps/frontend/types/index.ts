@@ -30,6 +30,7 @@ export interface PaymentDetails {
 export interface PaymentConfig {
   stripePublishableKey?: string;
   stripeSecretKey?: string;
+  paypalMode?: 'sandbox' | 'live';
   paypalClientSecret?: string;
   paypalClientId?: string;
   paymentMethods: PaymentMethod[];

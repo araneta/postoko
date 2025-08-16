@@ -60,6 +60,7 @@ export default class SettingsController {
                     payment: payment ? {
                         stripePublishableKey: payment.stripePublishableKey || '',
                         stripeSecretKey: payment.stripeSecretKey || '',
+                        paypalMode: payment.paypalMode || 'sandbox',
                         paypalClientId: payment.paypalClientId || '',
                         paypalClientSecret: payment.paypalClientSecret || '',
                         paymentMethods: payment.paymentMethods ? JSON.parse(payment.paymentMethods) : ['cash'],
@@ -138,6 +139,7 @@ export default class SettingsController {
                     storeInfoId: storeInfoId,
                     stripePublishableKey: payment?.stripePublishableKey || '',
                     stripeSecretKey: payment?.stripeSecretKey || '',
+                    paypalMode: payment?.paypalMode || 'sandbox', // default to sandbox
                     paypalClientId: payment?.paypalClientId || '',
                     paypalClientSecret: payment?.paypalClientSecret || '',
                     paymentMethods: JSON.stringify(payment?.paymentMethods || ['cash']),
@@ -148,6 +150,7 @@ export default class SettingsController {
                     .set({
                         stripePublishableKey: payment?.stripePublishableKey || '',
                         stripeSecretKey: payment?.stripeSecretKey || '',
+                        paypalMode: payment?.paypalMode || 'sandbox', // default to sandbox
                         paypalClientId: payment?.paypalClientId || '',
                         paypalClientSecret: payment?.paypalClientSecret || '',
                         paymentMethods: JSON.stringify(payment?.paymentMethods || ['cash']),

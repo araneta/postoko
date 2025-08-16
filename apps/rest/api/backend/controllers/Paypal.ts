@@ -5,6 +5,7 @@ import { getAuth } from '@clerk/express';
 import { eq } from 'drizzle-orm';
 import paypal from '@paypal/checkout-server-sdk';
 
+
 type Product = {
   id: string;
   storeInfoId: number;
@@ -76,13 +77,20 @@ export default class PaypalController {
 
       if (!payment.paypalClientId || !payment.paypalClientSecret) {
         return res.status(400).json({ message: 'PayPal client credentials not found. Please set up your PayPal settings first.' });
-      }
+      }      
 
-      // PayPal environment setup
-      const environment = new paypal.core.SandboxEnvironment(
-        payment.paypalClientId,
-        payment.paypalClientSecret
-      );
+      // PayPal environment setup (switches between sandbox and live)
+      const environment =
+      payment.paypalMode === "sandbox"
+        ? new paypal.core.SandboxEnvironment(
+          payment.paypalClientId,
+          payment.paypalClientSecret
+          )
+        : new paypal.core.LiveEnvironment(
+          payment.paypalClientId,
+          payment.paypalClientSecret
+          );
+      console.log('PayPal environment set up:', payment.paypalMode);
       const client = new paypal.core.PayPalHttpClient(environment);
 
       // Convert cart items
@@ -201,10 +209,17 @@ export default class PaypalController {
         return res.status(400).json({ message: 'PayPal client credentials not found. Please set up your PayPal settings first.' });
       }
 
-      const environment = new paypal.core.SandboxEnvironment(
-        payment.paypalClientId,
-        payment.paypalClientSecret
-      );
+      const environment =
+      payment.paypalMode === "sandbox"
+        ? new paypal.core.SandboxEnvironment(
+          payment.paypalClientId,
+          payment.paypalClientSecret
+          )
+        : new paypal.core.LiveEnvironment(
+          payment.paypalClientId,
+          payment.paypalClientSecret
+          );
+      console.log('PayPal environment set up:', payment.paypalMode);
       const client = new paypal.core.PayPalHttpClient(environment);
 
       const requestGetOrder = new paypal.orders.OrdersGetRequest(orderId);
