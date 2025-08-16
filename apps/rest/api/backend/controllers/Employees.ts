@@ -128,17 +128,7 @@ export default class EmployeesController {
 }
 
 export class RolesController {
-    static async getRoles(req: Request, res: Response) {
-        try {
-            const roles = await db.select().from(rolesTable);
-            res.status(200).json(roles);
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ message: 'Error fetching roles' });
-        }
-    }
-
-    static async seedDefaultRoles(req: Request, res: Response) {
+    static async doSeedDefaultRoles() {
         const defaultRoles = [
             { name: 'admin', description: 'Full access to all features and settings' },
             { name: 'manager', description: 'Manage sales, inventory, employees, view reports' },
@@ -147,22 +137,42 @@ export class RolesController {
         ];
         const inserted: string[] = [];
         const existed: string[] = [];
-        try {
-            for (const role of defaultRoles) {
-                const exists = await db.select().from(rolesTable).where(eq(rolesTable.name, role.name));
-                if (exists.length === 0) {
-                    await db.insert(rolesTable).values(role);
-                    inserted.push(role.name);
-                } else {
-                    existed.push(role.name);
-                }
+        
+        for (const role of defaultRoles) {
+            const exists = await db.select().from(rolesTable).where(eq(rolesTable.name, role.name));
+            if (exists.length === 0) {
+                await db.insert(rolesTable).values(role);
+                inserted.push(role.name);
+            } else {
+                existed.push(role.name);
             }
-            res.status(200).json({ inserted, existed });
+        }
+    }
+    static async seedDefaultRoles(req: Request, res: Response) {
+        
+        try {
+            RolesController.doSeedDefaultRoles();
+            res.status(200).json({message: 'Default roles seeded successfully'});
         } catch (error) {
             console.error(error);
             res.status(500).json({ message: 'Error seeding roles' });
         }
     }
+    static async getRoles(req: Request, res: Response) {
+        try {
+            let roles = await db.select().from(rolesTable);
+            if(roles.length === 0) {
+                await RolesController.doSeedDefaultRoles();
+                roles = await db.select().from(rolesTable);
+            }
+            res.status(200).json(roles);
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ message: 'Error fetching roles' });
+        }
+    }
+
+    
 
     static async promoteMeAdmin(req: Request, res: Response) {
         const auth = getAuth(req);
