@@ -13,7 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { PaymentMethod, PaymentDetails, CartItem } from '../types';
 import paymentService from '../lib/payment';
-import {processCardPaymentStripe, getStripeSession, processPaypal, getPaypalSession} from '../lib/api'; // Import the function to process card payment
+import { processCardPaymentStripe, getStripeSession, processPaypal, getPaypalSession } from '../lib/api'; // Import the function to process card payment
 
 interface PaymentModalProps {
   visible: boolean;
@@ -77,7 +77,7 @@ export default function PaymentModal({
     try {
       const sessionData = await getStripeSession(sessionID);
       console.log('Stripe session data:', sessionData);
-      if (sessionData && sessionData.payment_status=== 'paid') {
+      if (sessionData && sessionData.payment_status === 'paid') {
         //return sessionData; // Return session data for redirection
         var paymentDetailx: PaymentDetails = {
           method: 'card',
@@ -104,23 +104,30 @@ export default function PaymentModal({
       showAlert('Payment Disabled', 'Payment processing is not enabled. Please contact your administrator.');
       return;
     }
+    try {
+      const sessionData = await processCardPaymentStripe(cart);
+      const sessionID = sessionData.session_id;
+      console.log('Stripe session data:', sessionData);
+      // Open Stripe checkout in a new tab
+      const checkoutWindow = window.open(sessionData.url, '_blank');
 
-    const sessionData = await processCardPaymentStripe(cart);
-    const sessionID = sessionData.session_id;
-    console.log('Stripe session data:', sessionData);
-    // Open Stripe checkout in a new tab
-    const checkoutWindow = window.open(sessionData.url, '_blank');
+      // Poll every 1 second to check session status
+      stripeInterval = setInterval(async () => {
+        try {
+          const updatedSession = await checkStripeSession(sessionID);
 
-    // Poll every 1 second to check session status
-    stripeInterval = setInterval(async () => {
-      try {
-        const updatedSession = await checkStripeSession(sessionID);
-        
-      } catch (error) {
-        console.error('Polling error:', error);
-        // Optionally handle error, e.g., stop polling if session not found
-      }
-    }, 1000);
+        } catch (error) {
+          console.error('Polling error:', error);
+          // Optionally handle error, e.g., stop polling if session not found
+        }
+      }, 1000);
+    } catch (error: any) {
+      console.log('handleStripePayment error:', error);
+      
+      let errorMsg = JSON.parse(error.message);
+
+      showAlert('Stripe Error', errorMsg.message);
+    }
   };
 
 
@@ -128,7 +135,7 @@ export default function PaymentModal({
     try {
       const sessionData = await getPaypalSession(sessionID);
       console.log('Paypal session data:', sessionData);
-      if (sessionData && sessionData.status=== 'COMPLETED') {
+      if (sessionData && sessionData.status === 'COMPLETED') {
         //return sessionData; // Return session data for redirection
         var paymentDetailx: PaymentDetails = {
           method: 'card',
@@ -155,23 +162,38 @@ export default function PaymentModal({
       showAlert('Payment Disabled', 'Payment processing is not enabled. Please contact your administrator.');
       return;
     }
-    
-    const sessionData = await processPaypal(cart);
-    const sessionID = sessionData.order_id;
-    console.log('Stripe session data:', sessionData);
-    // Open Stripe checkout in a new tab
-    const checkoutWindow = window.open(sessionData.url, '_blank');
 
-    // Poll every 1 second to check session status
-    paypalInterval = setInterval(async () => {
-      try {
-        const updatedSession = await checkPaypalSession(sessionID);
-        
-      } catch (error) {
-        console.error('Polling error:', error);
-        // Optionally handle error, e.g., stop polling if session not found
-      }
-    }, 1000);
+    try {
+      const sessionData = await processPaypal(cart);
+      const sessionID = sessionData.order_id;
+      console.log('Stripe session data:', sessionData);
+      // Open Stripe checkout in a new tab
+      const checkoutWindow = window.open(sessionData.url, '_blank');
+
+      // Poll every 1 second to check session status
+      paypalInterval = setInterval(async () => {
+        try {
+          const updatedSession = await checkPaypalSession(sessionID);
+        } catch (error) {
+          console.error('Polling error:', error);
+          // Optionally handle error, e.g., stop polling if session not found
+        }
+      }, 1000);
+    } catch (error: any) {
+      console.log('handlePaypalPayment error:', error);
+      let errorMessage = error.message;
+
+      // In your case, error.message itself is a JSON string
+      let parsed = JSON.parse(errorMessage);
+
+      // parsed.error is another JSON string → parse again
+      let inner = JSON.parse(parsed.message);
+
+
+      let errorMsg = inner.error + " - " + inner.error_description
+
+      showAlert('PayPal Error', errorMsg);
+    }
   };
 
   const handlePayment = async () => {
@@ -212,7 +234,7 @@ export default function PaymentModal({
           const cardPayment = await paymentService.processCardPayment(cardData);
           paymentDetails = [cardPayment];
           */
-         
+
 
           break;
 
@@ -326,7 +348,7 @@ export default function PaymentModal({
   const renderCashPayment = () => (
     <View style={styles.paymentSection}>
       <Text style={styles.sectionTitle}>Cash Payment</Text>
-      
+
       <View style={styles.inputContainer}>
         <Text style={styles.inputLabel}>Amount Received:</Text>
         <TextInput
@@ -370,24 +392,24 @@ export default function PaymentModal({
     <View style={styles.paymentSection}>
       <Text style={styles.sectionTitle}>Stripe Payment</Text>
       <Pressable
-          style={[
-            styles.button,
-            styles.completeButton,
-            
-          ]}          
-          onPress={handleStripePayment}>
-          <Text style={[styles.buttonText, styles.completeButtonText]}>
-            Pay using Stripe
-          </Text>
-        </Pressable>
+        style={[
+          styles.button,
+          styles.completeButton,
+
+        ]}
+        onPress={handleStripePayment}>
+        <Text style={[styles.buttonText, styles.completeButtonText]}>
+          Pay using Stripe
+        </Text>
+      </Pressable>
     </View>
   );
 
   const renderCardPayment = () => (
-    
+
     <View style={styles.paymentSection}>
       <Text style={styles.sectionTitle}>Card Payment</Text>
-      
+
       <View style={styles.inputContainer}>
         <Text style={styles.inputLabel}>Card Number:</Text>
         <TextInput
@@ -440,36 +462,36 @@ export default function PaymentModal({
   const renderPaypalPayment = () => (
     <View style={styles.paymentSection}>
       <Text style={styles.sectionTitle}>Digital Wallet</Text>
-      
+
       <View style={styles.walletOptions}>
-        
-          <Pressable
-            key={'paypal'}
-            style={[
-              styles.walletOption,
-              walletType === 'paypal' && styles.selectedWallet
-            ]}
-            onPress={handlePaypalPayment}>
-            <Ionicons 
-              name={'logo-paypal' as any} 
-              size={24} 
-              color={walletType === 'paypal' ? '#007AFF' : '#666'} 
-            />
-            <Text style={[
-              styles.walletText,
-              walletType === 'paypal' && styles.selectedWalletText
-            ]}>
-              {"Paypal"}
-            </Text>
-          </Pressable>
-        
+
+        <Pressable
+          key={'paypal'}
+          style={[
+            styles.walletOption,
+            walletType === 'paypal' && styles.selectedWallet
+          ]}
+          onPress={handlePaypalPayment}>
+          <Ionicons
+            name={'logo-paypal' as any}
+            size={24}
+            color={walletType === 'paypal' ? '#007AFF' : '#666'}
+          />
+          <Text style={[
+            styles.walletText,
+            walletType === 'paypal' && styles.selectedWalletText
+          ]}>
+            {"Paypal"}
+          </Text>
+        </Pressable>
+
       </View>
     </View>
   );
   const renderDigitalWalletPayment = () => (
     <View style={styles.paymentSection}>
       <Text style={styles.sectionTitle}>Digital Wallet</Text>
-      
+
       <View style={styles.walletOptions}>
         {digitalWallets.map((wallet) => (
           <Pressable
@@ -479,10 +501,10 @@ export default function PaymentModal({
               walletType === wallet.id && styles.selectedWallet
             ]}
             onPress={() => setWalletType(wallet.id as any)}>
-            <Ionicons 
-              name={wallet.icon as any} 
-              size={24} 
-              color={walletType === wallet.id ? '#007AFF' : '#666'} 
+            <Ionicons
+              name={wallet.icon as any}
+              size={24}
+              color={walletType === wallet.id ? '#007AFF' : '#666'}
             />
             <Text style={[
               styles.walletText,
@@ -556,10 +578,10 @@ export default function PaymentModal({
                     selectedMethod === method.id && styles.selectedMethod
                   ]}
                   onPress={() => setSelectedMethod(method.id as PaymentMethod)}>
-                  <Ionicons 
-                    name={method.icon as any} 
-                    size={32} 
-                    color={selectedMethod === method.id ? 'white' : method.color} 
+                  <Ionicons
+                    name={method.icon as any}
+                    size={32}
+                    color={selectedMethod === method.id ? 'white' : method.color}
                   />
                   <Text style={[
                     styles.methodText,
