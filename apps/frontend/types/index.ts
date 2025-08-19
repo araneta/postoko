@@ -46,6 +46,7 @@ export interface Order {
   paymentDetails?: PaymentDetails[];
   status: 'completed' | 'refunded' | 'pending';
   customer?: Customer; // Added for POS customer selection
+  employee?: Employee; // Added for POS employee authentication
 }
 
 export interface Currency {
@@ -125,6 +126,7 @@ export interface Employee {
   role?: Role;
   createdAt: string;
   deletedAt?: string;
+  pin?: string; // PIN for employee authentication
 }
 
 export interface StripeSessionData {

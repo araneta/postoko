@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Product, CartItem, Order, Currency, Settings, StoreInfo, PrinterSettings, PaymentDetails, PaymentConfig, StockAlert, Customer } from '../types';
+import { Product, CartItem, Order, Currency, Settings, StoreInfo, PrinterSettings, PaymentDetails, PaymentConfig, StockAlert, Customer, Employee } from '../types';
 import { apiClient, configureAPI } from '../lib/api';
 import { safeToFixed } from '../utils/formatters';
 import paymentService from '../lib/payment';
@@ -13,6 +13,8 @@ interface StoreState {
   settings: Settings;
   stockAlerts: StockAlert[];
   initializing: boolean;
+  authenticatedEmployee: Employee | null;
+  employeeAuthTimeout: NodeJS.Timeout | null;
   addProduct: (product: Product) => Promise<void>;
   updateProduct: (product: Product) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
@@ -33,6 +35,8 @@ interface StoreState {
   markAlertAsRead: (alertId: string) => void;
   markAllAlertsAsRead: () => void;
   getUnreadAlertCount: () => number;
+  setAuthenticatedEmployee: (employee: Employee | null) => void;
+  clearEmployeeAuth: () => void;
   userId?: string;
 }
 
@@ -74,9 +78,12 @@ const useStore = create<StoreState>((set, get) => ({
   },
   stockAlerts: [],
   initializing: false,
+  authenticatedEmployee: null,
+  employeeAuthTimeout: null,
   userId: undefined,
 
   initializeStore: async () => {
+    console.log('Initializing store');
     const { initializing } = get();
     if (initializing) {
       console.log('Store initialization already in progress, skipping...');
@@ -107,6 +114,7 @@ const useStore = create<StoreState>((set, get) => ({
             id: generateGuid(),
             name: 'Coca Cola 330ml',
             price: 1500,
+            cost: 1000,
             description: 'Refreshing carbonated soft drink',
             image: 'https://images.unsplash.com/photo-1629203851122-3726ecdf080e?w=400',
             stock: 50,
@@ -118,6 +126,7 @@ const useStore = create<StoreState>((set, get) => ({
             id: generateGuid(),
             name: 'Lay\'s Classic Chips',
             price: 2500,
+            cost: 1500,
             description: 'Crispy potato chips',
             image: 'https://images.unsplash.com/photo-1566478989037-eec170784d0b?w=400',
             stock: 30,
@@ -129,6 +138,7 @@ const useStore = create<StoreState>((set, get) => ({
             id: generateGuid(),
             name: 'Nestle Pure Life Water',
             price: 800,
+            cost: 300,
             description: 'Pure spring water',
             image: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=400',
             stock: 100,
@@ -140,6 +150,7 @@ const useStore = create<StoreState>((set, get) => ({
             id: generateGuid(),
             name: 'Snickers Chocolate Bar',
             price: 1200,
+            cost: 700,
             description: 'Chocolate bar with caramel and peanuts',
             image: 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=400',
             stock: 25,
@@ -267,7 +278,7 @@ const useStore = create<StoreState>((set, get) => ({
   },
 
   createOrder: async (paymentDetails: PaymentDetails[], customer?: Customer) => {
-    const { cart, products } = get();
+    const { cart, products, authenticatedEmployee } = get();
     if (cart.length === 0) return;
 
     const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -290,6 +301,7 @@ const useStore = create<StoreState>((set, get) => ({
       paymentDetails,
       status: 'completed',
       customer, // Add customer to order
+      employee: authenticatedEmployee || undefined, // Add employee to order
     };
 
     try {
@@ -422,6 +434,7 @@ const useStore = create<StoreState>((set, get) => ({
   },
 
   clearStore: () => {
+    console.log('Clearing store');
     set({
       products: [],
       cart: [],
@@ -436,8 +449,36 @@ const useStore = create<StoreState>((set, get) => ({
       },
       stockAlerts: [],
       initializing: false,
+      authenticatedEmployee: null,
+      employeeAuthTimeout: null,
       userId: undefined
     });
+  },
+
+  setAuthenticatedEmployee: (employee) => {
+    console.log('Setting authenticated employee:', employee?.name);
+    // Clear any existing timeout
+    const { employeeAuthTimeout } = get();
+    if (employeeAuthTimeout) {
+      clearTimeout(employeeAuthTimeout);
+    }
+    
+    // Set new timeout to clear authentication after 4 hours (Shopify POS default)
+    const timeout = setTimeout(() => {
+      console.log('Employee authentication timeout');
+      set({ authenticatedEmployee: null, employeeAuthTimeout: null });
+    }, 4 * 60 * 60 * 1000); // 4 hours
+    
+    set({ authenticatedEmployee: employee, employeeAuthTimeout: timeout });
+  },
+
+  clearEmployeeAuth: () => {
+    console.log('Clearing employee authentication');
+    const { employeeAuthTimeout } = get();
+    if (employeeAuthTimeout) {
+      clearTimeout(employeeAuthTimeout);
+    }
+    set({ authenticatedEmployee: null, employeeAuthTimeout: null });
   }
 }));
 

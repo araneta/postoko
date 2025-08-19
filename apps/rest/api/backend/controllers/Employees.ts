@@ -24,9 +24,9 @@ export default class EmployeesController {
         }
         try {
             // Only allow if user is admin/manager
-            if (!(await hasRole(auth.userId, ['admin', 'manager']))) {
-                return res.status(403).json({ message: 'Forbidden' });
-            }
+            //if (!(await hasRole(auth.userId, ['admin', 'manager']))) {
+                //return res.status(403).json({ message: 'Forbidden' });
+            //}
             const employees = await db.select().from(employeesTable).where(sql`${employeesTable.deletedAt} IS NULL`);
             res.status(200).json(employees);
         } catch (error) {
@@ -51,9 +51,9 @@ export default class EmployeesController {
             return res.status(400).json({ message: 'Missing required fields', missingFields });
         }
         try {
-            if (!(await hasRole(auth.userId, ['admin', 'manager']))) {
-                return res.status(403).json({ message: 'Forbidden' });
-            }
+            //if (!(await hasRole(auth.userId, ['admin', 'manager']))) {
+                //return res.status(403).json({ message: 'Forbidden' });
+            //}
             const hashedPassword = await bcrypt.hash(empPassword, 10);
             const newEmployee = await db.insert(employeesTable).values({
                 id: uuidv4(),

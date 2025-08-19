@@ -216,17 +216,31 @@ class APIClient {
   async getEmployees(): Promise<Employee[]> {
     return this.fetchJSON<Employee[]>(`${BASE_URL}/employees`);
   }
-  async addEmployee(employee: Partial<Employee> & { password: string }): Promise<void> {
+  async addEmployee(employee: Partial<Employee> & { password: string, pin?: string }): Promise<void> {
     await this.fetchJSON(`${BASE_URL}/employees`, {
       method: 'POST',
       body: JSON.stringify(employee),
     });
   }
-  async updateEmployee(employee: Partial<Employee> & { id: string; password?: string }): Promise<void> {
+  async updateEmployee(employee: Partial<Employee> & { id: string; password?: string, pin?: string }): Promise<void> {
     await this.fetchJSON(`${BASE_URL}/employees/${employee.id}`, {
       method: 'PUT',
       body: JSON.stringify(employee),
     });
+  }
+  async validateEmployeePin(employeeId: string, pin: string): Promise<boolean> {
+    try {
+      console.log(`Validating PIN for employee ${employeeId}`);
+      const result = await this.fetchJSON<{ valid: boolean }>(`${BASE_URL}/employees/${employeeId}/validate-pin`, {
+        method: 'POST',
+        body: JSON.stringify({ pin }),
+      });
+      console.log(`PIN validation result for employee ${employeeId}:`, result.valid);
+      return result.valid;
+    } catch (error) {
+      console.error('Failed to validate employee PIN:', error);
+      return false;
+    }
   }
   async deleteEmployee(id: string): Promise<void> {
     await this.fetchJSON(`${BASE_URL}/employees/${id}`, {
@@ -307,10 +321,11 @@ export const updateLoyaltySettings = (settings: any) => apiClient.updateLoyaltyS
 
 // Employee exports
 export const getEmployees = () => apiClient.getEmployees();
-export const addEmployee = (employee: Partial<Employee> & { password: string }) => apiClient.addEmployee(employee);
-export const updateEmployee = (employee: Partial<Employee> & { id: string; password?: string }) => apiClient.updateEmployee(employee);
+export const addEmployee = (employee: Partial<Employee> & { password: string, pin?: string }) => apiClient.addEmployee(employee);
+export const updateEmployee = (employee: Partial<Employee> & { id: string; password?: string, pin?: string }) => apiClient.updateEmployee(employee);
 export const deleteEmployee = (id: string) => apiClient.deleteEmployee(id);
-export const getRoles = () => apiClient.getRoles(); 
+export const getRoles = () => apiClient.getRoles();
+export const validateEmployeePin = (employeeId: string, pin: string) => apiClient.validateEmployeePin(employeeId, pin);
 
 //stripe payment processing
 export const processCardPaymentStripe = (cart: CartItem[]) => apiClient.processCardPaymentStripe(cart);

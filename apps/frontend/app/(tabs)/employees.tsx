@@ -11,6 +11,7 @@ const initialFormData = {
   name: '',
   email: '',
   password: '',
+  pin: '',
   roleId: 0,
   storeInfoId: 0,
 };
@@ -67,6 +68,7 @@ const EmployeesScreen = () => {
       name: employee.name,
       email: employee.email,
       password: '',
+      pin: employee.pin || '',
       roleId: employee.roleId,
       storeInfoId: employee.storeInfoId,
     });
@@ -98,13 +100,17 @@ const EmployeesScreen = () => {
     }
     try {
       if (editingEmployee) {
-        await updateEmployee({ ...formData, id: editingEmployee.id });
+        await updateEmployee({ ...formData, id: editingEmployee.id, pin: formData.pin || undefined });
       } else {
         if (!formData.password) {
           setFormError('Password is required for new employees');
           return;
         }
-        await addEmployee(formData);
+        if (!formData.pin) {
+          setFormError('PIN is required for employees');
+          return;
+        }
+        await addEmployee({ ...formData, pin: formData.pin || undefined });
       }
       setShowFormModal(false);
       fetchEmployees();
@@ -182,6 +188,14 @@ const EmployeesScreen = () => {
                   secureTextEntry
                 />
               )}
+              <TextInput
+                style={styles.input}
+                placeholder="PIN (4-6 digits)"
+                value={formData.pin}
+                onChangeText={text => setFormData({ ...formData, pin: text })}
+                keyboardType="numeric"
+                secureTextEntry
+              />
               <View style={styles.pickerContainer}>
                 <Text style={styles.pickerLabel}>Role:</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
