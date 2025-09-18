@@ -9,8 +9,7 @@ import useStore from '../../store/useStore';
 const initialFormData = {
   id: '',
   name: '',
-  email: '',
-  password: '',
+  email: '',  
   pin: '',
   roleId: 0,
   storeInfoId: 0,
@@ -66,8 +65,7 @@ const EmployeesScreen = () => {
     setFormData({
       id: employee.id,
       name: employee.name,
-      email: employee.email,
-      password: '',
+      email: employee.email,      
       pin: employee.pin || '',
       roleId: employee.roleId,
       storeInfoId: employee.storeInfoId,
@@ -102,10 +100,7 @@ const EmployeesScreen = () => {
       if (editingEmployee) {
         await updateEmployee({ ...formData, id: editingEmployee.id, pin: formData.pin || undefined });
       } else {
-        if (!formData.password) {
-          setFormError('Password is required for new employees');
-          return;
-        }
+        
         if (!formData.pin) {
           setFormError('PIN is required for employees');
           return;
@@ -179,15 +174,7 @@ const EmployeesScreen = () => {
                 autoCapitalize="none"
                 keyboardType="email-address"
               />
-              {!editingEmployee && (
-                <TextInput
-                  style={styles.input}
-                  placeholder="Password"
-                  value={formData.password}
-                  onChangeText={text => setFormData({ ...formData, password: text })}
-                  secureTextEntry
-                />
-              )}
+             
               <TextInput
                 style={styles.input}
                 placeholder="PIN (4-6 digits)"

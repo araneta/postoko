@@ -1,0 +1,38 @@
+<View style={styles.cartContainer}>
+          {/* Employee Selection */}
+          <View style={{ marginBottom: 16 }}>
+            <Text style={{ fontWeight: '600', fontSize: 16, marginBottom: 4 }}>Employee:</Text>
+            <Pressable
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                padding: 8,
+                borderWidth: 1,
+                borderColor: '#e5e5e5',
+                borderRadius: 8,
+                backgroundColor: '#fafafa',
+                marginBottom: 4,
+              }}
+              onPress={() => {
+                console.log('Employee selection button pressed');
+                console.log('Current authenticated employee:', authenticatedEmployee);
+                handleSelectEmployee();
+              }}
+            >
+              <Ionicons name="person" size={20} color="#007AFF" style={{ marginRight: 8 }} />
+              <Text style={{ fontSize: 16 }}>
+                {authenticatedEmployee ? authenticatedEmployee.name : 'Select employee'}
+              </Text>
+            </Pressable>
+            {authenticatedEmployee && (
+              <Pressable
+                style={{ alignSelf: 'flex-start', marginTop: 2, marginLeft: 2 }}
+                onPress={() => {
+                  console.log('Employee logout button pressed');
+                  setAuthenticatedEmployee(null);
+                }}
+              >
+                <Text style={{ color: '#FF3B30', fontSize: 12 }}>Logout</Text>
+              </Pressable>
+            )}
+          </View>

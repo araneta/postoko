@@ -1,16 +1,68 @@
 import { SignedIn, SignedOut, useUser } from '@clerk/clerk-expo'
-import { Link } from 'expo-router'
-import { Text, View, ScrollView, StyleSheet, Dimensions } from 'react-native'
+import { Link, useRouter } from 'expo-router'
+import { Text, View, ScrollView, StyleSheet, Dimensions, Pressable } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import SignOutButton from '@/app/components/SignOutButton'
+import useStore from '../../store/useStore';
+import { useEffect, useState } from 'react'
+import { Employee } from '@/types'
+import EmployeePinLogin from '@/components/EmployeePinLogin'
+import { getEmployees } from '@/lib/api'
 
 const { width } = Dimensions.get('window')
 
 export default function Page() {
+  const router = useRouter()
   const { user } = useUser()
+  const [showEmployeePinModal, setShowEmployeePinModal] = useState(false);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const {
+
+    authenticatedEmployee,
+    setAuthenticatedEmployee
+  } = useStore();
+
+  useEffect(() => {
+    console.log('POS screen useEffect called');
+
+    // Fetch customers and employees for selection
+    (async () => {
+      try {
+        const [employeesData] = await Promise.all([
+          getEmployees()
+        ]);
+        console.log('Fetched employees:', employeesData);
+        setEmployees(employeesData);
+      } catch (error) {
+        console.error('Failed to fetch data', error);
+      }
+    })();
+  }, []);
+
+  const handleEmployeeSelected = (employee: Employee) => {
+    console.log('Employee selected:', employee.name);
+    setAuthenticatedEmployee(employee);
+    console.log('Authenticated employee set in store:', employee.name);
+    setShowEmployeePinModal(false);
+    //router.replace('/(tabs)')
+  };
+
+  const handleSelectEmployee = () => {
+    console.log('Employee selection triggered');
+    setShowEmployeePinModal(true);
+  };
 
   return (
     <View style={styles.container}>
+      <EmployeePinLogin
+        visible={showEmployeePinModal}
+        employees={employees}
+        onEmployeeSelected={handleEmployeeSelected}
+        onClose={() => {
+          console.log('Employee PIN modal closed');
+          setShowEmployeePinModal(false);
+        }}
+      />
       <SignedIn>
         <View style={styles.signedInContainer}>
           <View style={styles.welcomeCard}>
@@ -23,17 +75,24 @@ export default function Page() {
               Ready to manage your business? Access your dashboard below.
             </Text>
           </View>
-          
+
           <View style={styles.actionButtons}>
             <Link href="/(tabs)" style={styles.primaryButton}>
               <Ionicons name="grid" size={20} color="white" />
               <Text style={styles.primaryButtonText}>Go to Dashboard</Text>
             </Link>
+
+              <Pressable
+                style={{ marginTop: 16 }}
+                onPress={() => setShowEmployeePinModal(true)}
+              >
+                <Text style={{ color: '#007AFF', fontWeight: '600', fontSize: 16 }}>PIN Login</Text>
+              </Pressable>
             <SignOutButton />
           </View>
         </View>
       </SignedIn>
-      
+
       <SignedOut>
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
           {/* Hero Section */}
@@ -53,7 +112,7 @@ export default function Page() {
           {/* Features Section */}
           <View style={styles.featuresSection}>
             <Text style={styles.sectionTitle}>Why Choose BoltexPOS?</Text>
-            
+
             <View style={styles.featuresGrid}>
               <View style={styles.featureCard}>
                 <Ionicons name="cart" size={32} color="#007AFF" />
@@ -62,7 +121,7 @@ export default function Page() {
                   Quick and intuitive checkout process for faster transactions
                 </Text>
               </View>
-              
+
               <View style={styles.featureCard}>
                 <Ionicons name="analytics" size={32} color="#007AFF" />
                 <Text style={styles.featureTitle}>Smart Analytics</Text>
@@ -70,7 +129,7 @@ export default function Page() {
                   Track sales, inventory, and business performance in real-time
                 </Text>
               </View>
-              
+
               <View style={styles.featureCard}>
                 <Ionicons name="cloud" size={32} color="#007AFF" />
                 <Text style={styles.featureTitle}>Cloud Sync</Text>
@@ -78,7 +137,7 @@ export default function Page() {
                   Access your data anywhere with secure cloud synchronization
                 </Text>
               </View>
-              
+
               <View style={styles.featureCard}>
                 <Ionicons name="shield-checkmark" size={32} color="#007AFF" />
                 <Text style={styles.featureTitle}>Secure & Reliable</Text>
@@ -95,13 +154,13 @@ export default function Page() {
             <Text style={styles.ctaSubtitle}>
               Join thousands of businesses using BoltexPOS
             </Text>
-            
+
             <View style={styles.authButtons}>
               <Link href="/(auth)/sign-up" style={styles.signUpButton}>
                 <Ionicons name="person-add" size={20} color="white" />
                 <Text style={styles.signUpButtonText}>Create Account</Text>
               </Link>
-              
+
               <Link href="/(auth)/sign-in" style={styles.signInButton}>
                 <Ionicons name="log-in" size={20} color="#007AFF" />
                 <Text style={styles.signInButtonText}>Sign In</Text>
@@ -122,7 +181,7 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  
+
   // Signed In Styles
   signedInContainer: {
     flex: 1,
@@ -182,7 +241,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 8,
   },
-  
+
   // Hero Section
   heroSection: {
     backgroundColor: 'white',
@@ -214,7 +273,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 24,
   },
-  
+
   // Features Section
   featuresSection: {
     padding: 24,
@@ -253,7 +312,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
   },
-  
+
   // CTA Section
   ctaSection: {
     backgroundColor: 'white',

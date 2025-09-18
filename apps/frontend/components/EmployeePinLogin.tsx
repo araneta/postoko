@@ -46,7 +46,8 @@ const EmployeePinLogin: React.FC<EmployeePinLoginProps> = ({
     setError('');
     
     try {
-      const isValid = await validateEmployeePin(selectedEmployee.id, pin);
+      const result = await validateEmployeePin(selectedEmployee.id, pin);
+      const isValid = result && result.message==='PIN is valid';
       console.log('PIN validation result:', isValid);
       if (isValid) {
         console.log('Employee authenticated:', selectedEmployee.name);

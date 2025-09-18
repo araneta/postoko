@@ -299,3 +299,9 @@ export interface PaypalLink {
   rel: string;
   method: string;
 }
+
+export interface EmployeePINLoginResponse {
+  message: string
+  employee: Employee
+}
+

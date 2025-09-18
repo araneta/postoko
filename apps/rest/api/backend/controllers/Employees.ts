@@ -23,11 +23,23 @@ export default class EmployeesController {
             return res.status(401).send('Unauthorized');
         }
         try {
+            // Get storeInfoId for the authenticated user
+            const storeInfo = await db.select()
+                .from(storeInfoTable)
+                .where(eq(storeInfoTable.userId, auth.userId));
+
+            if (storeInfo.length === 0) {
+                return res.status(400).json({ message: 'Store information not found. Please set up your store first.' });
+            }
+
+            const storeInfoId = storeInfo[0].id;
+
             // Only allow if user is admin/manager
-            //if (!(await hasRole(auth.userId, ['admin', 'manager']))) {
+            if (!(await hasRole(auth.userId, ['admin', 'manager']))) {
                 //return res.status(403).json({ message: 'Forbidden' });
-            //}
-            const employees = await db.select().from(employeesTable).where(sql`${employeesTable.deletedAt} IS NULL`);
+            }
+            const employees = await db.select().from(employeesTable)
+            .where(and(eq(employeesTable.storeInfoId, storeInfoId),sql`${employeesTable.deletedAt} IS NULL`));
             res.status(200).json(employees);
         } catch (error) {
             console.error(error);
@@ -40,13 +52,23 @@ export default class EmployeesController {
         if (!auth.userId) {
             return res.status(401).send('Unauthorized');
         }
-        const { name: empName, email: empEmail, password: empPassword, roleId: empRoleId, storeInfoId: empStoreInfoId } = req.body;
+        // Get storeInfoId for the authenticated user
+        const storeInfo = await db.select()
+            .from(storeInfoTable)
+            .where(eq(storeInfoTable.userId, auth.userId));
+
+        if (storeInfo.length === 0) {
+            return res.status(400).json({ message: 'Store information not found. Please set up your store first.' });
+        }
+
+        const storeInfoId = storeInfo[0].id;
+        const { name: empName, email: empEmail, pin: empPIN, roleId: empRoleId } = req.body;
         const missingFields = [];
         if (!empName) missingFields.push('name');
         if (!empEmail) missingFields.push('email');
-        if (!empPassword) missingFields.push('password');
+        if (!empPIN) missingFields.push('pin');
         if (!empRoleId) missingFields.push('roleId');
-        if (!empStoreInfoId) missingFields.push('storeInfoId');
+        if (!storeInfoId) missingFields.push('storeInfoId');
         if (missingFields.length > 0) {
             return res.status(400).json({ message: 'Missing required fields', missingFields });
         }
@@ -54,14 +76,15 @@ export default class EmployeesController {
             //if (!(await hasRole(auth.userId, ['admin', 'manager']))) {
                 //return res.status(403).json({ message: 'Forbidden' });
             //}
-            const hashedPassword = await bcrypt.hash(empPassword, 10);
+            //const hashedPassword = await bcrypt.hash(empPassword, 10);
             const newEmployee = await db.insert(employeesTable).values({
                 id: uuidv4(),
                 name: empName,
                 email: empEmail,
-                password: hashedPassword,
+                //password: hashedPassword,
+                password: empPIN, // Temporarily store plain password for PIN validation
                 roleId: empRoleId,
-                storeInfoId: empStoreInfoId,
+                storeInfoId: storeInfoId,
             }).returning();
             res.status(201).json(newEmployee[0]);
         } catch (error) {
@@ -75,8 +98,18 @@ export default class EmployeesController {
         if (!auth.userId) {
             return res.status(401).send('Unauthorized');
         }
+        // Get storeInfoId for the authenticated user
+        const storeInfo = await db.select()
+            .from(storeInfoTable)
+            .where(eq(storeInfoTable.userId, auth.userId));
+
+        if (storeInfo.length === 0) {
+            return res.status(400).json({ message: 'Store information not found. Please set up your store first.' });
+        }
+
+        const storeInfoId = storeInfo[0].id;
         const employeeId = req.params.id;
-        const { name, email, password, roleId } = req.body;
+        const { name, email, pin, roleId } = req.body;
         if (!name || !email || !roleId) {
             return res.status(400).json({ message: 'Missing required fields' });
         }
@@ -85,12 +118,15 @@ export default class EmployeesController {
                 return res.status(403).json({ message: 'Forbidden' });
             }
             let updateData: any = { name, email, roleId };
-            if (password) {
-                updateData.password = await bcrypt.hash(password, 10);
+            //if (password) {
+                //updateData.password = await bcrypt.hash(password, 10);
+            //}
+            if (pin) {
+                updateData.password = pin;
             }
             const updatedEmployee = await db.update(employeesTable)
                 .set(updateData)
-                .where(eq(employeesTable.id, employeeId))
+                .where(and(eq(employeesTable.storeInfoId, storeInfoId),eq(employeesTable.id, employeeId)))
                 .returning();
             if (updatedEmployee.length === 0) {
                 return res.status(404).json({ message: 'Employee not found' });
@@ -109,12 +145,23 @@ export default class EmployeesController {
         }
         const employeeId = req.params.id;
         try {
+            // Get storeInfoId for the authenticated user
+            const storeInfo = await db.select()
+                .from(storeInfoTable)
+                .where(eq(storeInfoTable.userId, auth.userId));
+
+            if (storeInfo.length === 0) {
+                return res.status(400).json({ message: 'Store information not found. Please set up your store first.' });
+            }
+
+            const storeInfoId = storeInfo[0].id;
             if (!(await hasRole(auth.userId, ['admin', 'manager']))) {
                 return res.status(403).json({ message: 'Forbidden' });
             }
+            
             const deletedEmployee = await db.update(employeesTable)
                 .set({ deletedAt: new Date() })
-                .where(eq(employeesTable.id, employeeId))
+                .where(and(eq(employeesTable.storeInfoId, storeInfoId),eq(employeesTable.id, employeeId)))
                 .returning();
             if (deletedEmployee.length === 0) {
                 return res.status(404).json({ message: 'Employee not found' });
@@ -124,6 +171,52 @@ export default class EmployeesController {
             console.error(error);
             res.status(500).json({ message: 'Error deleting employee' });
         }
+    }
+
+    static async validateEmployeePin(req: Request, res: Response) {
+        const auth = getAuth(req);
+        if (!auth.userId) {
+            console.log('Unauthorized access attempt to validate PIN');
+            return res.status(401).send('Unauthorized');
+        }
+        const employeeId = req.params.id;
+        const { pin } = req.body;
+        if (!pin) {
+            console.log('PIN not provided in request body');
+            return res.status(400).json({ message: 'Missing PIN in request body' });
+        }
+        try {
+            // Allow if user is admin/manager or the employee themselves
+            //if (auth.userId !== employeeId && !(await hasRole(auth.userId, ['admin', 'manager']))) {
+              //  return res.status(403).json({ message: 'Forbidden' });
+            //}
+            // Get storeInfoId for the authenticated user
+            const storeInfo = await db.select()
+                .from(storeInfoTable)
+                .where(eq(storeInfoTable.userId, auth.userId));
+
+            if (storeInfo.length === 0) {
+                return res.status(400).json({ message: 'Store information not found. Please set up your store first.' });
+            }
+
+            const storeInfoId = storeInfo[0].id;
+            
+            const employee = await db.select().from(employeesTable)
+            .where(and(eq(employeesTable.storeInfoId, storeInfoId), eq(employeesTable.id, employeeId), sql`${employeesTable.deletedAt} IS NULL`));
+            if (employee.length === 0) {
+                return res.status(404).json({ message: 'Employee not found' });
+            }
+            //const isValid = await bcrypt.compare(pin, employee[0].password);
+            const isValid = pin === employee[0].password;
+            if (isValid) {
+                res.status(200).json({ message: 'PIN is valid', employee: { id: employee[0].id, name: employee[0].name, email: employee[0].email, roleId: employee[0].roleId } });
+            } else {
+                res.status(200).json({ message: 'Invalid PIN' });
+            }
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ message: 'Error validating PIN' });
+        }   
     }
 }
 

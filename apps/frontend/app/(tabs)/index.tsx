@@ -5,11 +5,10 @@ import ProductCard from '../../components/ProductCard';
 import BarcodeScanner from '../../components/BarcodeScanner';
 import PaymentModal from '../../components/PaymentModal';
 import CustomAlert from '../../components/CustomAlert';
-import EmployeePinLogin from '../../components/EmployeePinLogin';
 import useStore from '../../store/useStore';
 import { printReceipt } from '../../utils/printer';
 import { PaymentDetails, Employee } from '../../types';
-import { getCustomers, getEmployees } from '../../lib/api';
+import { getCustomers } from '../../lib/api';
 import { Customer } from '../../types';
 import loyaltyService from '../../lib/loyalty';
 
@@ -31,7 +30,7 @@ export default function POSScreen() {
   console.log('Current authenticated employee in POS screen:', authenticatedEmployee);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showScannerModal, setShowScannerModal] = useState(false);
-  const [showEmployeePinModal, setShowEmployeePinModal] = useState(false);
+  
   const [barcodeInput, setBarcodeInput] = useState('');
   const [printError, setPrintError] = useState<string | null>(null);
   const [customAlert, setCustomAlert] = useState<{
@@ -46,16 +45,10 @@ export default function POSScreen() {
     type: 'info',
   });
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const [employees, setEmployees] = useState<Employee[]>([]);
+
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [searchCustomer, setSearchCustomer] = useState('');
-
-
-
-
-
-
 
   // Check for low stock alerts when component mounts
   useEffect(() => {
@@ -64,13 +57,10 @@ export default function POSScreen() {
     // Fetch customers and employees for selection
     (async () => {
       try {
-        const [customersData, employeesData] = await Promise.all([
-          getCustomers(),
-          getEmployees()
-        ]);
-        console.log('Fetched employees:', employeesData);
-        setCustomers(customersData);
-        setEmployees(employeesData);
+        const [customersData] = await Promise.all([
+          getCustomers(),          
+        ]);        
+        setCustomers(customersData);        
       } catch (error) {
         console.error('Failed to fetch data', error);
       }
@@ -100,18 +90,6 @@ export default function POSScreen() {
   const handleSelectCustomer = (customer: Customer) => {
     setSelectedCustomer(customer);
     setShowCustomerModal(false);
-  };
-
-  const handleEmployeeSelected = (employee: Employee) => {
-    console.log('Employee selected:', employee.name);
-    setAuthenticatedEmployee(employee);
-    console.log('Authenticated employee set in store:', employee.name);
-    setShowEmployeePinModal(false);
-  };
-
-  const handleSelectEmployee = () => {
-    console.log('Employee selection triggered');
-    setShowEmployeePinModal(true);
   };
 
   const handlePaymentComplete = async (paymentDetails: PaymentDetails[]) => {
@@ -265,43 +243,7 @@ return (
         </View>
 
         <View style={styles.cartContainer}>
-          {/* Employee Selection */}
-          <View style={{ marginBottom: 16 }}>
-            <Text style={{ fontWeight: '600', fontSize: 16, marginBottom: 4 }}>Employee:</Text>
-            <Pressable
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                padding: 8,
-                borderWidth: 1,
-                borderColor: '#e5e5e5',
-                borderRadius: 8,
-                backgroundColor: '#fafafa',
-                marginBottom: 4,
-              }}
-              onPress={() => {
-                console.log('Employee selection button pressed');
-                console.log('Current authenticated employee:', authenticatedEmployee);
-                handleSelectEmployee();
-              }}
-            >
-              <Ionicons name="person" size={20} color="#007AFF" style={{ marginRight: 8 }} />
-              <Text style={{ fontSize: 16 }}>
-                {authenticatedEmployee ? authenticatedEmployee.name : 'Select employee'}
-              </Text>
-            </Pressable>
-            {authenticatedEmployee && (
-              <Pressable
-                style={{ alignSelf: 'flex-start', marginTop: 2, marginLeft: 2 }}
-                onPress={() => {
-                  console.log('Employee logout button pressed');
-                  setAuthenticatedEmployee(null);
-                }}
-              >
-                <Text style={{ color: '#FF3B30', fontSize: 12 }}>Logout</Text>
-              </Pressable>
-            )}
-          </View>
+          
           
           {/* Customer Selection */}
           <View style={{ marginBottom: 16 }}>
@@ -458,15 +400,7 @@ return (
           onClose={hideAlert}
         />
         
-        <EmployeePinLogin
-          visible={showEmployeePinModal}
-          employees={employees}
-          onEmployeeSelected={handleEmployeeSelected}
-          onClose={() => {
-            console.log('Employee PIN modal closed');
-            setShowEmployeePinModal(false);
-          }}
-        />
+        
       </View>
     </ScrollView>
   );

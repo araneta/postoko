@@ -23,6 +23,7 @@ export default class UsersController {
 			if(emails.length === 0){
 				return res.status(401).send('Unauthorized');
 			}
+			let isNewUser:boolean = false;
 			const email = emails[0].emailAddress;
 			console.log('searching email',email);
 			const user = await db.select()
@@ -36,6 +37,7 @@ export default class UsersController {
 					lastLogin: new Date(),
 					lastIp: req.ip
 				}).returning();
+				isNewUser = true;
 				res.status(200).json(newUser[0]);
 			}else{
 				const updatedUser = await db.update(usersTable)
@@ -100,11 +102,31 @@ export default class UsersController {
 						storeInfoId,
 						name:email,
 						email,
-						password: '', // Not used with Clerk
+						password: '1234', // Not used with Clerk
 						roleId,
 					});
 				}
 				
+			}else{
+				const userEmployee = await db.select()
+				.from(employeesTable).where(eq(employeesTable.id, auth.userId));
+				if(userEmployee.length === 0){
+					// Get cashier roleId
+					const roles = await db.select().from(rolesTable).where(eq(rolesTable.name, 'cashier'));
+					if (roles.length > 0) {
+						const roleId = roles[0].id;
+						// Get user info from Clerk
+						
+						await db.insert(employeesTable).values({
+							id: auth.userId,
+							storeInfoId: settings[0].store_info.id,
+							name:email,
+							email,
+							password: '1234', // Not used with Clerk
+							roleId,
+						});
+					}
+				}
 			}
 		} catch (error) {
             console.error(error);

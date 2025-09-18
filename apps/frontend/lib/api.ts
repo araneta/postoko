@@ -1,7 +1,7 @@
 //const BASE_URL = 'https://api.example.com';
 const BASE_URL = 'http://localhost:3000/api';
 
-import { Product, Order, Settings, Customer, CustomerPurchase, Employee, Role, CartItem, StripeSessionData, StripeSessionDetails, PayPalOrdersCreateRequest,OrdersGetRequest } from '../types';
+import { Product, Order, Settings, Customer, CustomerPurchase, Employee, Role, CartItem, StripeSessionData, StripeSessionDetails, PayPalOrdersCreateRequest,OrdersGetRequest, EmployeePINLoginResponse } from '../types';
 import { safeToNumber, safeToInteger } from '../utils/formatters';
 
 // API Client class to handle authentication
@@ -42,6 +42,7 @@ class APIClient {
 
     if (res.status === 401) {
       // Redirect to login page
+      window.alert("Session expired. Please sign in again.");
       window.location.href = "/sign-in";
       // Optionally, return a rejected promise to stop further processing
       return Promise.reject(new Error("Unauthorized"));
@@ -216,31 +217,28 @@ class APIClient {
   async getEmployees(): Promise<Employee[]> {
     return this.fetchJSON<Employee[]>(`${BASE_URL}/employees`);
   }
-  async addEmployee(employee: Partial<Employee> & { password: string, pin?: string }): Promise<void> {
+  async addEmployee(employee: Partial<Employee> & {  pin?: string }): Promise<void> {
     await this.fetchJSON(`${BASE_URL}/employees`, {
       method: 'POST',
       body: JSON.stringify(employee),
     });
   }
-  async updateEmployee(employee: Partial<Employee> & { id: string; password?: string, pin?: string }): Promise<void> {
+  async updateEmployee(employee: Partial<Employee> & { id: string; pin?: string }): Promise<void> {
     await this.fetchJSON(`${BASE_URL}/employees/${employee.id}`, {
       method: 'PUT',
       body: JSON.stringify(employee),
     });
   }
-  async validateEmployeePin(employeeId: string, pin: string): Promise<boolean> {
-    try {
+  async validateEmployeePin(employeeId: string, pin: string): Promise<EmployeePINLoginResponse> {
+    
       console.log(`Validating PIN for employee ${employeeId}`);
-      const result = await this.fetchJSON<{ valid: boolean }>(`${BASE_URL}/employees/${employeeId}/validate-pin`, {
+      const result = await this.fetchJSON<EmployeePINLoginResponse>(`${BASE_URL}/employees/${employeeId}/validate-pin`, {
         method: 'POST',
         body: JSON.stringify({ pin }),
       });
-      console.log(`PIN validation result for employee ${employeeId}:`, result.valid);
-      return result.valid;
-    } catch (error) {
-      console.error('Failed to validate employee PIN:', error);
-      return false;
-    }
+      //console.log(`PIN validation result for employee ${employeeId}:`, result.message);
+      return result;
+    
   }
   async deleteEmployee(id: string): Promise<void> {
     await this.fetchJSON(`${BASE_URL}/employees/${id}`, {
@@ -321,8 +319,8 @@ export const updateLoyaltySettings = (settings: any) => apiClient.updateLoyaltyS
 
 // Employee exports
 export const getEmployees = () => apiClient.getEmployees();
-export const addEmployee = (employee: Partial<Employee> & { password: string, pin?: string }) => apiClient.addEmployee(employee);
-export const updateEmployee = (employee: Partial<Employee> & { id: string; password?: string, pin?: string }) => apiClient.updateEmployee(employee);
+export const addEmployee = (employee: Partial<Employee> & { pin?: string }) => apiClient.addEmployee(employee);
+export const updateEmployee = (employee: Partial<Employee> & { id: string; pin?: string }) => apiClient.updateEmployee(employee);
 export const deleteEmployee = (id: string) => apiClient.deleteEmployee(id);
 export const getRoles = () => apiClient.getRoles();
 export const validateEmployeePin = (employeeId: string, pin: string) => apiClient.validateEmployeePin(employeeId, pin);
