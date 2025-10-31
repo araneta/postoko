@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import e, { Request, Response } from 'express';
 import {  getAuth,clerkClient } from '@clerk/express';
 import { db } from '../db';
 import { currenciesTable, employeesTable, paymentSettingsTable, printerSettingsTable, rolesTable, settingsTable, storeInfoTable, usersTable } from '../db/schema';
@@ -24,6 +24,7 @@ export default class UsersController {
 				return res.status(401).send('Unauthorized');
 			}
 			let isNewUser:boolean = false;
+			let currentUser;
 			const email = emails[0].emailAddress;
 			console.log('searching email',email);
 			const user = await db.select()
@@ -38,7 +39,8 @@ export default class UsersController {
 					lastIp: req.ip
 				}).returning();
 				isNewUser = true;
-				res.status(200).json(newUser[0]);
+				currentUser = newUser[0];
+				
 			}else{
 				const updatedUser = await db.update(usersTable)
 					.set({ 
@@ -47,7 +49,8 @@ export default class UsersController {
 					 })
 					.where(eq(usersTable.email, email))
 					.returning();
-				res.status(200).json(updatedUser[0]);
+				currentUser = updatedUser[0];
+				
 			}
 			// Get store info and settings
 			const settings = await db.select()
@@ -128,6 +131,10 @@ export default class UsersController {
 					}
 				}
 			}
+
+			const userEmployee = await db.select()
+				.from(employeesTable).where(eq(employeesTable.id, auth.userId));
+			res.status(200).json({user: currentUser,employee: userEmployee[0]});
 		} catch (error) {
             console.error(error);
             res.status(500).json({ message: 'Error fetching user' });

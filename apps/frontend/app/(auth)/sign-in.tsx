@@ -4,10 +4,16 @@ import { Text, TextInput, TouchableOpacity, View, StyleSheet, KeyboardAvoidingVi
 import React from 'react'
 import { Ionicons } from '@expo/vector-icons'
 import { login, configureAPI, getSettings } from '../../lib/api'
+
 import useStore from '../../store/useStore';
 export default function Page() {
   const { signIn, setActive, isLoaded } = useSignIn()
   const { isSignedIn, userId, getToken } = useAuth()
+  const {
+
+    authenticatedEmployee,
+    setAuthenticatedEmployee
+  } = useStore();
   const router = useRouter()
 
   const [emailAddress, setEmailAddress] = React.useState('')
@@ -38,6 +44,7 @@ export default function Page() {
       // and redirect the user
       if (signInAttempt.status === 'complete') {
         await setActive({ session: signInAttempt.createdSessionId })
+        
 
         // Get the user ID from Clerk
         const userIdx = signInAttempt.createdSessionId
@@ -50,8 +57,10 @@ export default function Page() {
 
 
             configureAPI(getToken);
-            const { id } = await login(emailAddress)
+            const { user, employee } = await login(emailAddress)
+            const id = user.id;
             console.log('id', id)
+            setAuthenticatedEmployee(employee);
             initializeStore().finally(() => {
 
               window.frameworkReady?.();

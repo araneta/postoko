@@ -1,3 +1,12 @@
+export interface User {
+
+  "id": string;
+  "name": string;
+  "email": string;
+  "lastLogin": string;
+  "lastIp": string;
+
+}
 export interface Product {
   id: string;
   name: string;
@@ -131,7 +140,7 @@ export interface Employee {
 
 export interface StripeSessionData {
   session_id: string;
-  url: string;  
+  url: string;
 }
 export interface StripeSessionDetails {
   id: string;
@@ -246,7 +255,7 @@ export interface StripeSessionDetails {
 
 export interface PayPalOrdersCreateRequest {
   order_id: string;
-  url: string;  
+  url: string;
 };
 
 

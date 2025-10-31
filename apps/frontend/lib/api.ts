@@ -1,7 +1,7 @@
 //const BASE_URL = 'https://api.example.com';
 const BASE_URL = 'http://localhost:3000/api';
 
-import { Product, Order, Settings, Customer, CustomerPurchase, Employee, Role, CartItem, StripeSessionData, StripeSessionDetails, PayPalOrdersCreateRequest,OrdersGetRequest, EmployeePINLoginResponse } from '../types';
+import { User, Product, Order, Settings, Customer, CustomerPurchase, Employee, Role, CartItem, StripeSessionData, StripeSessionDetails, PayPalOrdersCreateRequest,OrdersGetRequest, EmployeePINLoginResponse } from '../types';
 import { safeToNumber, safeToInteger } from '../utils/formatters';
 
 // API Client class to handle authentication
@@ -122,8 +122,8 @@ class APIClient {
   }
 
   // Authentication
-  async login(email: string): Promise<{ id: string }> {
-    return this.fetchJSON<{ id: string }>(`${BASE_URL}/auth/login`, {
+  async login(email: string): Promise<{ user: User, employee: Employee }> {
+    return this.fetchJSON<{ user: User, employee: Employee }>(`${BASE_URL}/auth/login`, {
       method: 'POST',
       body: JSON.stringify({ email }),
     });
