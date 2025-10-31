@@ -5,7 +5,7 @@ Sales tracking by employee
 
 Secure PIN login [working]
 1. setelah admin login awal harusnya langsung keselect login sebagain admin. sekarang setelah admin login awal blom bisa buat order karena user aktiv belom terselect admin [done]
-
+2. switch employee login
 Why needed: Multi-employee businesses need accountability
 7. Advanced Inventory Features
 Bulk product import via CSV

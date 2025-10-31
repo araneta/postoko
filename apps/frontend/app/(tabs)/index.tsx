@@ -5,10 +5,11 @@ import ProductCard from '../../components/ProductCard';
 import BarcodeScanner from '../../components/BarcodeScanner';
 import PaymentModal from '../../components/PaymentModal';
 import CustomAlert from '../../components/CustomAlert';
+import EmployeePinLogin from '@/components/EmployeePinLogin'
 import useStore from '../../store/useStore';
 import { printReceipt } from '../../utils/printer';
 import { PaymentDetails, Employee } from '../../types';
-import { getCustomers } from '../../lib/api';
+import { getCustomers, getEmployees } from '../../lib/api';
 import { Customer } from '../../types';
 import loyaltyService from '../../lib/loyalty';
 
@@ -49,6 +50,8 @@ export default function POSScreen() {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [searchCustomer, setSearchCustomer] = useState('');
+  const [showEmployeePinModal, setShowEmployeePinModal] = useState(false);
+  const [employees, setEmployees] = useState<Employee[]>([]);
 
   // Check for low stock alerts when component mounts
   useEffect(() => {
@@ -57,10 +60,13 @@ export default function POSScreen() {
     // Fetch customers and employees for selection
     (async () => {
       try {
-        const [customersData] = await Promise.all([
+        const [customersData, employeesData] = await Promise.all([
           getCustomers(),          
+          getEmployees(),
         ]);        
         setCustomers(customersData);        
+        console.log('Fetched employees:', employeesData);
+        setEmployees(employeesData);
       } catch (error) {
         console.error('Failed to fetch data', error);
       }
@@ -200,13 +206,28 @@ export default function POSScreen() {
       c.name.toLowerCase().includes(searchCustomer.toLowerCase()) ||
       c.email.toLowerCase().includes(searchCustomer.toLowerCase())
   );
+
+  const handleEmployeeSelected = (employee: Employee) => {
+    console.log('Employee selected:', employee.name);
+    setAuthenticatedEmployee(employee);
+    console.log('Authenticated employee set in store:', employee.name);
+    setShowEmployeePinModal(false);
+    //router.replace('/(tabs)')
+  };
 return (
   <ScrollView style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
    
     {/* Existing POS UI */}
       <View style={styles.container}>
+        
         <View style={styles.productsContainer}>
           <View style={styles.productsHeader}>
+            <Pressable
+              style={{  }}
+              onPress={() => setShowEmployeePinModal(true)}
+            >
+              <Text style={{ color: '#007AFF', fontWeight: '600', fontSize: 16 }}>PIN Login</Text>
+            </Pressable>
             <Text style={styles.productsTitle}>Products</Text>
             <View style={styles.barcodeContainer}>
               <TextInput
@@ -400,6 +421,15 @@ return (
           onClose={hideAlert}
         />
         
+        <EmployeePinLogin
+        visible={showEmployeePinModal}
+        employees={employees}
+        onEmployeeSelected={handleEmployeeSelected}
+        onClose={() => {
+          console.log('Employee PIN modal closed');
+          setShowEmployeePinModal(false);
+        }}
+      />
         
       </View>
     </ScrollView>
