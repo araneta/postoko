@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, TextInput, Modal, Platform, ActivityIndicator, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter, Redirect } from 'expo-router';
 import ProductCard from '../../components/ProductCard';
 import BarcodeScanner from '../../components/BarcodeScanner';
 import PaymentModal from '../../components/PaymentModal';
@@ -15,6 +16,7 @@ import loyaltyService from '../../lib/loyalty';
 
 export default function POSScreen() {
   console.log('POS screen component initialized');
+  const router = useRouter();
   const {
     products,
     cart,
@@ -29,9 +31,10 @@ export default function POSScreen() {
     setAuthenticatedEmployee
   } = useStore();
   console.log('Current authenticated employee in POS screen:', authenticatedEmployee);
+
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showScannerModal, setShowScannerModal] = useState(false);
-  
+
   const [barcodeInput, setBarcodeInput] = useState('');
   const [printError, setPrintError] = useState<string | null>(null);
   const [customAlert, setCustomAlert] = useState<{
@@ -61,10 +64,10 @@ export default function POSScreen() {
     (async () => {
       try {
         const [customersData, employeesData] = await Promise.all([
-          getCustomers(),          
+          getCustomers(),
           getEmployees(),
-        ]);        
-        setCustomers(customersData);        
+        ]);
+        setCustomers(customersData);
         console.log('Fetched employees:', employeesData);
         setEmployees(employeesData);
       } catch (error) {
@@ -72,6 +75,12 @@ export default function POSScreen() {
       }
     })();
   }, []);
+
+  // Redirect to dashboard if no employee is logged in
+  if (!authenticatedEmployee) {
+    console.log('No authenticated employee, redirecting to dashboard');
+    return <Redirect href="/(tabs)/dashboard" />;
+  }
 
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
