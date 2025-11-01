@@ -11,7 +11,7 @@ import { getEmployees } from '@/lib/api'
 
 const { width } = Dimensions.get('window')
 
-export default function Page() {
+export default function DashboardScreen() {
   const router = useRouter()
   const { user } = useUser()
   const [showEmployeePinModal, setShowEmployeePinModal] = useState(false);
@@ -23,7 +23,7 @@ export default function Page() {
   } = useStore();
 
   useEffect(() => {
-    console.log('POS screen useEffect called');
+    console.log('Dashboard screen useEffect called');
 
     // Fetch customers and employees for selection
     (async () => {

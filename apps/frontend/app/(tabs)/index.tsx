@@ -222,12 +222,12 @@ return (
         
         <View style={styles.productsContainer}>
           <View style={styles.productsHeader}>
-            <Pressable
+            {/*<Pressable
               style={{  }}
               onPress={() => setShowEmployeePinModal(true)}
             >
               <Text style={{ color: '#007AFF', fontWeight: '600', fontSize: 16 }}>PIN Login</Text>
-            </Pressable>
+            </Pressable>*/}
             <Text style={styles.productsTitle}>Products</Text>
             <View style={styles.barcodeContainer}>
               <TextInput
@@ -264,8 +264,15 @@ return (
         </View>
 
         <View style={styles.cartContainer}>
-          
-          
+           
+           
+          {/* Employee Display */}
+          <View style={{ marginBottom: 16 }}>
+            <Text style={{ fontWeight: '600', fontSize: 16 }}>
+              Employee: {authenticatedEmployee ? authenticatedEmployee.name : 'No employee logged in'}
+            </Text>
+          </View>
+
           {/* Customer Selection */}
           <View style={{ marginBottom: 16 }}>
             <Text style={{ fontWeight: '600', fontSize: 16, marginBottom: 4 }}>Customer:</Text>

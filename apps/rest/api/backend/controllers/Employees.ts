@@ -8,12 +8,25 @@ import { v4 as uuidv4 } from 'uuid';
 
 // Helper: Check if user has required role
 async function hasRole(userId: string, requiredRoles: string[]): Promise<boolean> {
+    console.log('Checking roles for userId:', userId, 'against requiredRoles:', requiredRoles);
     // Fetch user and their role from the database (assume usersTable exists)
     const user = await db.select().from(employeesTable).where(eq(employeesTable.id, userId));
-    if (user.length === 0) return false;
+    if (user.length === 0) {
+        return false;
+    }
     const role = await db.select().from(rolesTable).where(eq(rolesTable.id, user[0].roleId));
-    if (role.length === 0) return false;
-    return requiredRoles.includes(role[0].name);
+    if (role.length === 0) {
+        return false;
+    }
+    console.log('User:', user[0].name);
+    console.log('User role:', role[0].name);
+    role.forEach(r => {
+        console.log('Comparing role:', r.name);
+        if(requiredRoles.includes(r.name)){
+            return true;
+        }
+    });
+    return false;
 }
 
 export default class EmployeesController {
