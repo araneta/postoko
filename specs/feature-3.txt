@@ -5,8 +5,15 @@ Sales tracking by employee
 
 Secure PIN login [working]
 1. setelah admin login awal harusnya langsung keselect login sebagain admin. sekarang setelah admin login awal blom bisa buat order karena user aktiv belom terselect admin [done]
-2. switch employee login
+2. switch employee login [done]
 Why needed: Multi-employee businesses need accountability
+Based on the current tab structure in app/(tabs)/_layout.tsx, here are suggested menu mappings for each role.
+These assume a typical POS system hierarchy where access increases with responsibility:
+staff = dashboard, index (Point of Sale), products, alerts
+cashier = dashboard, index (Point of Sale), orders, customers
+manager = dashboard, index (Point of Sale), products, alerts, orders, analytics, customers, employees
+admin = dashboard, index (Point of Sale), products, alerts, orders, analytics, customers, employees, settings
+
 7. Advanced Inventory Features
 Bulk product import via CSV
 Product categories and filtering

@@ -1,5 +1,6 @@
 import { db } from '../db';
-import { ordersTable, orderItemsTable, storeInfoTable, productsTable, customersTable, customerPurchasesTable } from '../db/schema';
+import { ordersTable, orderItemsTable, storeInfoTable, productsTable, customersTable,
+     customerPurchasesTable,employeesTable } from '../db/schema';
 import { Request, Response } from 'express';
 import { getAuth } from '@clerk/express';
 import { eq, desc, and, inArray, sql } from 'drizzle-orm';
@@ -90,12 +91,12 @@ export default class OrdersController {
             return res.status(401).send('Unauthorized');
         }
 
-        const { items, total, date, paymentMethod, status, customer } = req.body;
+        const { items, total, date, paymentMethod, status, customer, employee } = req.body;
 
         // Validate required fields
-        if ( !items || !Array.isArray(items) || items.length === 0 || !total || !date || !paymentMethod || !status) {
+        if ( !items || !Array.isArray(items) || items.length === 0 || !total || !date || !paymentMethod || !status || !employee) {
             return res.status(400).json({ 
-                message: 'Missing required fields: items (array), total, date, paymentMethod, status' 
+                message: 'Missing required fields: items (array), total, date, paymentMethod, status, employee' 
             });
         }
 
@@ -156,6 +157,15 @@ export default class OrdersController {
                     return res.status(400).json({ message: 'Customer not found' });
                 }
             }
+
+            //validate employee
+            const employeeData = await db.select()
+            .from(employeesTable)
+            .where(and(eq(employeesTable.storeInfoId, storeInfoId), eq(employeesTable.id, employee.id)));
+            if (employeeData.length === 0) {
+                return res.status(400).json({ message: 'Employee not found' });
+            }
+
             const id = randomUUID(); // Or let Postgres handle this
             // Use a transaction to ensure data consistency
             const result = await db.transaction(async (tx) => {
@@ -166,7 +176,8 @@ export default class OrdersController {
                     total: total,
                     date: date,
                     paymentMethod: paymentMethod,
-                    status: status
+                    status: status,
+                    employeeId: employee.id,
                 }).returning();
 
                 // Create order items

@@ -51,7 +51,22 @@ export default class EmployeesController {
             if (!(await hasRole(auth.userId, ['admin', 'manager']))) {
                 //return res.status(403).json({ message: 'Forbidden' });
             }
-            const employees = await db.select().from(employeesTable)
+            const employees = await db.select({
+                id: employeesTable.id,
+                storeInfoId: employeesTable.storeInfoId,
+                name: employeesTable.name,
+                email: employeesTable.email,
+                password: employeesTable.password,
+                roleId: employeesTable.roleId,
+                createdAt: employeesTable.createdAt,
+                deletedAt: employeesTable.deletedAt,
+                role: {
+                    id: rolesTable.id,
+                    name: rolesTable.name,
+                    description: rolesTable.description,
+                }
+            }).from(employeesTable)
+            .leftJoin(rolesTable, eq(employeesTable.roleId, rolesTable.id))
             .where(and(eq(employeesTable.storeInfoId, storeInfoId),sql`${employeesTable.deletedAt} IS NULL`));
             res.status(200).json(employees);
         } catch (error) {
@@ -99,7 +114,24 @@ export default class EmployeesController {
                 roleId: empRoleId,
                 storeInfoId: storeInfoId,
             }).returning();
-            res.status(201).json(newEmployee[0]);
+            const employeeWithRole = await db.select({
+                id: employeesTable.id,
+                storeInfoId: employeesTable.storeInfoId,
+                name: employeesTable.name,
+                email: employeesTable.email,
+                password: employeesTable.password,
+                roleId: employeesTable.roleId,
+                createdAt: employeesTable.createdAt,
+                deletedAt: employeesTable.deletedAt,
+                role: {
+                    id: rolesTable.id,
+                    name: rolesTable.name,
+                    description: rolesTable.description,
+                }
+            }).from(employeesTable)
+            .leftJoin(rolesTable, eq(employeesTable.roleId, rolesTable.id))
+            .where(eq(employeesTable.id, newEmployee[0].id));
+            res.status(201).json(employeeWithRole[0]);
         } catch (error) {
             console.error(error);
             res.status(500).json({ message: 'Error creating employee' });
@@ -144,7 +176,24 @@ export default class EmployeesController {
             if (updatedEmployee.length === 0) {
                 return res.status(404).json({ message: 'Employee not found' });
             }
-            res.status(200).json(updatedEmployee[0]);
+            const employeeWithRole = await db.select({
+                id: employeesTable.id,
+                storeInfoId: employeesTable.storeInfoId,
+                name: employeesTable.name,
+                email: employeesTable.email,
+                password: employeesTable.password,
+                roleId: employeesTable.roleId,
+                createdAt: employeesTable.createdAt,
+                deletedAt: employeesTable.deletedAt,
+                role: {
+                    id: rolesTable.id,
+                    name: rolesTable.name,
+                    description: rolesTable.description,
+                }
+            }).from(employeesTable)
+            .leftJoin(rolesTable, eq(employeesTable.roleId, rolesTable.id))
+            .where(eq(employeesTable.id, updatedEmployee[0].id));
+            res.status(200).json(employeeWithRole[0]);
         } catch (error) {
             console.error(error);
             res.status(500).json({ message: 'Error updating employee' });
@@ -179,7 +228,24 @@ export default class EmployeesController {
             if (deletedEmployee.length === 0) {
                 return res.status(404).json({ message: 'Employee not found' });
             }
-            res.status(200).json({ message: 'Employee deleted (soft)', employee: deletedEmployee[0] });
+            const employeeWithRole = await db.select({
+                id: employeesTable.id,
+                storeInfoId: employeesTable.storeInfoId,
+                name: employeesTable.name,
+                email: employeesTable.email,
+                password: employeesTable.password,
+                roleId: employeesTable.roleId,
+                createdAt: employeesTable.createdAt,
+                deletedAt: employeesTable.deletedAt,
+                role: {
+                    id: rolesTable.id,
+                    name: rolesTable.name,
+                    description: rolesTable.description,
+                }
+            }).from(employeesTable)
+            .leftJoin(rolesTable, eq(employeesTable.roleId, rolesTable.id))
+            .where(eq(employeesTable.id, deletedEmployee[0].id));
+            res.status(200).json({ message: 'Employee deleted (soft)', employee: employeeWithRole[0] });
         } catch (error) {
             console.error(error);
             res.status(500).json({ message: 'Error deleting employee' });
@@ -214,7 +280,22 @@ export default class EmployeesController {
 
             const storeInfoId = storeInfo[0].id;
             
-            const employee = await db.select().from(employeesTable)
+            const employee = await db.select({
+                id: employeesTable.id,
+                storeInfoId: employeesTable.storeInfoId,
+                name: employeesTable.name,
+                email: employeesTable.email,
+                password: employeesTable.password,
+                roleId: employeesTable.roleId,
+                createdAt: employeesTable.createdAt,
+                deletedAt: employeesTable.deletedAt,
+                role: {
+                    id: rolesTable.id,
+                    name: rolesTable.name,
+                    description: rolesTable.description,
+                }
+            }).from(employeesTable)
+            .leftJoin(rolesTable, eq(employeesTable.roleId, rolesTable.id))
             .where(and(eq(employeesTable.storeInfoId, storeInfoId), eq(employeesTable.id, employeeId), sql`${employeesTable.deletedAt} IS NULL`));
             if (employee.length === 0) {
                 return res.status(404).json({ message: 'Employee not found' });
@@ -222,7 +303,7 @@ export default class EmployeesController {
             //const isValid = await bcrypt.compare(pin, employee[0].password);
             const isValid = pin === employee[0].password;
             if (isValid) {
-                res.status(200).json({ message: 'PIN is valid', employee: { id: employee[0].id, name: employee[0].name, email: employee[0].email, roleId: employee[0].roleId } });
+                res.status(200).json({ message: 'PIN is valid', employee: employee[0] });
             } else {
                 res.status(200).json({ message: 'Invalid PIN' });
             }
@@ -325,7 +406,24 @@ export class RolesController {
                 password: '', // Not used with Clerk
                 roleId,
             }).returning();
-            res.status(201).json({ message: 'Promoted to admin', employee: newEmployee[0] });
+            const employeeWithRole = await db.select({
+                id: employeesTable.id,
+                storeInfoId: employeesTable.storeInfoId,
+                name: employeesTable.name,
+                email: employeesTable.email,
+                password: employeesTable.password,
+                roleId: employeesTable.roleId,
+                createdAt: employeesTable.createdAt,
+                deletedAt: employeesTable.deletedAt,
+                role: {
+                    id: rolesTable.id,
+                    name: rolesTable.name,
+                    description: rolesTable.description,
+                }
+            }).from(employeesTable)
+            .leftJoin(rolesTable, eq(employeesTable.roleId, rolesTable.id))
+            .where(eq(employeesTable.id, newEmployee[0].id));
+            res.status(201).json({ message: 'Promoted to admin', employee: employeeWithRole[0] });
         } catch (error) {
             console.error(error);
             res.status(500).json({ message: 'Error promoting to admin' });

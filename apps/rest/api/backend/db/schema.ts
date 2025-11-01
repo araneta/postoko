@@ -28,6 +28,7 @@ export const ordersTable = pgTable("orders", {
   date: varchar({ length: 50 }).notNull(),
   paymentMethod: varchar({ length: 50 }).notNull(),
   status: varchar({ length: 20 }).notNull(), // 'completed' | 'refunded'
+  employeeId: varchar({ length: 36 }).references(() => employeesTable.id),
 });
 
 export const orderItemsTable = pgTable("order_items", {

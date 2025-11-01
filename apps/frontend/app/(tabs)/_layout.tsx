@@ -2,12 +2,14 @@ import { Tabs, Redirect, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth,useUser } from '@clerk/clerk-expo';
 import useStore from '@/store/useStore';
-import { login, configureAPI , getSettings} from '../../lib/api'
-import { useEffect } from 'react';
+import { login, configureAPI , getSettings, getEmployees} from '../../lib/api'
+import { useEffect, useState } from 'react';
+import { Employee } from '../../types';
 
 export default function TabLayout() {
   const { isSignedIn, isLoaded, getToken } = useAuth();
   const { user } = useUser();
+  const [currentEmployee, setCurrentEmployee] = useState<Employee | null>(null);
 
   const settings = useStore(state => state.settings);
   const unreadAlertCount = useStore(state => state.getUnreadAlertCount());
@@ -21,6 +23,7 @@ export default function TabLayout() {
   if (!isSignedIn) {
     return <Redirect href="/(home)" />;
   }
+
   let email = '';
   if (isLoaded && user) {
     let primaryEmail = user.primaryEmailAddress;
@@ -38,6 +41,43 @@ export default function TabLayout() {
       });
     }
   }
+
+  // Fetch employee data to determine role
+  useEffect(() => {
+    const fetchEmployee = async () => {
+      if (email) {
+        try {
+          const employees = await getEmployees();
+          console.log('All employees:', employees);
+          console.log('Looking for email:', email);
+          const employee = employees.find(emp => emp.email === email);
+          console.log('Found employee:', employee);
+          console.log('Employee role:', employee?.role?.name);
+          console.log('Employee roleId:', employee?.roleId);
+          setCurrentEmployee(employee || null);
+        } catch (error) {
+          console.error('Failed to fetch employee:', error);
+        }
+      }
+    };
+    fetchEmployee();
+  }, [email]);
+
+  // Define menu access based on role
+  const getAllowedTabs = (roleName?: string) => {
+    const roleMenus = {
+      staff: ['dashboard', 'index', 'products', 'alerts'],
+      cashier: ['dashboard', 'index', 'orders', 'customers'],
+      manager: ['dashboard', 'index', 'products', 'alerts', 'orders', 'analytics', 'customers', 'employees'],
+      admin: ['dashboard', 'index', 'products', 'alerts', 'orders', 'analytics', 'customers', 'employees', 'settings']
+    };
+
+    return roleMenus[roleName as keyof typeof roleMenus] || ['dashboard', 'index'];
+  };
+
+  const allowedTabs = getAllowedTabs(currentEmployee?.role?.name);
+  console.log('Current employee:', currentEmployee);
+  console.log('Allowed tabs:', allowedTabs);
 
 
   return (
@@ -59,6 +99,7 @@ export default function TabLayout() {
           tabBarIcon: ({ size, color }) => (
             <Ionicons name="home" size={size} color={color} />
           ),
+          href: allowedTabs.includes('dashboard') ? undefined : null,
         }}
       />
       <Tabs.Screen
@@ -68,6 +109,7 @@ export default function TabLayout() {
           tabBarIcon: ({ size, color }) => (
             <Ionicons name="cart" size={size} color={color} />
           ),
+          href: allowedTabs.includes('index') ? undefined : null,
         }}
       />
       <Tabs.Screen
@@ -77,6 +119,7 @@ export default function TabLayout() {
           tabBarIcon: ({ size, color }) => (
             <Ionicons name="grid" size={size} color={color} />
           ),
+          href: allowedTabs.includes('products') ? undefined : null,
         }}
       />
       <Tabs.Screen
@@ -87,6 +130,7 @@ export default function TabLayout() {
             <Ionicons name="notifications" size={size} color={color} />
           ),
           tabBarBadge: unreadAlertCount > 0 ? unreadAlertCount : undefined,
+          href: allowedTabs.includes('alerts') ? undefined : null,
         }}
       />
       <Tabs.Screen
@@ -96,6 +140,7 @@ export default function TabLayout() {
           tabBarIcon: ({ size, color }) => (
             <Ionicons name="receipt" size={size} color={color} />
           ),
+          href: allowedTabs.includes('orders') ? undefined : null,
         }}
       />
       <Tabs.Screen
@@ -105,6 +150,7 @@ export default function TabLayout() {
           tabBarIcon: ({ size, color }) => (
             <Ionicons name="stats-chart" size={size} color={color} />
           ),
+          href: allowedTabs.includes('analytics') ? undefined : null,
         }}
       />
       <Tabs.Screen
@@ -114,6 +160,7 @@ export default function TabLayout() {
           tabBarIcon: ({ size, color }) => (
             <Ionicons name="people" size={size} color={color} />
           ),
+          href: allowedTabs.includes('customers') ? undefined : null,
         }}
       />
       <Tabs.Screen
@@ -123,6 +170,7 @@ export default function TabLayout() {
           tabBarIcon: ({ size, color }) => (
             <Ionicons name="person" size={size} color={color} />
           ),
+          href: allowedTabs.includes('employees') ? undefined : null,
         }}
       />
       <Tabs.Screen
@@ -132,6 +180,7 @@ export default function TabLayout() {
           tabBarIcon: ({ size, color }) => (
             <Ionicons name="settings" size={size} color={color} />
           ),
+          href: allowedTabs.includes('settings') ? undefined : null,
         }}
       />
     </Tabs>
