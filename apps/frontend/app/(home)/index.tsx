@@ -1,6 +1,6 @@
 import { SignedIn, SignedOut, useUser } from '@clerk/clerk-expo'
 import { Link, useRouter } from 'expo-router'
-import { Text, View, ScrollView, StyleSheet, Dimensions, Pressable } from 'react-native'
+import { Text, View, ScrollView, StyleSheet, Dimensions, Pressable, TouchableOpacity } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import SignOutButton from '@/app/components/SignOutButton'
 import useStore from '../../store/useStore';
@@ -19,7 +19,8 @@ export default function Page() {
   const {
 
     authenticatedEmployee,
-    setAuthenticatedEmployee
+    setAuthenticatedEmployee,
+    clearEmployeeAuth
   } = useStore();
 
   useEffect(() => {
@@ -44,11 +45,13 @@ export default function Page() {
     setAuthenticatedEmployee(employee);
     console.log('Authenticated employee set in store:', employee.name);
     setShowEmployeePinModal(false);
-    //router.replace('/(tabs)')
+    router.replace('/(tabs)');
   };
 
   const handleSelectEmployee = () => {
     console.log('Employee selection triggered');
+    // Sign out current employee before showing PIN login
+    clearEmployeeAuth();
     setShowEmployeePinModal(true);
   };
 
@@ -77,17 +80,15 @@ export default function Page() {
           </View>
 
           <View style={styles.actionButtons}>
+            {/*
             <Link href="/(tabs)" style={styles.primaryButton}>
               <Ionicons name="grid" size={20} color="white" />
-              <Text style={styles.primaryButtonText}>Point of Sale</Text>
-            </Link>
-
-              <Pressable
-                style={{ marginTop: 16 }}
-                onPress={() => setShowEmployeePinModal(true)}
-              >
-                <Text style={{ color: '#007AFF', fontWeight: '600', fontSize: 16 }}>PIN Login</Text>
-              </Pressable>
+              <Text style={styles.primaryButtonText}>Point of Salex</Text>
+            </Link>*/}
+               <TouchableOpacity style={styles.primaryButton} onPress={() => setShowEmployeePinModal(true)}>
+                    <Ionicons name="key" size={20} color="white" />
+                    <Text style={styles.primaryButtonText}>PIN Login</Text>
+                  </TouchableOpacity>              
             <SignOutButton />
           </View>
         </View>
@@ -222,13 +223,14 @@ const styles = StyleSheet.create({
   actionButtons: {
     gap: 16,
   },
-  primaryButton: {
+   primaryButton: {
     backgroundColor: '#007AFF',
     padding: 16,
     borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
     shadowColor: '#007AFF',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -239,7 +241,7 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
     fontWeight: '600',
-    marginLeft: 8,
+    textAlign: 'center',
   },
 
   // Hero Section

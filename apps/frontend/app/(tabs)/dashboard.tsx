@@ -19,7 +19,8 @@ export default function DashboardScreen() {
   const {
 
     authenticatedEmployee,
-    setAuthenticatedEmployee
+    setAuthenticatedEmployee,
+    clearEmployeeAuth
   } = useStore();
 
   useEffect(() => {
@@ -45,10 +46,13 @@ export default function DashboardScreen() {
     console.log('Authenticated employee set in store:', employee.name);
     setShowEmployeePinModal(false);
     //router.replace('/(tabs)')
+    router.replace('/(tabs)');
   };
 
   const handleSelectEmployee = () => {
     console.log('Employee selection triggered');
+    // Sign out current employee before showing PIN login
+    clearEmployeeAuth();
     setShowEmployeePinModal(true);
   };
 
@@ -77,16 +81,17 @@ export default function DashboardScreen() {
           </View>
 
           <View style={styles.actionButtons}>
-            <Link href="/(tabs)" style={styles.primaryButton}>
+            {/*<Link href="/(tabs)" style={styles.primaryButton}>
               <Ionicons name="grid" size={20} color="white" />
               <Text style={styles.primaryButtonText}>Point of Sale</Text>
-            </Link>
+            </Link>*/}
 
               <Pressable
-                style={{ marginTop: 16 }}
+               style={styles.primaryButton}
                 onPress={() => setShowEmployeePinModal(true)}
               >
-                <Text style={{ color: '#007AFF', fontWeight: '600', fontSize: 16 }}>PIN Login</Text>
+                <Ionicons name="key" size={20} color="white" />
+                <Text style={styles.primaryButtonText}>PIN Login</Text>
               </Pressable>
             <SignOutButton />
           </View>
