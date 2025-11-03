@@ -10,6 +10,7 @@ export default function TabLayout() {
   const { isSignedIn, isLoaded, getToken } = useAuth();
   const { user } = useUser();
   const [currentEmployee, setCurrentEmployee] = useState<Employee | null>(null);
+  const authenticatedEmployee = useStore(state => state.authenticatedEmployee);
 
   const settings = useStore(state => state.settings);
   const unreadAlertCount = useStore(state => state.getUnreadAlertCount());
@@ -75,8 +76,12 @@ export default function TabLayout() {
     return roleMenus[roleName as keyof typeof roleMenus] || ['dashboard', 'index'];
   };
 
-  const allowedTabs = getAllowedTabs(currentEmployee?.role?.name);
+  // Use authenticated employee if available, otherwise fall back to current employee from email
+  const effectiveEmployee = authenticatedEmployee || currentEmployee;
+  const allowedTabs = getAllowedTabs(effectiveEmployee?.role?.name);
   console.log('Current employee:', currentEmployee);
+  console.log('Authenticated employee:', authenticatedEmployee);
+  console.log('Effective employee:', effectiveEmployee);
   console.log('Allowed tabs:', allowedTabs);
 
 
