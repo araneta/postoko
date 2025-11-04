@@ -1,33 +1,45 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ActivityIndicator, Pressable, ScrollView, Dimensions } from 'react-native';
 import { LineChart, BarChart } from 'react-native-chart-kit';
+import { Redirect, useRouter } from 'expo-router';
 import useStore from '../../store/useStore';
 import analyticsService from '../../lib/analytics';
 
 export default function AnalyticsScreen() {
-  const { formatPrice } = useStore();
+  const router = useRouter();
+  const { formatPrice, authenticatedEmployee } = useStore();
+
   const [analytics, setAnalytics] = useState<any>(null);
   const [report, setReport] = useState<any[]>([]);
   const [bestSellers, setBestSellers] = useState<any[]>([]);
   const [peakHours, setPeakHours] = useState<any[]>([]);
   const [profitMargin, setProfitMargin] = useState<any>(null);
-  
+
   const [analyticsLoading, setAnalyticsLoading] = useState(true);
   const [reportLoading, setReportLoading] = useState(true);
   const [bestSellersLoading, setBestSellersLoading] = useState(true);
   const [peakHoursLoading, setPeakHoursLoading] = useState(true);
   const [profitMarginLoading, setProfitMarginLoading] = useState(true);
-  
+
   const [analyticsError, setAnalyticsError] = useState<string | null>(null);
   const [reportError, setReportError] = useState<string | null>(null);
   const [bestSellersError, setBestSellersError] = useState<string | null>(null);
   const [peakHoursError, setPeakHoursError] = useState<string | null>(null);
   const [profitMarginError, setProfitMarginError] = useState<string | null>(null);
-  
+
   const [reportPeriod, setReportPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   const [bestSellersPeriod, setBestSellersPeriod] = useState<'all' | 'week' | 'month' | 'year'>('all');
   const [profitMarginPeriod, setProfitMarginPeriod] = useState<'week' | 'month' | 'year'>('month');
   const [peakHoursDays, setPeakHoursDays] = useState<number>(30);
+
+  // Redirect to dashboard if no employee is logged in
+  if (!authenticatedEmployee) {
+    console.log('No authenticated employee, redirecting to dashboard');
+    return <Redirect href="/(tabs)/dashboard" />;
+    router.replace('/(tabs)/dashboard');
+    return null;
+  }
+ 
 
   useEffect(() => {
     fetchAllData();

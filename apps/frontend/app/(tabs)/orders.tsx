@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Redirect } from 'expo-router';
 import useStore from '../../store/useStore';
 
 const formatDateTime = (dateString: string) => {
@@ -65,7 +66,13 @@ const PaymentMethodIcon = ({ method }: { method: string }) => {
 };
 
 export default function OrdersScreen() {
-  const { orders, formatPrice } = useStore();
+  const { orders, formatPrice,authenticatedEmployee, } = useStore();
+
+  // Redirect to dashboard if no employee is logged in
+  if (!authenticatedEmployee) {
+    console.log('No authenticated employee, redirecting to dashboard');
+    return <Redirect href="/(tabs)/dashboard" />;
+  }
 
   const renderPaymentDetails = (order: any) => {
     if (!order.paymentDetails || order.paymentDetails.length === 0) {

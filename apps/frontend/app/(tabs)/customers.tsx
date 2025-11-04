@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Button, Modal, TextInput, Alert, Pressable, ScrollView } from 'react-native';
+import { Redirect } from 'expo-router';
 import { getCustomers, addCustomer, updateCustomer, getCustomerPurchases, deleteCustomer } from '../../lib/api';
 import loyaltyService from '../../lib/loyalty';
 import { Customer, CustomerPurchase } from '../../types';
@@ -16,7 +17,7 @@ const initialFormData = {
 };
 
 const CustomersScreen = () => {
-  const { formatPrice, settings } = useStore();
+  const { formatPrice, settings, authenticatedEmployee,  } = useStore();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -44,8 +45,28 @@ const CustomersScreen = () => {
   };
 
   useEffect(() => {
-    fetchCustomers();
+    const fetchCustomersx = async () => {
+      setLoading(true);
+      try {
+        const data = await getCustomers();
+        setCustomers(data);
+      } catch (error) {
+        console.error('Failed to fetch customers', error);
+      }
+      setLoading(false);
+    };
+    if(authenticatedEmployee){
+      //fetchCustomers();
+      fetchCustomersx();
+    }
+    
   }, []);
+
+  // Redirect to dashboard if no employee is logged in
+  if (!authenticatedEmployee) {
+    console.log('No authenticated employee, redirecting to dashboard');
+    return <Redirect href="/(tabs)/dashboard" />;
+  }
 
   const fetchCustomers = async () => {
     setLoading(true);

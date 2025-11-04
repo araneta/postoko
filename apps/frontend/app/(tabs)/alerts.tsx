@@ -9,6 +9,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Redirect } from 'expo-router';
 import useStore from '../../store/useStore';
 import { StockAlert } from '../../types';
 
@@ -19,7 +20,8 @@ export default function AlertsScreen() {
     markAlertAsRead, 
     markAllAlertsAsRead, 
     getUnreadAlertCount,
-    checkLowStockAlerts 
+    checkLowStockAlerts,
+    authenticatedEmployee 
   } = useStore();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -27,6 +29,12 @@ export default function AlertsScreen() {
     // Check for low stock alerts when component mounts
     checkLowStockAlerts();
   }, []);
+
+  // Redirect to dashboard if no employee is logged in
+  if (!authenticatedEmployee) {
+    console.log('No authenticated employee, redirecting to dashboard');
+    return <Redirect href="/(tabs)/dashboard" />;
+  }
 
   const onRefresh = async () => {
     setRefreshing(true);

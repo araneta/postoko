@@ -52,7 +52,9 @@ export default function DashboardScreen() {
   const handleSelectEmployee = () => {
     console.log('Employee selection triggered');
     // Sign out current employee before showing PIN login
-    clearEmployeeAuth();
+    if(authenticatedEmployee) {
+      clearEmployeeAuth();
+    }
     setShowEmployeePinModal(true);
   };
 
@@ -92,6 +94,13 @@ export default function DashboardScreen() {
               >
                 <Ionicons name="key" size={20} color="white" />
                 <Text style={styles.primaryButtonText}>PIN Login</Text>
+              </Pressable>
+              <Pressable
+               style={styles.primaryButton}
+                onPress={() => handleSelectEmployee()}
+              >
+                <Ionicons name="key" size={20} color="white" />
+                <Text style={styles.primaryButtonText}>Logout Employee</Text>
               </Pressable>
             <SignOutButton />
           </View>

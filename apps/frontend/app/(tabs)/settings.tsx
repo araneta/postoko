@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable, Switch, Modal, FlatList, ActivityIndicator, TextInput, ScrollView, Alert, Button } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Redirect, useRouter } from 'expo-router';
 import useStore from '../../store/useStore';
 import { Currency, PrinterDevice } from '../../types';
 import { scanPrinters } from '../../utils/printer';
@@ -36,7 +37,8 @@ const initialSettings = {
 };
 
 export default function SettingsScreen() {
-  const { settings, updateCurrency, updatePrinterSettings, updateStoreInfo } = useStore();
+  const router = useRouter();
+  const { settings, updateCurrency, updatePrinterSettings, updateStoreInfo, authenticatedEmployee,  } = useStore();
   const [loyaltySettings, setLoyaltySettings] = useState<any>(null);
   const [loyaltyLoading, setLoyaltyLoading] = useState(true);
   const [loyaltySaving, setLoyaltySaving] = useState(false);
@@ -64,6 +66,14 @@ export default function SettingsScreen() {
     taxId: storeInfoDefaults.taxId || '',
   });
   const [showLoyaltyModal, setShowLoyaltyModal] = useState(false);
+  
+  // Redirect to dashboard if no employee is logged in
+  if (!authenticatedEmployee) {
+    console.log('No authenticated employee, redirecting to dashboard');
+    return <Redirect href="/(tabs)/dashboard" />;
+    router.replace('/(tabs)/dashboard');
+    return null;
+  }
 
   useEffect(() => {
     fetchLoyaltySettings();

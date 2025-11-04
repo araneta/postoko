@@ -17,6 +17,7 @@ import BarcodeScanner from '../../components/BarcodeScanner';
 import useStore from '../../store/useStore';
 import { Product } from '../../types';
 import { pickImage, takePhoto, uploadImageToImageKit, checkFileSize } from '../../lib/imageUpload';
+import { Redirect } from 'expo-router';
 
 const initialFormData = {
   name: '',
@@ -31,7 +32,7 @@ const initialFormData = {
 };
 
 export default function ProductsScreen() {
-  const { products, addProduct, updateProduct, deleteProduct } = useStore();
+  const { products, addProduct, updateProduct, deleteProduct,authenticatedEmployee } = useStore();
   const [modalVisible, setModalVisible] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -40,6 +41,13 @@ export default function ProductsScreen() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+
+  // Redirect to dashboard if no employee is logged in
+  if (!authenticatedEmployee) {
+    console.log('No authenticated employee, redirecting to dashboard');
+    return <Redirect href="/(tabs)/dashboard" />;
+  }
+  
 
   const handleSave = async () => {
     const product: Product = {

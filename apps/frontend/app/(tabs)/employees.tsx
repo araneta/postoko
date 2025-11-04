@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Button, Modal, TextInput, Alert, Pressable, ScrollView } from 'react-native';
+import { Redirect } from 'expo-router';
 import { getEmployees, addEmployee, updateEmployee, deleteEmployee, getRoles } from '../../lib/api';
 import { Employee, Role } from '../../types';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,7 +17,7 @@ const initialFormData = {
 };
 
 const EmployeesScreen = () => {
-  const { settings } = useStore();
+  const { settings, authenticatedEmployee,  } = useStore();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,9 +30,17 @@ const EmployeesScreen = () => {
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    fetchEmployees();
-    fetchRoles();
-  }, []);
+    if (authenticatedEmployee) {
+      fetchEmployees();
+      fetchRoles();
+    }
+  }, [authenticatedEmployee]);
+
+  // Redirect to dashboard if no employee is logged in
+  if (!authenticatedEmployee) {
+    console.log('No authenticated employee, redirecting to dashboard');
+    return <Redirect href="/(tabs)/dashboard" />;
+  }
 
   const fetchEmployees = async () => {
     setLoading(true);
