@@ -66,18 +66,6 @@ export default function SettingsScreen() {
     taxId: storeInfoDefaults.taxId || '',
   });
   const [showLoyaltyModal, setShowLoyaltyModal] = useState(false);
-  
-  // Redirect to dashboard if no employee is logged in
-  if (!authenticatedEmployee) {
-    console.log('No authenticated employee, redirecting to dashboard');
-    return <Redirect href="/(tabs)/dashboard" />;
-    router.replace('/(tabs)/dashboard');
-    return null;
-  }
-
-  useEffect(() => {
-    fetchLoyaltySettings();
-  }, []);
 
   const fetchLoyaltySettings = async () => {
     setLoyaltyLoading(true);
@@ -89,6 +77,17 @@ export default function SettingsScreen() {
     }
     setLoyaltyLoading(false);
   };
+
+  useEffect(() => {
+    fetchLoyaltySettings();
+  }, []);
+  // Redirect to dashboard if no employee is logged in
+  if (!authenticatedEmployee) {
+    console.log('No authenticated employee, redirecting to dashboard');
+    return <Redirect href="/(tabs)/dashboard" />;
+    router.replace('/(tabs)/dashboard');
+    return null;
+  }
 
   const handleSaveLoyaltySettings = async () => {
     setLoyaltySaving(true);

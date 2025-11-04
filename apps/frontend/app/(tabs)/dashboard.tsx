@@ -9,6 +9,9 @@ import { Employee } from '@/types'
 import EmployeePinLogin from '@/components/EmployeePinLogin'
 import { getEmployees } from '@/lib/api'
 
+import CustomAlert from '@/components/CustomAlert'
+
+
 const { width } = Dimensions.get('window')
 
 export default function DashboardScreen() {
@@ -22,6 +25,17 @@ export default function DashboardScreen() {
     setAuthenticatedEmployee,
     clearEmployeeAuth
   } = useStore();
+  const [customAlert, setCustomAlert] = useState<{
+      visible: boolean;
+      title: string;
+      message: string;
+      type: 'success' | 'error' | 'warning' | 'info';
+    }>({
+      visible: false,
+      title: '',
+      message: '',
+      type: 'info',
+    });
 
   useEffect(() => {
     console.log('Dashboard screen useEffect called');
@@ -54,8 +68,29 @@ export default function DashboardScreen() {
     // Sign out current employee before showing PIN login
     if(authenticatedEmployee) {
       clearEmployeeAuth();
+      console.log('Employee cleard from store');
+      
     }
-    setShowEmployeePinModal(true);
+    showAlert('Logout', 'You have been logged out', 'success');
+    //setShowEmployeePinModal(true);
+  };
+
+  const showAlert = (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
+    setCustomAlert({
+      visible: true,
+      title,
+      message,
+      type,
+    });
+  };
+
+  const hideAlert = () => {
+    setCustomAlert({
+      visible: false,
+      title: '',
+      message: '',
+      type: 'info',
+    });
   };
 
   return (
@@ -103,7 +138,15 @@ export default function DashboardScreen() {
                 <Text style={styles.primaryButtonText}>Logout Employee</Text>
               </Pressable>
             <SignOutButton />
+            <CustomAlert
+                    visible={customAlert.visible}
+                    title={customAlert.title}
+                    message={customAlert.message}
+                    type={customAlert.type}
+                    onClose={hideAlert}
+                  />
           </View>
+          
         </View>
       </SignedIn>
 

@@ -6,7 +6,7 @@ import useStore from '../../store/useStore';
 import analyticsService from '../../lib/analytics';
 
 export default function AnalyticsScreen() {
-  const router = useRouter();
+  //const router = useRouter();
   const { formatPrice, authenticatedEmployee } = useStore();
 
   const [analytics, setAnalytics] = useState<any>(null);
@@ -32,13 +32,7 @@ export default function AnalyticsScreen() {
   const [profitMarginPeriod, setProfitMarginPeriod] = useState<'week' | 'month' | 'year'>('month');
   const [peakHoursDays, setPeakHoursDays] = useState<number>(30);
 
-  // Redirect to dashboard if no employee is logged in
-  if (!authenticatedEmployee) {
-    console.log('No authenticated employee, redirecting to dashboard');
-    return <Redirect href="/(tabs)/dashboard" />;
-    router.replace('/(tabs)/dashboard');
-    return null;
-  }
+  
  
 
   useEffect(() => {
@@ -126,7 +120,13 @@ export default function AnalyticsScreen() {
   // Prepare peak hours chart data
   const peakHoursLabels = peakHours.map((hour: any) => `${hour.hour}:00`);
   const peakHoursData = peakHours.map((hour: any) => Number(hour.orderCount));
-
+  // Redirect to dashboard if no employee is logged in
+  if (!authenticatedEmployee) {
+    console.log('No authenticated employee, redirecting to dashboard');
+    return <Redirect href="/(tabs)/dashboard" />;
+    //router.replace('/(tabs)/dashboard');
+    //return null;
+  }
   return (
     <ScrollView style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
       {/* Analytics Dashboard */}
