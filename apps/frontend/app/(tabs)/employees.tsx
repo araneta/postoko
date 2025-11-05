@@ -56,7 +56,9 @@ const EmployeesScreen = () => {
   const fetchRoles = async () => {
     try {
       const data = await getRoles();
-      setRoles(data);
+      //remove admin role from the list
+      const filteredData = data.filter(role => role.name.toLowerCase() !== 'admin');
+      setRoles(filteredData);
     } catch (error) {
       setRoles([]);
     }
@@ -84,6 +86,7 @@ const EmployeesScreen = () => {
   };
 
   const handleDeletePress = (employee: Employee) => {
+    setFormError('');
     setEmployeeToDelete(employee);
     setShowDeleteModal(true);
   };
@@ -96,7 +99,9 @@ const EmployeesScreen = () => {
       setEmployeeToDelete(null);
       fetchEmployees();
     } catch (error) {
-      Alert.alert('Error', 'Failed to delete employee');
+      //Alert.alert('Error', 'Failed to delete employee');
+      const ret = JSON.parse((error as Error).message);
+      setFormError('Failed to delete employee'+": "+ret.message);
     }
   };
 
@@ -119,7 +124,8 @@ const EmployeesScreen = () => {
       setShowFormModal(false);
       fetchEmployees();
     } catch (error) {
-      setFormError('Failed to save employee');
+      const ret = JSON.parse((error as Error).message);
+      setFormError('Failed to save employee'+": "+ret.message);
     }
   };
 
@@ -231,6 +237,7 @@ const EmployeesScreen = () => {
           <View style={styles.deleteModalContent}>
             <Text style={styles.modalTitle}>Delete Employee?</Text>
             <Text>Are you sure you want to delete this employee?</Text>
+            {formError ? <Text style={styles.error}>{formError}</Text> : null}
             <View style={styles.modalButtons}>
               <Button title="Cancel" onPress={() => setShowDeleteModal(false)} />&nbsp;
               <Button title="Delete" color="#FF3B30" onPress={handleConfirmDelete} />

@@ -20,13 +20,16 @@ async function hasRole(userId: string, requiredRoles: string[]): Promise<boolean
     }
     console.log('User:', user[0].name);
     console.log('User role:', role[0].name);
-    role.forEach(r => {
+    let found = false;
+    for (const r of role) {
         console.log('Comparing role:', r.name);
-        if(requiredRoles.includes(r.name)){
-            return true;
+        if (requiredRoles.includes(r.name)) {
+            console.log('found User role:', r.name);
+            found = true;
+            break;
         }
-    });
-    return false;
+    }
+    return found;
 }
 
 export default class EmployeesController {
@@ -101,9 +104,16 @@ export default class EmployeesController {
             return res.status(400).json({ message: 'Missing required fields', missingFields });
         }
         try {
-            //if (!(await hasRole(auth.userId, ['admin', 'manager']))) {
-                //return res.status(403).json({ message: 'Forbidden' });
-            //}
+            const role = await db.select().from(rolesTable).where(eq(rolesTable.id, empRoleId));
+            if (role.length === 0) {
+                return res.status(403).json({ message: 'Invalid Role Id' });
+            }
+            if(role[0].name === 'admin') {
+                return res.status(403).json({ message: 'Cannot assign admin role' });
+            }
+            if (!(await hasRole(auth.userId, ['admin', 'manager']))) {
+                return res.status(403).json({ message: 'Forbiddenx' });
+            }
             //const hashedPassword = await bcrypt.hash(empPassword, 10);
             const newEmployee = await db.insert(employeesTable).values({
                 id: uuidv4(),
@@ -220,7 +230,32 @@ export default class EmployeesController {
             if (!(await hasRole(auth.userId, ['admin', 'manager']))) {
                 return res.status(403).json({ message: 'Forbidden' });
             }
-            
+
+            //can not delete admin
+            const employee = await db.select({
+                id: employeesTable.id,
+                storeInfoId: employeesTable.storeInfoId,
+                name: employeesTable.name,
+                email: employeesTable.email,
+                password: employeesTable.password,
+                roleId: employeesTable.roleId,
+                createdAt: employeesTable.createdAt,
+                deletedAt: employeesTable.deletedAt,
+                role: {
+                    id: rolesTable.id,
+                    name: rolesTable.name,
+                    description: rolesTable.description,
+                }
+            }).from(employeesTable)
+            .leftJoin(rolesTable, eq(employeesTable.roleId, rolesTable.id))
+            .where(and(eq(employeesTable.storeInfoId, storeInfoId), eq(employeesTable.id, employeeId), sql`${employeesTable.deletedAt} IS NULL`));
+            if (employee.length === 0) {
+                return res.status(404).json({ message: 'Employee not found' });
+            }
+            if(employee[0].role  && employee[0].role.name === 'admin') {
+                return res.status(403).json({ message: 'Cannot delete admin employee' });
+            }
+
             const deletedEmployee = await db.update(employeesTable)
                 .set({ deletedAt: new Date() })
                 .where(and(eq(employeesTable.storeInfoId, storeInfoId),eq(employeesTable.id, employeeId)))

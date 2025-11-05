@@ -9,8 +9,8 @@ Secure PIN login [working]
 Why needed: Multi-employee businesses need accountability
 Based on the current tab structure in app/(tabs)/_layout.tsx, here are suggested menu mappings for each role.
 These assume a typical POS system hierarchy where access increases with responsibility:
-staff = dashboard, index (Point of Sale), products, alerts
-cashier = dashboard, index (Point of Sale), orders, customers
+staff = dashboard, index (Point of Sale), products, alerts [done]
+cashier = dashboard, index (Point of Sale), orders, customers [done]
 manager = dashboard, index (Point of Sale), products, alerts, orders, analytics, customers, employees
 admin = dashboard, index (Point of Sale), products, alerts, orders, analytics, customers, employees, settings
 

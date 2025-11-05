@@ -103,6 +103,17 @@ export default function DashboardScreen() {
           console.log('Employee PIN modal closed');
           setShowEmployeePinModal(false);
         }}
+        refreshEmployees={async () => {
+          try {
+            const employeesData = await getEmployees();
+            console.log('Refreshed employees:', employeesData);
+            setEmployees(employeesData);
+            showAlert('Success', 'Employee list refreshed', 'success');
+          } catch (error) {
+            console.error('Failed to refresh employees', error);
+            showAlert('Error', 'Failed to refresh employee list', 'error');
+          }
+        }}
       />
       <SignedIn>
         <View style={styles.signedInContainer}>

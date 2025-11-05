@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, Alert, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { validateEmployeePin } from '../lib/api';
 import { Employee } from '../types';
@@ -9,13 +9,15 @@ interface EmployeePinLoginProps {
   employees: Employee[];
   onEmployeeSelected: (employee: Employee) => void;
   onClose: () => void;
+  refreshEmployees: () => void;
 }
 
 const EmployeePinLogin: React.FC<EmployeePinLoginProps> = ({
   visible,
   employees,
   onEmployeeSelected,
-  onClose
+  onClose,
+  refreshEmployees
 }) => {
   console.log('EmployeePinLogin component initialized with visible:', visible);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
@@ -100,7 +102,12 @@ const EmployeePinLogin: React.FC<EmployeePinLoginProps> = ({
               <Text style={styles.modalSubtitle}>
                 Please select an employee to continue
               </Text>
-              
+              <TouchableOpacity
+                style={styles.refreshButton}
+                onPress={() => refreshEmployees()}
+              >
+                <Text style={styles.refreshButtonText}>Refresh</Text>
+              </TouchableOpacity>
               <View style={styles.employeeList}>
                 {employees.map((employee) => (
                   <TouchableOpacity
@@ -271,6 +278,19 @@ const styles = StyleSheet.create({
   submitButtonText: {
     color: 'white',
     fontSize: 18,
+    fontWeight: '600',
+  },
+  refreshButton: {
+    backgroundColor: '#f0f0f0',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginBottom: 16,
+    alignSelf: 'center',
+  },
+  refreshButtonText: {
+    color: '#007AFF',
+    fontSize: 16,
     fontWeight: '600',
   },
 });
