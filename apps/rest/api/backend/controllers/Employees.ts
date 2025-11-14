@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
 import { getAuth } from '@clerk/express';
 import { db } from '../db';
-import { employeesTable, rolesTable, storeInfoTable } from '../db/schema';
-import { eq, and, sql } from 'drizzle-orm';
+import { employeesTable, rolesTable, storeInfoTable, ordersTable, orderItemsTable, productsTable } from '../db/schema';
+import { eq, and, sql, desc, gte } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -69,8 +69,8 @@ export default class EmployeesController {
                     description: rolesTable.description,
                 }
             }).from(employeesTable)
-            .leftJoin(rolesTable, eq(employeesTable.roleId, rolesTable.id))
-            .where(and(eq(employeesTable.storeInfoId, storeInfoId),sql`${employeesTable.deletedAt} IS NULL`));
+                .leftJoin(rolesTable, eq(employeesTable.roleId, rolesTable.id))
+                .where(and(eq(employeesTable.storeInfoId, storeInfoId), sql`${employeesTable.deletedAt} IS NULL`));
             res.status(200).json(employees);
         } catch (error) {
             console.error(error);
@@ -108,7 +108,7 @@ export default class EmployeesController {
             if (role.length === 0) {
                 return res.status(403).json({ message: 'Invalid Role Id' });
             }
-            if(role[0].name === 'admin') {
+            if (role[0].name === 'admin') {
                 return res.status(403).json({ message: 'Cannot assign admin role' });
             }
             if (!(await hasRole(auth.userId, ['admin', 'manager']))) {
@@ -139,8 +139,8 @@ export default class EmployeesController {
                     description: rolesTable.description,
                 }
             }).from(employeesTable)
-            .leftJoin(rolesTable, eq(employeesTable.roleId, rolesTable.id))
-            .where(eq(employeesTable.id, newEmployee[0].id));
+                .leftJoin(rolesTable, eq(employeesTable.roleId, rolesTable.id))
+                .where(eq(employeesTable.id, newEmployee[0].id));
             res.status(201).json(employeeWithRole[0]);
         } catch (error) {
             console.error(error);
@@ -174,14 +174,14 @@ export default class EmployeesController {
             }
             let updateData: any = { name, email, roleId };
             //if (password) {
-                //updateData.password = await bcrypt.hash(password, 10);
+            //updateData.password = await bcrypt.hash(password, 10);
             //}
             if (pin) {
                 updateData.password = pin;
             }
             const updatedEmployee = await db.update(employeesTable)
                 .set(updateData)
-                .where(and(eq(employeesTable.storeInfoId, storeInfoId),eq(employeesTable.id, employeeId)))
+                .where(and(eq(employeesTable.storeInfoId, storeInfoId), eq(employeesTable.id, employeeId)))
                 .returning();
             if (updatedEmployee.length === 0) {
                 return res.status(404).json({ message: 'Employee not found' });
@@ -201,8 +201,8 @@ export default class EmployeesController {
                     description: rolesTable.description,
                 }
             }).from(employeesTable)
-            .leftJoin(rolesTable, eq(employeesTable.roleId, rolesTable.id))
-            .where(eq(employeesTable.id, updatedEmployee[0].id));
+                .leftJoin(rolesTable, eq(employeesTable.roleId, rolesTable.id))
+                .where(eq(employeesTable.id, updatedEmployee[0].id));
             res.status(200).json(employeeWithRole[0]);
         } catch (error) {
             console.error(error);
@@ -247,18 +247,18 @@ export default class EmployeesController {
                     description: rolesTable.description,
                 }
             }).from(employeesTable)
-            .leftJoin(rolesTable, eq(employeesTable.roleId, rolesTable.id))
-            .where(and(eq(employeesTable.storeInfoId, storeInfoId), eq(employeesTable.id, employeeId), sql`${employeesTable.deletedAt} IS NULL`));
+                .leftJoin(rolesTable, eq(employeesTable.roleId, rolesTable.id))
+                .where(and(eq(employeesTable.storeInfoId, storeInfoId), eq(employeesTable.id, employeeId), sql`${employeesTable.deletedAt} IS NULL`));
             if (employee.length === 0) {
                 return res.status(404).json({ message: 'Employee not found' });
             }
-            if(employee[0].role  && employee[0].role.name === 'admin') {
+            if (employee[0].role && employee[0].role.name === 'admin') {
                 return res.status(403).json({ message: 'Cannot delete admin employee' });
             }
 
             const deletedEmployee = await db.update(employeesTable)
                 .set({ deletedAt: new Date() })
-                .where(and(eq(employeesTable.storeInfoId, storeInfoId),eq(employeesTable.id, employeeId)))
+                .where(and(eq(employeesTable.storeInfoId, storeInfoId), eq(employeesTable.id, employeeId)))
                 .returning();
             if (deletedEmployee.length === 0) {
                 return res.status(404).json({ message: 'Employee not found' });
@@ -278,8 +278,8 @@ export default class EmployeesController {
                     description: rolesTable.description,
                 }
             }).from(employeesTable)
-            .leftJoin(rolesTable, eq(employeesTable.roleId, rolesTable.id))
-            .where(eq(employeesTable.id, deletedEmployee[0].id));
+                .leftJoin(rolesTable, eq(employeesTable.roleId, rolesTable.id))
+                .where(eq(employeesTable.id, deletedEmployee[0].id));
             res.status(200).json({ message: 'Employee deleted (soft)', employee: employeeWithRole[0] });
         } catch (error) {
             console.error(error);
@@ -302,7 +302,7 @@ export default class EmployeesController {
         try {
             // Allow if user is admin/manager or the employee themselves
             //if (auth.userId !== employeeId && !(await hasRole(auth.userId, ['admin', 'manager']))) {
-              //  return res.status(403).json({ message: 'Forbidden' });
+            //  return res.status(403).json({ message: 'Forbidden' });
             //}
             // Get storeInfoId for the authenticated user
             const storeInfo = await db.select()
@@ -314,7 +314,7 @@ export default class EmployeesController {
             }
 
             const storeInfoId = storeInfo[0].id;
-            
+
             const employee = await db.select({
                 id: employeesTable.id,
                 storeInfoId: employeesTable.storeInfoId,
@@ -330,8 +330,8 @@ export default class EmployeesController {
                     description: rolesTable.description,
                 }
             }).from(employeesTable)
-            .leftJoin(rolesTable, eq(employeesTable.roleId, rolesTable.id))
-            .where(and(eq(employeesTable.storeInfoId, storeInfoId), eq(employeesTable.id, employeeId), sql`${employeesTable.deletedAt} IS NULL`));
+                .leftJoin(rolesTable, eq(employeesTable.roleId, rolesTable.id))
+                .where(and(eq(employeesTable.storeInfoId, storeInfoId), eq(employeesTable.id, employeeId), sql`${employeesTable.deletedAt} IS NULL`));
             if (employee.length === 0) {
                 return res.status(404).json({ message: 'Employee not found' });
             }
@@ -345,7 +345,274 @@ export default class EmployeesController {
         } catch (error) {
             console.error(error);
             res.status(500).json({ message: 'Error validating PIN' });
-        }   
+        }
+    }
+
+    // Sales tracking methods
+    static async getEmployeeSales(req: Request, res: Response) {
+        const auth = getAuth(req);
+        if (!auth.userId) {
+            return res.status(401).send('Unauthorized');
+        }
+
+        try {
+            const { period = 'month', employeeId } = req.query;
+
+            // Get storeInfoId for the authenticated user
+            const storeInfo = await db.select()
+                .from(storeInfoTable)
+                .where(eq(storeInfoTable.userId, auth.userId));
+
+            if (storeInfo.length === 0) {
+                return res.status(400).json({ message: 'Store information not found. Please set up your store first.' });
+            }
+
+            const storeInfoId = storeInfo[0].id;
+
+            // Check permissions
+            if (!(await hasRole(auth.userId, ['admin', 'manager']))) {
+                return res.status(403).json({ message: 'Forbidden' });
+            }
+
+            // Calculate date range
+            const now = new Date();
+            let startDate: Date;
+
+            switch (period) {
+                case 'week':
+                    startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                    break;
+                case 'month':
+                    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+                    break;
+                case 'year':
+                    startDate = new Date(now.getFullYear(), 0, 1);
+                    break;
+                case 'today':
+                    startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                    break;
+                default:
+                    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+            }
+
+            let whereCondition = and(
+                eq(ordersTable.storeInfoId, storeInfoId),
+                eq(ordersTable.status, 'completed'),
+                gte(sql`${ordersTable.date}::timestamp`, startDate.toISOString())
+            );
+
+            // Filter by specific employee if provided
+            if (employeeId && typeof employeeId === 'string') {
+                whereCondition = and(whereCondition, eq(ordersTable.employeeId, employeeId));
+            }
+
+            const salesData = await db.select({
+                employeeId: ordersTable.employeeId,
+                employeeName: employeesTable.name,
+                employeeRole: rolesTable.name,
+                totalSales: sql`SUM(${ordersTable.total})`,
+                orderCount: sql`COUNT(${ordersTable.id})`,
+                averageOrderValue: sql`AVG(${ordersTable.total})`,
+                totalProfit: sql`SUM(
+                    (SELECT SUM(oi.quantity * (oi.unitPrice - oi.unitCost))
+                     FROM ${orderItemsTable} oi 
+                     WHERE oi.orderId = ${ordersTable.id})
+                )`
+            })
+                .from(ordersTable)
+                .leftJoin(employeesTable, eq(ordersTable.employeeId, employeesTable.id))
+                .leftJoin(rolesTable, eq(employeesTable.roleId, rolesTable.id))
+                .where(whereCondition)
+                .groupBy(ordersTable.employeeId, employeesTable.name, rolesTable.name)
+                .orderBy(desc(sql`SUM(${ordersTable.total})`));
+
+            res.status(200).json(salesData);
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ message: 'Error fetching employee sales data' });
+        }
+    }
+
+    static async getEmployeeSalesDetails(req: Request, res: Response) {
+        const auth = getAuth(req);
+        if (!auth.userId) {
+            return res.status(401).send('Unauthorized');
+        }
+
+        try {
+            const employeeId = req.params.id;
+            const { period = 'month', limit = 50 } = req.query;
+
+            // Get storeInfoId for the authenticated user
+            const storeInfo = await db.select()
+                .from(storeInfoTable)
+                .where(eq(storeInfoTable.userId, auth.userId));
+
+            if (storeInfo.length === 0) {
+                return res.status(400).json({ message: 'Store information not found. Please set up your store first.' });
+            }
+
+            const storeInfoId = storeInfo[0].id;
+
+            // Check permissions
+            if (!(await hasRole(auth.userId, ['admin', 'manager']))) {
+                return res.status(403).json({ message: 'Forbidden' });
+            }
+
+            // Calculate date range
+            const now = new Date();
+            let startDate: Date;
+
+            switch (period) {
+                case 'week':
+                    startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                    break;
+                case 'month':
+                    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+                    break;
+                case 'year':
+                    startDate = new Date(now.getFullYear(), 0, 1);
+                    break;
+                case 'today':
+                    startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                    break;
+                default:
+                    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+            }
+
+            // Get detailed sales for specific employee
+            const salesDetails = await db.select({
+                orderId: ordersTable.id,
+                total: ordersTable.total,
+                date: ordersTable.date,
+                paymentMethod: ordersTable.paymentMethod,
+                itemCount: sql`COUNT(${orderItemsTable.productId})`,
+                profit: sql`SUM(${orderItemsTable.quantity} * (${orderItemsTable.unitPrice} - ${orderItemsTable.unitCost}))`
+            })
+                .from(ordersTable)
+                .leftJoin(orderItemsTable, eq(ordersTable.id, orderItemsTable.orderId))
+                .where(and(
+                    eq(ordersTable.storeInfoId, storeInfoId),
+                    eq(ordersTable.employeeId, employeeId),
+                    eq(ordersTable.status, 'completed'),
+                    gte(sql`${ordersTable.date}::timestamp`, startDate.toISOString())
+                ))
+                .groupBy(ordersTable.id, ordersTable.total, ordersTable.date, ordersTable.paymentMethod)
+                .orderBy(desc(ordersTable.date))
+                .limit(parseInt(limit as string) || 50);
+
+            // Get employee info
+            const employee = await db.select({
+                id: employeesTable.id,
+                name: employeesTable.name,
+                email: employeesTable.email,
+                role: rolesTable.name
+            })
+                .from(employeesTable)
+                .leftJoin(rolesTable, eq(employeesTable.roleId, rolesTable.id))
+                .where(and(
+                    eq(employeesTable.storeInfoId, storeInfoId),
+                    eq(employeesTable.id, employeeId),
+                    sql`${employeesTable.deletedAt} IS NULL`
+                ));
+
+            if (employee.length === 0) {
+                return res.status(404).json({ message: 'Employee not found' });
+            }
+
+            res.status(200).json({
+                employee: employee[0],
+                sales: salesDetails
+            });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ message: 'Error fetching employee sales details' });
+        }
+    }
+
+    static async getEmployeePerformanceComparison(req: Request, res: Response) {
+        const auth = getAuth(req);
+        if (!auth.userId) {
+            return res.status(401).send('Unauthorized');
+        }
+
+        try {
+            const { period = 'month' } = req.query;
+
+            // Get storeInfoId for the authenticated user
+            const storeInfo = await db.select()
+                .from(storeInfoTable)
+                .where(eq(storeInfoTable.userId, auth.userId));
+
+            if (storeInfo.length === 0) {
+                return res.status(400).json({ message: 'Store information not found. Please set up your store first.' });
+            }
+
+            const storeInfoId = storeInfo[0].id;
+
+            // Check permissions
+            if (!(await hasRole(auth.userId, ['admin', 'manager']))) {
+                return res.status(403).json({ message: 'Forbidden' });
+            }
+
+            // Calculate date range
+            const now = new Date();
+            let startDate: Date;
+
+            switch (period) {
+                case 'week':
+                    startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                    break;
+                case 'month':
+                    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+                    break;
+                case 'year':
+                    startDate = new Date(now.getFullYear(), 0, 1);
+                    break;
+                default:
+                    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+            }
+
+            // Get performance comparison data
+            const performanceData = await db.select({
+                employeeId: employeesTable.id,
+                employeeName: employeesTable.name,
+                employeeRole: rolesTable.name,
+                totalSales: sql`COALESCE(SUM(${ordersTable.total}), 0)`,
+                orderCount: sql`COUNT(${ordersTable.id})`,
+                averageOrderValue: sql`CASE WHEN COUNT(${ordersTable.id}) > 0 THEN AVG(${ordersTable.total}) ELSE 0 END`,
+                totalProfit: sql`COALESCE(SUM(
+                    (SELECT SUM(oi.quantity * (oi.unitPrice - oi.unitCost))
+                     FROM ${orderItemsTable} oi 
+                     WHERE oi.orderId = ${ordersTable.id})
+                ), 0)`,
+                profitMargin: sql`CASE 
+                    WHEN SUM(${ordersTable.total}) > 0 THEN 
+                        (SUM((SELECT SUM(oi.quantity * (oi.unitPrice - oi.unitCost))
+                              FROM ${orderItemsTable} oi 
+                              WHERE oi.orderId = ${ordersTable.id})) / SUM(${ordersTable.total})) * 100
+                    ELSE 0 
+                END`
+            })
+                .from(employeesTable)
+                .leftJoin(rolesTable, eq(employeesTable.roleId, rolesTable.id))
+                .leftJoin(ordersTable, and(
+                    eq(employeesTable.id, ordersTable.employeeId),
+                    eq(ordersTable.status, 'completed'),
+                    gte(sql`${ordersTable.date}::timestamp`, startDate.toISOString())
+                ))
+                .where(and(
+                    eq(employeesTable.storeInfoId, storeInfoId),
+                    sql`${employeesTable.deletedAt} IS NULL`
+                ))
+                .groupBy(employeesTable.id, employeesTable.name, rolesTable.name)
+                .orderBy(desc(sql`COALESCE(SUM(${ordersTable.total}), 0)`));
+
+            res.status(200).json(performanceData);
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ message: 'Error fetching employee performance comparison' });
+        }
     }
 }
 
@@ -359,7 +626,7 @@ export class RolesController {
         ];
         const inserted: string[] = [];
         const existed: string[] = [];
-        
+
         for (const role of defaultRoles) {
             const exists = await db.select().from(rolesTable).where(eq(rolesTable.name, role.name));
             if (exists.length === 0) {
@@ -371,10 +638,10 @@ export class RolesController {
         }
     }
     static async seedDefaultRoles(req: Request, res: Response) {
-        
+
         try {
             RolesController.doSeedDefaultRoles();
-            res.status(200).json({message: 'Default roles seeded successfully'});
+            res.status(200).json({ message: 'Default roles seeded successfully' });
         } catch (error) {
             console.error(error);
             res.status(500).json({ message: 'Error seeding roles' });
@@ -383,7 +650,7 @@ export class RolesController {
     static async getRoles(req: Request, res: Response) {
         try {
             let roles = await db.select().from(rolesTable);
-            if(roles.length === 0) {
+            if (roles.length === 0) {
                 await RolesController.doSeedDefaultRoles();
                 roles = await db.select().from(rolesTable);
             }
@@ -394,7 +661,7 @@ export class RolesController {
         }
     }
 
-    
+
 
     static async promoteMeAdmin(req: Request, res: Response) {
         const auth = getAuth(req);
@@ -456,8 +723,8 @@ export class RolesController {
                     description: rolesTable.description,
                 }
             }).from(employeesTable)
-            .leftJoin(rolesTable, eq(employeesTable.roleId, rolesTable.id))
-            .where(eq(employeesTable.id, newEmployee[0].id));
+                .leftJoin(rolesTable, eq(employeesTable.roleId, rolesTable.id))
+                .where(eq(employeesTable.id, newEmployee[0].id));
             res.status(201).json({ message: 'Promoted to admin', employee: employeeWithRole[0] });
         } catch (error) {
             console.error(error);
