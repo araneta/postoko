@@ -9,6 +9,7 @@ import { fileURLToPath } from 'url';
 import 'dotenv/config';
 import { clerkMiddleware,requireAuth } from '@clerk/express';
 import Stripe from 'stripe';
+import { setupSwagger } from './swagger.js';
 
 import productsRoutes from './routes/products';
 import ordersRoutes from './routes/orders';
@@ -33,7 +34,8 @@ app.use(cors());
 
 app.use(clerkMiddleware());
 
-
+// Setup Swagger documentation
+setupSwagger(app);
 
 app.use('/api/auth',authRoutes);
 app.use('/api/products',productsRoutes);
