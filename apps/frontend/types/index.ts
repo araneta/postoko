@@ -314,3 +314,27 @@ export interface EmployeePINLoginResponse {
   employee: Employee
 }
 
+export interface EmployeeSales {
+  employeeId: string;
+  employeeName: string;
+  employeeRole: string;
+  totalSales: string;
+  orderCount: number;
+  averageOrderValue: string;
+  totalProfit: string;
+  profitMargin: number;
+}
+
+export interface EmployeePerformance extends EmployeeSales {
+  period: string;
+  rank?: number;
+}
+
+export interface EmployeeSalesDetail {
+  orderId: string;
+  date: string;
+  total: string;
+  profit: string;
+  items: CartItem[];
+}
+

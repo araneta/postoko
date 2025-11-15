@@ -188,6 +188,13 @@ export default function TabLayout() {
           href: allowedTabs.includes('settings') ? undefined : null,
         }}
       />
+      <Tabs.Screen
+        name="employee-sales"
+        options={{
+          title: 'Employee Sales',
+          tabBarButton: () => null, // Hide from tab bar
+        }}
+      />
     </Tabs>
   );
 }

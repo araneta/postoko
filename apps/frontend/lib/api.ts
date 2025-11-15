@@ -1,7 +1,7 @@
 //const BASE_URL = 'https://api.example.com';
 const BASE_URL = 'http://localhost:3000/api';
 
-import { User, Product, Order, Settings, Customer, CustomerPurchase, Employee, Role, CartItem, StripeSessionData, StripeSessionDetails, PayPalOrdersCreateRequest,OrdersGetRequest, EmployeePINLoginResponse } from '../types';
+import { User, Product, Order, Settings, Customer, CustomerPurchase, Employee, Role, CartItem, StripeSessionData, StripeSessionDetails, PayPalOrdersCreateRequest,OrdersGetRequest, EmployeePINLoginResponse, EmployeeSales, EmployeePerformance, EmployeeSalesDetail } from '../types';
 import { safeToNumber, safeToInteger } from '../utils/formatters';
 
 // API Client class to handle authentication
@@ -250,6 +250,19 @@ class APIClient {
     return this.fetchJSON<Role[]>(`${BASE_URL}/roles`);
   }
 
+  // Employee Sales Tracking
+  async getEmployeesSales(period: 'week' | 'month' | 'year' = 'month'): Promise<EmployeeSales[]> {
+    return this.fetchJSON<EmployeeSales[]>(`${BASE_URL}/employees/sales?period=${period}`);
+  }
+
+  async getEmployeesPerformance(period: 'week' | 'month' | 'year' = 'week'): Promise<EmployeePerformance[]> {
+    return this.fetchJSON<EmployeePerformance[]>(`${BASE_URL}/employees/sales/performance?period=${period}`);
+  }
+
+  async getEmployeeSalesDetail(employeeId: string, period: 'week' | 'month' | 'year' = 'month', limit: number = 50): Promise<{ employee: EmployeeSales; sales: EmployeeSalesDetail[] }> {
+    return this.fetchJSON<{ employee: EmployeeSales; sales: EmployeeSalesDetail[] }>(`${BASE_URL}/employees/${employeeId}/sales?period=${period}&limit=${limit}`);
+  }
+
   async processCardPaymentStripe(cart:CartItem[]): Promise<StripeSessionData> {
       const data = await this.fetchJSON<StripeSessionData>(`${BASE_URL}/stripe/create-checkout-session`, {
         method: 'POST',
@@ -330,4 +343,9 @@ export const processCardPaymentStripe = (cart: CartItem[]) => apiClient.processC
 export const getStripeSession = (sessionID: string) => apiClient.getStripeSession(sessionID);          
 //paypal payment processing
 export const processPaypal = (cart: CartItem[]) => apiClient.processPaypal(cart); // Export the function to process PayPal payments
-export const getPaypalSession = (sessionID: string) => apiClient.getPaypalSession(sessionID);          
+export const getPaypalSession = (sessionID: string) => apiClient.getPaypalSession(sessionID);
+
+// Employee Sales exports
+export const getEmployeesSales = (period: 'week' | 'month' | 'year' = 'month') => apiClient.getEmployeesSales(period);
+export const getEmployeesPerformance = (period: 'week' | 'month' | 'year' = 'week') => apiClient.getEmployeesPerformance(period);
+export const getEmployeeSalesDetail = (employeeId: string, period: 'week' | 'month' | 'year' = 'month', limit: number = 50) => apiClient.getEmployeeSalesDetail(employeeId, period, limit);          

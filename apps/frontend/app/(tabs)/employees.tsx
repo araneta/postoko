@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Button, Modal, TextInput, Alert, Pressable, ScrollView } from 'react-native';
-import { Redirect } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import { getEmployees, addEmployee, updateEmployee, deleteEmployee, getRoles } from '../../lib/api';
 import { Employee, Role } from '../../types';
 import { Ionicons } from '@expo/vector-icons';
@@ -152,7 +152,16 @@ const EmployeesScreen = () => {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Employees</Text>
-        <Button title="Add" onPress={handleAddEmployee} />
+        <View style={styles.headerButtons}>
+          <TouchableOpacity 
+            style={styles.salesButton} 
+            onPress={() => router.push('/(tabs)/employee-sales')}
+          >
+            <Ionicons name="stats-chart" size={16} color="#007AFF" />
+            <Text style={styles.salesButtonText}>Sales</Text>
+          </TouchableOpacity>
+          <Button title="Add" onPress={handleAddEmployee} />
+        </View>
       </View>
       <TextInput
         style={styles.search}
@@ -253,6 +262,17 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16 },
   title: { fontSize: 24, fontWeight: 'bold' },
+  headerButtons: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  salesButton: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: '#f0f8ff', 
+    paddingHorizontal: 12, 
+    paddingVertical: 8, 
+    borderRadius: 8,
+    gap: 4,
+  },
+  salesButtonText: { color: '#007AFF', fontWeight: '500', fontSize: 14 },
   search: { backgroundColor: '#f2f2f2', marginHorizontal: 16, borderRadius: 8, padding: 10, marginBottom: 8 },
   item: { flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderColor: '#eee' },
   name: { fontSize: 16, fontWeight: 'bold' },

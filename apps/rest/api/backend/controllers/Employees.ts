@@ -414,9 +414,9 @@ export default class EmployeesController {
                 orderCount: sql`COUNT(${ordersTable.id})`,
                 averageOrderValue: sql`AVG(${ordersTable.total})`,
                 totalProfit: sql`SUM(
-                    (SELECT SUM(oi.quantity * (oi.unitPrice - oi.unitCost))
+                    (SELECT SUM(oi.quantity * (oi."unitPrice" - oi."unitCost"))
                      FROM ${orderItemsTable} oi 
-                     WHERE oi.orderId = ${ordersTable.id})
+                     WHERE oi."orderId" = ${ordersTable.id})
                 )`
             })
                 .from(ordersTable)
@@ -582,15 +582,15 @@ export default class EmployeesController {
                 orderCount: sql`COUNT(${ordersTable.id})`,
                 averageOrderValue: sql`CASE WHEN COUNT(${ordersTable.id}) > 0 THEN AVG(${ordersTable.total}) ELSE 0 END`,
                 totalProfit: sql`COALESCE(SUM(
-                    (SELECT SUM(oi.quantity * (oi.unitPrice - oi.unitCost))
+                    (SELECT SUM(oi.quantity * (oi."unitPrice" - oi."unitCost"))
                      FROM ${orderItemsTable} oi 
-                     WHERE oi.orderId = ${ordersTable.id})
+                     WHERE oi."orderId" = ${ordersTable.id})
                 ), 0)`,
                 profitMargin: sql`CASE 
                     WHEN SUM(${ordersTable.total}) > 0 THEN 
-                        (SUM((SELECT SUM(oi.quantity * (oi.unitPrice - oi.unitCost))
+                        (SUM((SELECT SUM(oi.quantity * (oi."unitPrice" - oi."unitCost"))
                               FROM ${orderItemsTable} oi 
-                              WHERE oi.orderId = ${ordersTable.id})) / SUM(${ordersTable.total})) * 100
+                              WHERE oi."orderId" = ${ordersTable.id})) / SUM(${ordersTable.total})) * 100
                     ELSE 0 
                 END`
             })

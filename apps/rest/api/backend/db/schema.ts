@@ -1,7 +1,7 @@
 import { integer, pgTable, varchar, numeric, text, primaryKey, foreignKey, unique, boolean, timestamp } from "drizzle-orm/pg-core";
 export const usersTable = pgTable("users", {
   id: varchar({ length: 255 }).primaryKey(),
-  name: varchar({ length: 255 }).notNull(),  
+  name: varchar({ length: 255 }).notNull(),
   email: varchar({ length: 255 }).notNull().unique(),
   lastLogin: timestamp(),
   lastIp: varchar({ length: 50 }),
@@ -32,6 +32,7 @@ export const ordersTable = pgTable("orders", {
 });
 
 export const orderItemsTable = pgTable("order_items", {
+  //id: integer().primaryKey().generatedAlwaysAsIdentity(),
   orderId: varchar({ length: 36 }).notNull().references(() => ordersTable.id),
   productId: varchar({ length: 36 }).notNull().references(() => productsTable.id),
   quantity: integer().notNull(),
