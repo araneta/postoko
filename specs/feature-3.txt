@@ -1,7 +1,7 @@
 Phase 3: Operational Efficiency (Weeks 9-12)
 6. Employee Management [done]
 Multiple user accounts with different permissions [done]
-Sales tracking by employee [working]
+Sales tracking by employee [done]
 
 Secure PIN login [done]
 1. setelah admin login awal harusnya langsung keselect login sebagain admin. sekarang setelah admin login awal blom bisa buat order karena user aktiv belom terselect admin [done]
@@ -16,7 +16,7 @@ admin = dashboard, index (Point of Sale), products, alerts, orders, analytics, c
 
 7. Advanced Inventory Features
 Bulk product import via CSV
-Product categories and filtering
+Product categories and filtering [working]
 Supplier information tracking
 Why valuable: Saves hours of manual data entry
 

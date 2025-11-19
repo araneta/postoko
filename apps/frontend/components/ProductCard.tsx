@@ -26,6 +26,9 @@ export default function ProductCard({ product, onPress, showAddToCart = true }: 
       <View style={styles.content}>
         <Text style={styles.name}>{product.name}</Text>
         <Text style={styles.price}>{formatPrice(product.price)}</Text>
+        {(product.categoryName || product.category) && (
+          <Text style={styles.category}>{product.categoryName || product.category}</Text>
+        )}
         <View style={styles.stockContainer}>
           <Text style={[styles.stock, isLowStock && styles.lowStockText]}>
             In Stock: {product.stock}
@@ -84,6 +87,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#007AFF',
     fontWeight: '600',
+  },
+  category: {
+    fontSize: 12,
+    color: '#666',
+    backgroundColor: '#f0f0f0',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+    marginTop: 4,
   },
   stockContainer: {
     flexDirection: 'row',

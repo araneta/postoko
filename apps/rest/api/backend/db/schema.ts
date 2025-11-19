@@ -7,6 +7,14 @@ export const usersTable = pgTable("users", {
   lastIp: varchar({ length: 50 }),
 });
 
+export const categoriesTable = pgTable("categories", {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  storeInfoId: integer().notNull().references(() => storeInfoTable.id),
+  name: varchar({ length: 255 }).notNull(),
+  description: text(),
+  createdAt: timestamp().notNull().defaultNow(),
+});
+
 export const productsTable = pgTable("products", {
   id: varchar({ length: 36 }).primaryKey(),
   storeInfoId: integer().notNull().references(() => storeInfoTable.id),
@@ -17,7 +25,7 @@ export const productsTable = pgTable("products", {
   image: text(),
   stock: integer().notNull(),
   minStock: integer().default(10), // Minimum stock threshold for notifications
-  category: varchar({ length: 255 }).notNull(),
+  categoryId: integer().notNull().references(() => categoriesTable.id),
   barcode: varchar({ length: 255 }),
 });
 

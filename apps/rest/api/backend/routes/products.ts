@@ -56,9 +56,9 @@ router.get('',requireAuth(), ProductsController.getProducts);
  *               description:
  *                 type: string
  *                 example: "High-quality wireless headphones"
- *               category:
- *                 type: string
- *                 example: "Electronics"
+ *               categoryId:
+ *                 type: integer
+ *                 example: 1
  *               stock:
  *                 type: number
  *                 example: 50
@@ -111,8 +111,8 @@ router.post('', requireAuth(), ProductsController.createProduct);
  *                 type: number
  *               description:
  *                 type: string
- *               category:
- *                 type: string
+ *               categoryId:
+ *                 type: integer
  *               stock:
  *                 type: number
  *               image_url:

@@ -14,10 +14,13 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import ProductCard from '../../components/ProductCard';
 import BarcodeScanner from '../../components/BarcodeScanner';
+import CategoryPicker from '../../components/CategoryPicker';
+import CategoryFilter from '../../components/CategoryFilter';
 import useStore from '../../store/useStore';
 import { Product } from '../../types';
 import { pickImage, takePhoto, uploadImageToImageKit, checkFileSize } from '../../lib/imageUpload';
 import { Redirect } from 'expo-router';
+import { filterProducts } from '../../utils/searchUtils';
 
 const initialFormData = {
   name: '',
@@ -25,6 +28,8 @@ const initialFormData = {
   cost: '',
   stock: '',
   category: '',
+  categoryId: '',
+  categoryName: '',
   description: '',
   image: '',
   barcode: '',
@@ -32,7 +37,7 @@ const initialFormData = {
 };
 
 export default function ProductsScreen() {
-  const { products, addProduct, updateProduct, deleteProduct,authenticatedEmployee } = useStore();
+  const { products, categories, addProduct, updateProduct, deleteProduct, authenticatedEmployee } = useStore();
   const [modalVisible, setModalVisible] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -41,12 +46,17 @@ export default function ProductsScreen() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>();
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Redirect to dashboard if no employee is logged in
   if (!authenticatedEmployee) {
     console.log('No authenticated employee, redirecting to dashboard');
     return <Redirect href="/(tabs)/dashboard" />;
   }
+
+  // Filter products based on selected category and search query
+  const filteredProducts = filterProducts(products, searchQuery, selectedCategoryId);
   
 
   const handleSave = async () => {
@@ -56,7 +66,9 @@ export default function ProductsScreen() {
       price: parseFloat(formData.price),
       cost: parseFloat(formData.cost) || 0,
       stock: parseInt(formData.stock),
-      category: formData.category,
+      category: formData.categoryName || formData.category, // Backward compatibility
+      categoryId: formData.categoryId,
+      categoryName: formData.categoryName,
       description: formData.description,
       image: formData.image || undefined,
       barcode: formData.barcode || undefined,
@@ -86,6 +98,8 @@ export default function ProductsScreen() {
       cost: product.cost.toString(),
       stock: product.stock.toString(),
       category: product.category,
+      categoryId: product.categoryId || '',
+      categoryName: product.categoryName || product.category,
       description: product.description || '',
       image: product.image || '',
       barcode: product.barcode || '',
@@ -159,6 +173,15 @@ export default function ProductsScreen() {
     setShowBarcodeScanner(false);
   };
 
+  const handleCategoryChange = (categoryId: string, categoryName: string) => {
+    setFormData({ 
+      ...formData, 
+      categoryId, 
+      categoryName,
+      category: categoryName // For backward compatibility
+    });
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -171,8 +194,34 @@ export default function ProductsScreen() {
         </Pressable>
       </View>
 
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search products..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+        {searchQuery.length > 0 && (
+          <Pressable
+            style={styles.clearButton}
+            onPress={() => setSearchQuery('')}
+          >
+            <Ionicons name="close-circle" size={20} color="#666" />
+          </Pressable>
+        )}
+      </View>
+
+      {/* Category Filter */}
+      <CategoryFilter
+        categories={categories}
+        selectedCategoryId={selectedCategoryId}
+        onCategorySelect={setSelectedCategoryId}
+      />
+
       <FlatList
-        data={products}
+        data={filteredProducts}
         renderItem={({ item }) => (
           <View style={styles.productContainer}>
             <View style={styles.productCardWrapper}>
@@ -298,11 +347,11 @@ export default function ProductsScreen() {
               keyboardType="number-pad"
             />
 
-            <TextInput
-              style={styles.input}
-              placeholder="Category"
-              value={formData.category}
-              onChangeText={(text) => setFormData({ ...formData, category: text })}
+            <CategoryPicker
+              categories={categories}
+              selectedCategoryId={formData.categoryId}
+              onCategoryChange={handleCategoryChange}
+              placeholder="Select a category"
             />
 
             <View style={styles.barcodeContainer}>
@@ -594,5 +643,27 @@ const styles = StyleSheet.create({
     borderColor: '#e5e5e5',
     borderRadius: 8,
     backgroundColor: '#007AFF',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    marginHorizontal: 16,
+    marginVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e5e5',
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: 12,
+    fontSize: 16,
+  },
+  clearButton: {
+    padding: 4,
   },
 });

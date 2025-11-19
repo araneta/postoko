@@ -7,6 +7,14 @@ export interface User {
   "lastIp": string;
 
 }
+export interface Category {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -16,7 +24,9 @@ export interface Product {
   image?: string;
   stock: number;
   minStock?: number; // Minimum stock threshold for notifications
-  category: string;
+  category: string; // Keep as string for backward compatibility
+  categoryId?: string; // New field for category ID
+  categoryName?: string; // New field for category name display
   barcode?: string;
 }
 

@@ -12,6 +12,7 @@ import Stripe from 'stripe';
 import { setupSwagger } from './swagger.js';
 
 import productsRoutes from './routes/products';
+import categoriesRoutes from './routes/categories';
 import ordersRoutes from './routes/orders';
 import authRoutes from './routes/auth';
 import settingsRoutes from './routes/settings';
@@ -39,6 +40,7 @@ setupSwagger(app);
 
 app.use('/api/auth',authRoutes);
 app.use('/api/products',productsRoutes);
+app.use('/api/categories',categoriesRoutes);
 app.use('/api/orders',ordersRoutes);
 app.use('/api/settings',settingsRoutes);
 app.use('/api/customers',customersRoutes);

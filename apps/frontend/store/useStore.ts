@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Product, CartItem, Order, Currency, Settings, StoreInfo, PrinterSettings, PaymentDetails, PaymentConfig, StockAlert, Customer, Employee } from '../types';
+import { Product, CartItem, Order, Currency, Settings, StoreInfo, PrinterSettings, PaymentDetails, PaymentConfig, StockAlert, Customer, Employee, Category } from '../types';
 import { apiClient, configureAPI } from '../lib/api';
 import { safeToFixed } from '../utils/formatters';
 import paymentService from '../lib/payment';
@@ -8,6 +8,7 @@ import notificationService from '../lib/notifications';
 
 interface StoreState {
   products: Product[];
+  categories: Category[];
   cart: CartItem[];
   orders: Order[];
   settings: Settings;
@@ -18,6 +19,9 @@ interface StoreState {
   addProduct: (product: Product) => Promise<void>;
   updateProduct: (product: Product) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
+  addCategory: (category: Category) => Promise<void>;
+  updateCategory: (category: Category) => Promise<void>;
+  deleteCategory: (id: string) => Promise<void>;
   addToCart: (product: Product) => void;
   removeFromCart: (productId: string) => void;
   updateCartItemQuantity: (productId: string, quantity: number) => void;
@@ -66,6 +70,7 @@ const defaultPaymentConfig: PaymentConfig = {
 
 const useStore = create<StoreState>((set, get) => ({
   products: [],
+  categories: [],
   cart: [],
   orders: [],
   settings: {
@@ -91,13 +96,17 @@ const useStore = create<StoreState>((set, get) => ({
     }
     
     set({ initializing: true });
-    //try {
-      const [products, orders, settings] = await Promise.all([
+    try {
+      const [products, categories, orders, settings] = await Promise.all([
         apiClient.getProducts(),
+        apiClient.getCategories(),
         apiClient.getOrders(),
         apiClient.getSettings()
       ]);
       
+      // Categories are now handled by the API client (with mock fallback)
+      const finalCategories = categories;
+
       // Add sample products with barcodes for testing if no products exist
       let finalProducts = products;
       if (products.length === 0) {
@@ -119,6 +128,8 @@ const useStore = create<StoreState>((set, get) => ({
             image: 'https://images.unsplash.com/photo-1629203851122-3726ecdf080e?w=400',
             stock: 50,
             category: 'Beverages',
+            categoryId: 'cat-1',
+            categoryName: 'Beverages',
             barcode: '1234567890123',
             minStock: 20
           },
@@ -131,6 +142,8 @@ const useStore = create<StoreState>((set, get) => ({
             image: 'https://images.unsplash.com/photo-1566478989037-eec170784d0b?w=400',
             stock: 30,
             category: 'Snacks',
+            categoryId: 'cat-2',
+            categoryName: 'Snacks',
             barcode: '9876543210987',
             minStock: 15
           },
@@ -143,6 +156,8 @@ const useStore = create<StoreState>((set, get) => ({
             image: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=400',
             stock: 100,
             category: 'Beverages',
+            categoryId: 'cat-1',
+            categoryName: 'Beverages',
             barcode: '4567891234567',
             minStock: 30
           },
@@ -155,6 +170,8 @@ const useStore = create<StoreState>((set, get) => ({
             image: 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=400',
             stock: 25,
             category: 'Candy',
+            categoryId: 'cat-3',
+            categoryName: 'Candy',
             barcode: '7891234567890',
             minStock: 10
           }
@@ -193,14 +210,15 @@ const useStore = create<StoreState>((set, get) => ({
       
       set({
         products: finalProducts,
+        categories: finalCategories,
         orders,
         settings: finalSettings,
         initializing: false,
       });
-    //} catch (error) {
-      //console.error('Failed to initialize store:', error);
-      //set({ initializing: false });
-    //}
+    } catch (error) {
+      console.error('Failed to initialize store:', error);
+      set({ initializing: false });
+    }
   },
 
   addProduct: async (product) => {
@@ -237,6 +255,44 @@ const useStore = create<StoreState>((set, get) => ({
       }));
     } catch (error) {
       console.error('Failed to delete product:', error);
+      throw error;
+    }
+  },
+
+  addCategory: async (category) => {
+    try {
+      await apiClient.addCategory(category);
+      set(state => ({
+        categories: [...state.categories, category]
+      }));
+    } catch (error) {
+      console.error('Failed to add category:', error);
+      throw error;
+    }
+  },
+
+  updateCategory: async (category) => {
+    try {
+      await apiClient.updateCategory(category);
+      set(state => ({
+        categories: state.categories.map(c =>
+          c.id === category.id ? category : c
+        )
+      }));
+    } catch (error) {
+      console.error('Failed to update category:', error);
+      throw error;
+    }
+  },
+
+  deleteCategory: async (id) => {
+    try {
+      await apiClient.deleteCategory(id);
+      set(state => ({
+        categories: state.categories.filter(c => c.id !== id)
+      }));
+    } catch (error) {
+      console.error('Failed to delete category:', error);
       throw error;
     }
   },
@@ -437,6 +493,7 @@ const useStore = create<StoreState>((set, get) => ({
     console.log('Clearing store');
     set({
       products: [],
+      categories: [],
       cart: [],
       orders: [],
       settings: {

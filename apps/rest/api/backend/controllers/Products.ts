@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import {  getAuth } from '@clerk/express';
 import { db } from '../db';
-import { productsTable, storeInfoTable } from '../db/schema';
+import { productsTable, storeInfoTable, categoriesTable } from '../db/schema';
 import { eq } from 'drizzle-orm';
 
 export default class ProductsController {
@@ -23,7 +23,22 @@ export default class ProductsController {
             }
 
             const storeInfoId = storeInfo[0].id;
-            const products = await db.select().from(productsTable)
+            const products = await db.select({
+                id: productsTable.id,
+                storeInfoId: productsTable.storeInfoId,
+                name: productsTable.name,
+                price: productsTable.price,
+                cost: productsTable.cost,
+                description: productsTable.description,
+                image: productsTable.image,
+                stock: productsTable.stock,
+                minStock: productsTable.minStock,
+                categoryId: productsTable.categoryId,
+                categoryName: categoriesTable.name,
+                barcode: productsTable.barcode,
+            })
+            .from(productsTable)
+            .leftJoin(categoriesTable, eq(productsTable.categoryId, categoriesTable.id))
             .where(eq(productsTable.storeInfoId, storeInfoId));
             res.status(200).json(products);
         } catch (error) {
@@ -39,11 +54,11 @@ export default class ProductsController {
             return res.status(401).send('Unauthorized');
         }
 
-        const { id, name, price, stock, minStock, category, description, image, barcode, cost } = req.body;
+        const { id, name, price, stock, minStock, categoryId, description, image, barcode, cost } = req.body;
 
         // Validate required fields
-        if (!id || !name || !price || !stock || !category) {
-            return res.status(400).json({ message: 'Missing required fields: id, name, price, stock, category' });
+        if (!id || !name || !price || !stock || !categoryId) {
+            return res.status(400).json({ message: 'Missing required fields: id, name, price, stock, categoryId' });
         }
 
         try {
@@ -67,7 +82,7 @@ export default class ProductsController {
                 cost: cost,
                 stock: stock,
                 minStock: minStock || 10, // Default to 10 if not provided
-                category: category,
+                categoryId: categoryId,
                 description: description || null,
                 image: image||'',
                 barcode: barcode||'',
@@ -87,11 +102,11 @@ export default class ProductsController {
             return res.status(401).send('Unauthorized');
         }
         const productId = req.params.id;
-        const {  name, price, stock, minStock, category, description, image, barcode, cost } = req.body;
+        const {  name, price, stock, minStock, categoryId, description, image, barcode, cost } = req.body;
 
         // Validate required fields
-        if (!name || !price || !stock || !category) {
-            return res.status(400).json({ message: 'Missing required fields: name, price, stock, category' });
+        if (!name || !price || !stock || !categoryId) {
+            return res.status(400).json({ message: 'Missing required fields: name, price, stock, categoryId' });
         }
 
         try {
@@ -103,7 +118,7 @@ export default class ProductsController {
                     stock: stock,
                     cost: cost,
                     minStock: minStock || 10, // Default to 10 if not provided
-                    category: category,
+                    categoryId: categoryId,
                     description: description || null,
                     image: image||'',
                     barcode: barcode||'',

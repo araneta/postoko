@@ -6,19 +6,22 @@ import ProductCard from '../../components/ProductCard';
 import BarcodeScanner from '../../components/BarcodeScanner';
 import PaymentModal from '../../components/PaymentModal';
 import CustomAlert from '../../components/CustomAlert';
-import EmployeePinLogin from '@/components/EmployeePinLogin'
+import EmployeePinLogin from '@/components/EmployeePinLogin';
+import CategoryFilter from '../../components/CategoryFilter';
 import useStore from '../../store/useStore';
 import { printReceipt } from '../../utils/printer';
 import { PaymentDetails, Employee } from '../../types';
 import { getCustomers, getEmployees } from '../../lib/api';
 import { Customer } from '../../types';
 import loyaltyService from '../../lib/loyalty';
+import { filterProducts, filterCustomers } from '../../utils/searchUtils';
 
 export default function POSScreen() {
   console.log('POS screen component initialized');
   const router = useRouter();
   const {
     products,
+    categories,
     cart,
     addToCart,
     removeFromCart,
@@ -34,7 +37,8 @@ export default function POSScreen() {
 
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showScannerModal, setShowScannerModal] = useState(false);
-
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>();
+  const [searchQuery, setSearchQuery] = useState('');
   const [barcodeInput, setBarcodeInput] = useState('');
   const [printError, setPrintError] = useState<string | null>(null);
   const [customAlert, setCustomAlert] = useState<{
@@ -210,11 +214,10 @@ export default function POSScreen() {
   const quickAmounts = [10000, 20000, 50000, 100000];
 
   // Filtered customers for picker modal
-  const filteredCustomers = customers.filter(
-    c =>
-      c.name.toLowerCase().includes(searchCustomer.toLowerCase()) ||
-      c.email.toLowerCase().includes(searchCustomer.toLowerCase())
-  );
+  const filteredCustomers = filterCustomers(customers, searchCustomer);
+
+  // Filter products based on selected category and search query
+  const filteredProducts = filterProducts(products, searchQuery, selectedCategoryId);
 
   const handleEmployeeSelected = (employee: Employee) => {
     console.log('Employee selected:', employee.name);
@@ -238,6 +241,18 @@ return (
               <Text style={{ color: '#007AFF', fontWeight: '600', fontSize: 16 }}>PIN Login</Text>
             </Pressable>*/}
             <Text style={styles.productsTitle}>Products</Text>
+            
+            {/* Search Bar */}
+            <View style={styles.searchContainer}>
+              <Ionicons name="search" size={16} color="#666" />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search products..."
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+            </View>
+            
             <View style={styles.barcodeContainer}>
               <TextInput
                 style={styles.barcodeInput}
@@ -260,8 +275,16 @@ return (
               </Pressable>
             </View>
           </View>
+          
+          {/* Category Filter */}
+          <CategoryFilter
+            categories={categories}
+            selectedCategoryId={selectedCategoryId}
+            onCategorySelect={setSelectedCategoryId}
+          />
+          
           <FlatList
-            data={products}
+            data={filteredProducts}
             renderItem={({ item }) => (
               <ProductCard
                 product={item}
@@ -381,10 +404,10 @@ return (
             <View style={{ backgroundColor: 'white', borderRadius: 12, padding: 24, width: 350, maxHeight: 500 }}>
               <Text style={{ fontSize: 20, fontWeight: '600', marginBottom: 16 }}>Select Customer</Text>
               {/* Search Box */}
-              <View style={styles.searchContainer}>
+              <View style={styles.customerSearchContainer}>
                 <Ionicons name="search" size={18} color="#888" style={{ marginRight: 8 }} />
                 <TextInput
-                  style={styles.searchInput}
+                  style={styles.customerSearchInput}
                   placeholder="Search customers by name or email"
                   value={searchCustomer}
                   onChangeText={setSearchCustomer}
@@ -466,7 +489,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 8,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    marginBottom: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e5e5',
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 14,
   },
   productsTitle: {
     fontSize: 20,
@@ -707,7 +746,7 @@ const styles = StyleSheet.create({
   completeButtonText: {
     color: 'white',
   },
-  searchContainer: {
+  customerSearchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#f5f5f5',
@@ -716,7 +755,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
-  searchInput: {
+  customerSearchInput: {
     flex: 1,
     fontSize: 16,
     paddingVertical: 6,

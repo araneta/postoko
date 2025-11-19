@@ -1,8 +1,9 @@
 //const BASE_URL = 'https://api.example.com';
 const BASE_URL = 'http://localhost:3000/api';
 
-import { User, Product, Order, Settings, Customer, CustomerPurchase, Employee, Role, CartItem, StripeSessionData, StripeSessionDetails, PayPalOrdersCreateRequest,OrdersGetRequest, EmployeePINLoginResponse, EmployeeSales, EmployeePerformance, EmployeeSalesDetail } from '../types';
+import { User, Product, Order, Settings, Customer, CustomerPurchase, Employee, Role, CartItem, StripeSessionData, StripeSessionDetails, PayPalOrdersCreateRequest,OrdersGetRequest, EmployeePINLoginResponse, EmployeeSales, EmployeePerformance, EmployeeSalesDetail, Category } from '../types';
 import { safeToNumber, safeToInteger } from '../utils/formatters';
+import { mockCategoryService } from './mockCategoryService';
 
 // API Client class to handle authentication
 class APIClient {
@@ -50,6 +51,51 @@ class APIClient {
 
     if (!res.ok) throw new Error(await res.text());
     return res.json();
+  }
+
+  // Categories
+  async getCategories(): Promise<Category[]> {
+    try {
+      return await this.fetchJSON<Category[]>(`${BASE_URL}/categories`);
+    } catch (error) {
+      console.warn('Categories API not available, using mock service:', error);
+      return await mockCategoryService.getCategories();
+    }
+  }
+
+  async addCategory(category: Category): Promise<void> {
+    try {
+      await this.fetchJSON(`${BASE_URL}/categories`, {
+        method: 'POST',
+        body: JSON.stringify(category),
+      });
+    } catch (error) {
+      console.warn('Categories API not available, using mock service:', error);
+      await mockCategoryService.addCategory(category);
+    }
+  }
+
+  async updateCategory(category: Category): Promise<void> {
+    try {
+      await this.fetchJSON(`${BASE_URL}/categories/${category.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(category),
+      });
+    } catch (error) {
+      console.warn('Categories API not available, using mock service:', error);
+      await mockCategoryService.updateCategory(category);
+    }
+  }
+
+  async deleteCategory(id: string): Promise<void> {
+    try {
+      await this.fetchJSON(`${BASE_URL}/categories/${id}`, {
+        method: 'DELETE',
+      });
+    } catch (error) {
+      console.warn('Categories API not available, using mock service:', error);
+      await mockCategoryService.deleteCategory(id);
+    }
   }
 
   // Products
@@ -344,6 +390,12 @@ export const getStripeSession = (sessionID: string) => apiClient.getStripeSessio
 //paypal payment processing
 export const processPaypal = (cart: CartItem[]) => apiClient.processPaypal(cart); // Export the function to process PayPal payments
 export const getPaypalSession = (sessionID: string) => apiClient.getPaypalSession(sessionID);
+
+// Category exports
+export const getCategories = () => apiClient.getCategories();
+export const addCategory = (category: Category) => apiClient.addCategory(category);
+export const updateCategory = (category: Category) => apiClient.updateCategory(category);
+export const deleteCategory = (id: string) => apiClient.deleteCategory(id);
 
 // Employee Sales exports
 export const getEmployeesSales = (period: 'week' | 'month' | 'year' = 'month') => apiClient.getEmployeesSales(period);
