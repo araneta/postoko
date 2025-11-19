@@ -11,7 +11,7 @@ import SalesSummary from '../components/SalesSummary';
 type PeriodType = 'week' | 'month' | 'year';
 
 const EmployeeSalesScreen = () => {
-    const { authenticatedEmployee, settings, formatPrice } = useStore();
+    const { authenticatedEmployee, settings } = useStore();
     const [salesData, setSalesData] = useState<EmployeeSales[]>([]);
     const [performanceData, setPerformanceData] = useState<EmployeePerformance[]>([]);
     const [loading, setLoading] = useState(true);
@@ -38,11 +38,53 @@ const EmployeeSalesScreen = () => {
         setLoading(true);
         try {
             if (viewMode === 'sales') {
-                const data = await getEmployeesSales(selectedPeriod);
-                setSalesData(Array.isArray(data) ? data : []);
+                // Try the expected endpoint first
+                try {
+                    const data = await getEmployeesSales(selectedPeriod);
+                    console.log('Employee sales data received from standard API:', data);
+                    
+                    // Check if the data has the expected structure with profitMargin
+                    if (Array.isArray(data) && data.length > 0) {
+                        console.log('Standard API returned data:', data[0]);
+                        
+                        // If profitMargin is missing, calculate it
+                        const processedData = data.map(emp => {
+                            if (emp.profitMargin === undefined || emp.profitMargin === null) {
+                                const totalSales = parseFloat(emp.totalSales || '0');
+                                const totalProfit = parseFloat(emp.totalProfit || '0');
+                                const calculatedMargin = totalSales > 0 ? (totalProfit / totalSales) * 100 : 0;
+                                console.log(`Calculating profitMargin for ${emp.employeeName}: ${calculatedMargin}`);
+                                return { ...emp, profitMargin: calculatedMargin };
+                            }
+                            return emp;
+                        });
+                        
+                        console.log('Using processed standard API data');
+                        setSalesData(processedData);
+                    } else {
+                        console.log('Standard API returned empty data, falling back to aggregation');
+                        throw new Error('Standard API data empty');
+                    }
+                } catch (apiError) {
+                    console.log('Standard API failed or incomplete, trying to aggregate individual employee data...');
+                    // Fallback: get all employees and aggregate their sales data
+                    const aggregatedData = await fetchAndAggregateEmployeeSales();
+                    setSalesData(aggregatedData);
+                }
             } else {
-                const data = await getEmployeesPerformance(selectedPeriod);
-                setPerformanceData(Array.isArray(data) ? data : []);
+                try {
+                    const data = await getEmployeesPerformance(selectedPeriod);
+                    console.log('Employee performance data received:', data);
+                    setPerformanceData(Array.isArray(data) ? data : []);
+                } catch (apiError) {
+                    console.log('Performance API failed, using aggregated sales data...');
+                    // Fallback: use sales data sorted by performance
+                    const aggregatedData = await fetchAndAggregateEmployeeSales();
+                    const sortedData = aggregatedData
+                        .sort((a, b) => parseFloat(b.totalSales) - parseFloat(a.totalSales))
+                        .map((emp, index) => ({ ...emp, rank: index + 1 }));
+                    setPerformanceData(sortedData);
+                }
             }
         } catch (error) {
             console.error('Failed to fetch employee sales data', error);
@@ -53,11 +95,116 @@ const EmployeeSalesScreen = () => {
         setLoading(false);
     };
 
+    const fetchAndAggregateEmployeeSales = async (): Promise<EmployeeSales[]> => {
+        console.log('🔄 Starting fetchAndAggregateEmployeeSales...');
+        try {
+            // Get all employees first
+            const { getEmployees } = await import('../../lib/api');
+            const employees = await getEmployees();
+            console.log('Fetched employees:', employees);
+            console.log('First employee structure:', employees[0]);
+
+            const aggregatedData: EmployeeSales[] = [];
+
+            // For each employee, get their sales data and aggregate
+            for (const employee of employees) {
+                console.log('Processing employee:', employee);
+                
+                // Handle different possible ID field names
+                const employeeId = employee.id || employee.employeeId || employee._id || employee.userId;
+                console.log('Employee ID:', employeeId, 'Type:', typeof employeeId);
+                
+                if (!employeeId) {
+                    console.log('Skipping employee with no ID:', employee);
+                    continue;
+                }
+                
+                try {
+                    const salesDetail = await getEmployeeSalesDetail(employeeId, selectedPeriod);
+                    console.log(`Sales detail for ${employee.name}:`, salesDetail);
+                    
+                    // Calculate aggregated metrics from individual sales
+                    const sales = salesDetail.sales || [];
+                    const totalSales = sales.reduce((sum, sale) => sum + parseFloat(sale.total || '0'), 0);
+                    const totalProfit = sales.reduce((sum, sale) => sum + parseFloat(sale.profit || '0'), 0);
+                    const orderCount = sales.length;
+                    const averageOrderValue = orderCount > 0 ? totalSales / orderCount : 0;
+                    const profitMargin = totalSales > 0 ? (totalProfit / totalSales) * 100 : 0;
+
+                    console.log(`Employee ${employee.name} calculations:`, {
+                        totalSales,
+                        totalProfit,
+                        orderCount,
+                        averageOrderValue,
+                        profitMargin,
+                        salesData: sales.map(s => ({ total: s.total, profit: s.profit }))
+                    });
+
+                    const employeeData = {
+                        employeeId: employeeId,
+                        employeeName: employee.name || employee.email,
+                        employeeRole: employee.role || 'employee',
+                        totalSales: totalSales.toFixed(2),
+                        orderCount,
+                        averageOrderValue: averageOrderValue.toFixed(2),
+                        totalProfit: totalProfit.toFixed(2),
+                        profitMargin
+                    };
+                    
+                    console.log('Adding employee data:', employeeData);
+                    console.log('profitMargin value:', profitMargin, 'type:', typeof profitMargin);
+                    
+                    aggregatedData.push(employeeData);
+                } catch (empError) {
+                    console.log(`Failed to get sales for employee ${employee.name}:`, empError);
+                    // Add employee with zero sales if their data fails
+                    aggregatedData.push({
+                        employeeId: employeeId,
+                        employeeName: employee.name || employee.email,
+                        employeeRole: employee.role || 'employee',
+                        totalSales: '0.00',
+                        orderCount: 0,
+                        averageOrderValue: '0.00',
+                        totalProfit: '0.00',
+                        profitMargin: 0
+                    });
+                }
+            }
+
+            console.log('Aggregated employee sales data:', aggregatedData);
+            return aggregatedData;
+        } catch (error) {
+            console.error('Failed to aggregate employee sales:', error);
+            return [];
+        }
+    };
+
     const fetchEmployeeDetails = async (employee: EmployeeSales) => {
         setDetailLoading(true);
+        console.log('fetchEmployeeDetails called with employee:', employee);
+        console.log('Employee profitMargin in fetchEmployeeDetails:', employee.profitMargin, 'type:', typeof employee.profitMargin);
+        
         try {
             const details = await getEmployeeSalesDetail(employee.employeeId, selectedPeriod);
-            setEmployeeDetails(details);
+            console.log('Employee details received:', details);
+            
+            // Transform the backend response to match frontend expectations
+            const transformedDetails = {
+                employee: employee, // Use the already aggregated employee data
+                sales: (details.sales || []).map(sale => ({
+                    orderId: sale.orderId,
+                    date: sale.date,
+                    total: sale.total,
+                    profit: sale.profit || '0.00',
+                    itemCount: parseInt(sale.itemCount || '0'),
+                    items: [] // Your backend doesn't include items array, so we'll use empty array
+                }))
+            };
+            
+            console.log('Transformed employee details:', transformedDetails);
+            console.log('Employee profitMargin type:', typeof employee.profitMargin, 'value:', employee.profitMargin);
+            
+            setEmployeeDetails(transformedDetails);
         } catch (error) {
             console.error('Failed to fetch employee details', error);
             setEmployeeDetails(null);
@@ -104,7 +251,7 @@ const EmployeeSalesScreen = () => {
                 </View>
                 <View style={styles.statItem}>
                     <Text style={styles.statLabel}>Margin</Text>
-                    <Text style={styles.statValue}>{item.profitMargin ? item.profitMargin.toFixed(1) : '0.0'}%</Text>
+                    <Text style={styles.statValue}>{typeof item.profitMargin === 'number' ? item.profitMargin.toFixed(1) : '0.0'}%</Text>
                 </View>
             </View>
         </TouchableOpacity>
@@ -128,7 +275,7 @@ const EmployeeSalesScreen = () => {
         </TouchableOpacity>
     );
 
-    const renderDetailSale = ({ item }: { item: EmployeeSalesDetail }) => (
+    const renderDetailSale = ({ item }: { item: any }) => (
         <View style={styles.detailItem}>
             <View style={styles.detailHeader}>
                 <Text style={styles.detailDate}>{new Date(item.date).toLocaleDateString()}</Text>
@@ -136,7 +283,7 @@ const EmployeeSalesScreen = () => {
             </View>
             <Text style={styles.detailOrderId}>Order: {item.orderId}</Text>
             <Text style={styles.detailProfit}>Profit: {formatCurrency(item.profit)}</Text>
-            <Text style={styles.detailItems}>{item.items ? item.items.length : 0} items</Text>
+            <Text style={styles.detailItems}>{item.itemCount || 0} items</Text>
         </View>
     );
 
@@ -282,7 +429,7 @@ const EmployeeSalesScreen = () => {
                                     </View>
                                     <View style={styles.summaryRow}>
                                         <Text style={styles.summaryLabel}>Profit Margin:</Text>
-                                        <Text style={styles.summaryValue}>{employeeDetails.employee.profitMargin ? employeeDetails.employee.profitMargin.toFixed(1) : '0.0'}%</Text>
+                                        <Text style={styles.summaryValue}>{typeof employeeDetails.employee.profitMargin === 'number' ? employeeDetails.employee.profitMargin.toFixed(1) : '0.0'}%</Text>
                                     </View>
                                 </View>
 

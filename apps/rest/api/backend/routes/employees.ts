@@ -193,6 +193,19 @@ router.delete('/:id', requireAuth(), EmployeesController.deleteEmployee);
  *     tags: [Employees]
  *     security:
  *       - ClerkAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         schema:
+ *           type: string
+ *           enum: [week, month, year, today]
+ *           default: month
+ *         description: Time period for sales data
+ *       - in: query
+ *         name: employeeId
+ *         schema:
+ *           type: string
+ *         description: Filter by specific employee ID (optional)
  *     responses:
  *       200:
  *         description: Employee sales data
@@ -203,16 +216,24 @@ router.delete('/:id', requireAuth(), EmployeesController.deleteEmployee);
  *               items:
  *                 type: object
  *                 properties:
- *                   employee_id:
+ *                   employeeId:
  *                     type: string
- *                   employee_name:
+ *                   employeeName:
  *                     type: string
- *                   total_sales:
+ *                   employeeRole:
+ *                     type: string
+ *                   totalSales:
  *                     type: number
- *                   order_count:
+ *                   orderCount:
+ *                     type: number
+ *                   averageOrderValue:
+ *                     type: number
+ *                   totalProfit:
  *                     type: number
  *       401:
  *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Admin/Manager access required
  */
 router.get('/sales', requireAuth(), EmployeesController.getEmployeeSales);
 
@@ -224,6 +245,14 @@ router.get('/sales', requireAuth(), EmployeesController.getEmployeeSales);
  *     tags: [Employees]
  *     security:
  *       - ClerkAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         schema:
+ *           type: string
+ *           enum: [week, month, year, today]
+ *           default: month
+ *         description: Time period for performance comparison
  *     responses:
  *       200:
  *         description: Employee performance comparison data
@@ -234,14 +263,26 @@ router.get('/sales', requireAuth(), EmployeesController.getEmployeeSales);
  *               items:
  *                 type: object
  *                 properties:
- *                   employee_id:
+ *                   employeeId:
  *                     type: string
- *                   performance_score:
+ *                   employeeName:
+ *                     type: string
+ *                   employeeRole:
+ *                     type: string
+ *                   totalSales:
  *                     type: number
- *                   ranking:
+ *                   orderCount:
+ *                     type: number
+ *                   averageOrderValue:
+ *                     type: number
+ *                   totalProfit:
+ *                     type: number
+ *                   profitMargin:
  *                     type: number
  *       401:
  *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Admin/Manager access required
  */
 router.get('/sales/performance', requireAuth(), EmployeesController.getEmployeePerformanceComparison);
 
@@ -260,6 +301,19 @@ router.get('/sales/performance', requireAuth(), EmployeesController.getEmployeeP
  *         schema:
  *           type: string
  *         description: Employee ID
+ *       - in: query
+ *         name: period
+ *         schema:
+ *           type: string
+ *           enum: [week, month, year, today]
+ *           default: month
+ *         description: Time period for sales details
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *         description: Maximum number of sales records to return
  *     responses:
  *       200:
  *         description: Employee sales details
@@ -268,18 +322,40 @@ router.get('/sales/performance', requireAuth(), EmployeesController.getEmployeeP
  *             schema:
  *               type: object
  *               properties:
- *                 employee_id:
- *                   type: string
- *                 total_sales:
- *                   type: number
- *                 orders:
+ *                 employee:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     name:
+ *                       type: string
+ *                     email:
+ *                       type: string
+ *                     role:
+ *                       type: string
+ *                 sales:
  *                   type: array
  *                   items:
- *                     $ref: '#/components/schemas/Order'
+ *                     type: object
+ *                     properties:
+ *                       orderId:
+ *                         type: string
+ *                       total:
+ *                         type: number
+ *                       date:
+ *                         type: string
+ *                       paymentMethod:
+ *                         type: string
+ *                       itemCount:
+ *                         type: number
+ *                       profit:
+ *                         type: number
  *       404:
  *         description: Employee not found
  *       401:
  *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Admin/Manager access required
  */
 router.get('/:id/sales', requireAuth(), EmployeesController.getEmployeeSalesDetails);
 

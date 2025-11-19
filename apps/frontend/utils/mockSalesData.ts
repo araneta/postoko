@@ -4,12 +4,12 @@ import { EmployeeSales, EmployeePerformance, EmployeeSalesDetail } from '../type
 export const generateMockEmployeeSales = (count: number = 5): EmployeeSales[] => {
   const roles = ['cashier', 'sales associate', 'manager', 'supervisor'];
   const names = ['John Doe', 'Jane Smith', 'Mike Johnson', 'Sarah Wilson', 'David Brown', 'Lisa Davis', 'Tom Anderson', 'Emily Taylor'];
-  
+
   return Array.from({ length: count }, (_, index) => {
     const totalSales = Math.random() * 5000 + 1000; // $1000-$6000
     const orderCount = Math.floor(Math.random() * 50) + 10; // 10-60 orders
     const totalProfit = totalSales * (0.2 + Math.random() * 0.3); // 20-50% profit margin
-    
+
     return {
       employeeId: `emp-${index + 1}`,
       employeeName: names[index % names.length],
@@ -25,7 +25,7 @@ export const generateMockEmployeeSales = (count: number = 5): EmployeeSales[] =>
 
 export const generateMockEmployeePerformance = (count: number = 5): EmployeePerformance[] => {
   const salesData = generateMockEmployeeSales(count);
-  
+
   return salesData
     .sort((a, b) => parseFloat(b.totalSales) - parseFloat(a.totalSales))
     .map((emp, index) => ({
@@ -38,16 +38,16 @@ export const generateMockEmployeePerformance = (count: number = 5): EmployeePerf
 export const generateMockEmployeeSalesDetail = (employeeId: string): { employee: EmployeeSales; sales: EmployeeSalesDetail[] } => {
   const employee = generateMockEmployeeSales(1)[0];
   employee.employeeId = employeeId;
-  
+
   const salesCount = Math.floor(Math.random() * 20) + 10; // 10-30 sales
   const sales: EmployeeSalesDetail[] = Array.from({ length: salesCount }, (_, index) => {
     const total = Math.random() * 200 + 20; // $20-$220
     const profit = total * (0.2 + Math.random() * 0.3); // 20-50% profit
     const itemCount = Math.floor(Math.random() * 5) + 1; // 1-6 items
-    
+
     const date = new Date();
     date.setDate(date.getDate() - index);
-    
+
     return {
       orderId: `order-${Date.now()}-${index}`,
       date: date.toISOString(),
@@ -64,15 +64,15 @@ export const generateMockEmployeeSalesDetail = (employeeId: string): { employee:
       })),
     };
   });
-  
+
   return { employee, sales };
 };
 
 // Test function to validate API response structure
 export const validateEmployeeSalesResponse = (data: any): boolean => {
   if (!Array.isArray(data)) return false;
-  
-  return data.every(item => 
+
+  return data.every(item =>
     typeof item.employeeId === 'string' &&
     typeof item.employeeName === 'string' &&
     typeof item.employeeRole === 'string' &&

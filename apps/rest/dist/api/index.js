@@ -1,7 +1,7 @@
 // api/index.ts
 import http from "http";
 import serverless from "serverless-http";
-import app from "../backend/app.js"; // keep .js for build output
+import app from "./backend/app.js"; // keep .js for build output
 // --- Port Normalization ---
 const normalizePort = (val) => {
     const port = parseInt(val.toString(), 10);

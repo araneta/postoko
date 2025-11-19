@@ -11,14 +11,14 @@ interface SalesSummaryProps {
 
 const SalesSummary: React.FC<SalesSummaryProps> = ({ data, period }) => {
   const { settings } = useStore();
-  
+
   if (!data || data.length === 0) {
     return null;
   }
 
-  const totalSales = data.reduce((sum, emp) => sum + parseFloat(emp.totalSales), 0);
-  const totalOrders = data.reduce((sum, emp) => sum + emp.orderCount, 0);
-  const totalProfit = data.reduce((sum, emp) => sum + parseFloat(emp.totalProfit), 0);
+  const totalSales = data.reduce((sum, emp) => sum + parseFloat(emp.totalSales || '0'), 0);
+  const totalOrders = data.reduce((sum, emp) => sum + (emp.orderCount || 0), 0);
+  const totalProfit = data.reduce((sum, emp) => sum + parseFloat(emp.totalProfit || '0'), 0);
   const avgOrderValue = totalOrders > 0 ? totalSales / totalOrders : 0;
   const profitMargin = totalSales > 0 ? (totalProfit / totalSales) * 100 : 0;
 
