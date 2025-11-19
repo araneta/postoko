@@ -11,7 +11,7 @@ import SalesSummary from '../components/SalesSummary';
 type PeriodType = 'week' | 'month' | 'year';
 
 const EmployeeSalesScreen = () => {
-    const { authenticatedEmployee } = useStore();
+    const { authenticatedEmployee, settings, formatPrice } = useStore();
     const [salesData, setSalesData] = useState<EmployeeSales[]>([]);
     const [performanceData, setPerformanceData] = useState<EmployeePerformance[]>([]);
     const [loading, setLoading] = useState(true);
@@ -74,9 +74,10 @@ const EmployeeSalesScreen = () => {
 
     const formatCurrency = (amount: string | number | null) => {
         if (amount === null || amount === undefined) {
-            return '$0.00';
+            return `${settings?.currency?.symbol || '$'}0.00`;
         }
-        return `$${parseFloat(amount.toString()).toFixed(2)}`;
+        const numericAmount = parseFloat(amount.toString());
+        return `${settings?.currency?.symbol || '$'}${numericAmount.toFixed(2)}`;
     };
 
     const renderSalesItem = ({ item }: { item: EmployeeSales }) => (

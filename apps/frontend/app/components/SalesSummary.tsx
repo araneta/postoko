@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { EmployeeSales } from '../../types';
 import { Ionicons } from '@expo/vector-icons';
+import useStore from '../../store/useStore';
 
 interface SalesSummaryProps {
   data: EmployeeSales[];
@@ -9,6 +10,8 @@ interface SalesSummaryProps {
 }
 
 const SalesSummary: React.FC<SalesSummaryProps> = ({ data, period }) => {
+  const { settings } = useStore();
+  
   if (!data || data.length === 0) {
     return null;
   }
@@ -19,7 +22,7 @@ const SalesSummary: React.FC<SalesSummaryProps> = ({ data, period }) => {
   const avgOrderValue = totalOrders > 0 ? totalSales / totalOrders : 0;
   const profitMargin = totalSales > 0 ? (totalProfit / totalSales) * 100 : 0;
 
-  const formatCurrency = (amount: number) => `$${amount.toFixed(2)}`;
+  const formatCurrency = (amount: number) => `${settings?.currency?.symbol || '$'}${amount.toFixed(2)}`;
 
   const summaryItems = [
     {

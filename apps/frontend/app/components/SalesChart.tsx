@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import { EmployeeSales } from '../../types';
+import useStore from '../../store/useStore';
 
 interface SalesChartProps {
   data: EmployeeSales[];
@@ -11,6 +12,8 @@ const { width } = Dimensions.get('window');
 const chartWidth = width - 32;
 
 const SalesChart: React.FC<SalesChartProps> = ({ data, type }) => {
+  const { settings } = useStore();
+  
   if (!data || data.length === 0) {
     return (
       <View style={styles.container}>
@@ -49,7 +52,7 @@ const SalesChart: React.FC<SalesChartProps> = ({ data, type }) => {
     if (type === 'orders') {
       return value.toString();
     }
-    return `$${value.toFixed(2)}`;
+    return `${settings?.currency?.symbol || '$'}${value.toFixed(2)}`;
   };
 
   const maxValue = Math.max(...data.map(getValue));
