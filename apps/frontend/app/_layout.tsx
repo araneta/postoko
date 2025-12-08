@@ -97,7 +97,10 @@ function AppContent() {
 
 export default Sentry.wrap(function RootLayout() {
   return (
-    <ClerkProvider tokenCache={tokenCache}>
+    <ClerkProvider
+      publishableKey="pk_test_b24tZ2xvd3dvcm0tOTcuY2xlcmsuYWNjb3VudHMuZGV2JA"
+      tokenCache={tokenCache}
+    >
       <GestureHandlerRootView style={{ flex: 1 }}>
         <AppContent />
         <StatusBar style="auto" />

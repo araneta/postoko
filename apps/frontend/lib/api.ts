@@ -1,5 +1,5 @@
 //const BASE_URL = 'https://api.example.com';
-const BASE_URL = 'http://localhost:3000/api';
+const BASE_URL = 'https://your-production-api-url.com/api';
 
 import { User, Product, Order, Settings, Customer, CustomerPurchase, Employee, Role, CartItem, StripeSessionData, StripeSessionDetails, PayPalOrdersCreateRequest,OrdersGetRequest, EmployeePINLoginResponse, EmployeeSales, EmployeePerformance, EmployeeSalesDetail, Category } from '../types';
 import { safeToNumber, safeToInteger } from '../utils/formatters';
