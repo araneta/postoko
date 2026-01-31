@@ -61,11 +61,17 @@ class APIClient {
 
   // Categories
   async getCategories(): Promise<Category[]> {
+    console.log('APIClient: getCategories called');
     try {
-      return await this.fetchJSON<Category[]>(`${BASE_URL}/categories`);
+      console.log('APIClient: attempting to fetch from', `${BASE_URL}/categories`);
+      const result = await this.fetchJSON<Category[]>(`${BASE_URL}/categories`);
+      console.log('APIClient: successfully fetched categories from API:', result.length);
+      return result;
     } catch (error) {
       console.warn('Categories API not available, using mock service:', error);
-      return await mockCategoryService.getCategories();
+      const mockResult = await mockCategoryService.getCategories();
+      console.log('APIClient: using mock service, got categories:', mockResult.length);
+      return mockResult;
     }
   }
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,20 +15,42 @@ import CategoryForm from '../../components/CategoryForm';
 import useStore from '../../store/useStore';
 import { Category } from '../../types';
 import { filterCategories } from '../../utils/searchUtils';
+import { apiClient } from '../../lib/api';
 
 export default function CategoriesScreen() {
-  const { 
-    categories, 
-    addCategory, 
-    updateCategory, 
-    deleteCategory, 
+  const {
+    categories,
+    addCategory,
+    updateCategory,
+    deleteCategory,
     authenticatedEmployee,
     initializeStore
   } = useStore();
-  
+
   const [searchQuery, setSearchQuery] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Initialize store when component mounts
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        setIsLoading(true);
+        await initializeStore();
+      } catch (error) {
+        console.error('Failed to initialize store:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadCategories();
+  }, []);
+
+  // Debug: Log categories state
+  useEffect(() => {
+    console.log('Categories loaded:', categories.length);
+  }, [categories]);
 
   // Redirect to dashboard if no employee is logged in
   if (!authenticatedEmployee) {
@@ -38,6 +60,8 @@ export default function CategoriesScreen() {
 
   // Filter categories based on search query
   const filteredCategories = filterCategories(categories, searchQuery);
+
+
 
   const handleAddCategory = () => {
     setEditingCategory(null);
@@ -103,14 +127,18 @@ export default function CategoriesScreen() {
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
       <Ionicons name="folder-outline" size={64} color="#ccc" />
-      <Text style={styles.emptyStateTitle}>No Categories Found</Text>
+      <Text style={styles.emptyStateTitle}>
+        {isLoading ? 'Loading Categories...' : 'No Categories Found'}
+      </Text>
       <Text style={styles.emptyStateText}>
-        {searchQuery 
-          ? 'No categories match your search criteria.'
-          : 'Get started by adding your first category.'
+        {isLoading
+          ? 'Please wait while we load your categories.'
+          : searchQuery
+            ? 'No categories match your search criteria.'
+            : 'Get started by adding your first category.'
         }
       </Text>
-      {!searchQuery && (
+      {!searchQuery && !isLoading && (
         <Pressable style={styles.emptyStateButton} onPress={handleAddCategory}>
           <Text style={styles.emptyStateButtonText}>Add Category</Text>
         </Pressable>
@@ -124,9 +152,18 @@ export default function CategoriesScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>Categories</Text>
         <View style={styles.headerButtons}>
-          <Pressable 
-            style={[styles.addButton, { marginRight: 8, backgroundColor: '#34C759' }]} 
-            onPress={() => initializeStore()}
+          <Pressable
+            style={[styles.addButton, { marginRight: 8, backgroundColor: '#34C759' }]}
+            onPress={async () => {
+              setIsLoading(true);
+              try {
+                await initializeStore();
+              } catch (error) {
+                console.error('Manual refresh failed:', error);
+              } finally {
+                setIsLoading(false);
+              }
+            }}
           ><Ionicons name="refresh" size={20} color="white" /></Pressable>
           <Pressable style={styles.addButton} onPress={handleAddCategory}><Ionicons name="add" size={24} color="white" /><Text style={styles.addButtonText}>Add Category</Text></Pressable>
         </View>

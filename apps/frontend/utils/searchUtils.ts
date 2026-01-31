@@ -63,6 +63,10 @@ export function filterCustomers(customers: any[], searchQuery: string): any[] {
  * @returns Filtered array of categories
  */
 export function filterCategories(categories: any[], searchQuery: string): any[] {
+  if (!searchQuery) {
+    return categories; // Return all categories when no search query
+  }
+  
   return categories.filter(category =>
     safeStringIncludes(category.name, searchQuery) ||
     safeStringIncludes(category.description, searchQuery)

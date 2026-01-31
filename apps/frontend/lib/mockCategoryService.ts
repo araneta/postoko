@@ -1,5 +1,30 @@
 import { Category } from '../types';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Try to import AsyncStorage, fallback to localStorage for web
+let storage: any;
+try {
+  // React Native
+  const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+  storage = AsyncStorage;
+} catch (error) {
+  // Web fallback
+  storage = {
+    async getItem(key: string): Promise<string | null> {
+      try {
+        return localStorage.getItem(key);
+      } catch {
+        return null;
+      }
+    },
+    async setItem(key: string, value: string): Promise<void> {
+      try {
+        localStorage.setItem(key, value);
+      } catch {
+        // Ignore storage errors
+      }
+    }
+  };
+}
 
 const CATEGORIES_STORAGE_KEY = 'pos_categories';
 
@@ -10,30 +35,33 @@ const CATEGORIES_STORAGE_KEY = 'pos_categories';
 class MockCategoryService {
   private async getStoredCategories(): Promise<Category[]> {
     try {
-      const stored = await AsyncStorage.getItem(CATEGORIES_STORAGE_KEY);
+      const stored = await storage.getItem(CATEGORIES_STORAGE_KEY);
       return stored ? JSON.parse(stored) : [];
     } catch (error) {
-      console.warn('Failed to load categories from AsyncStorage:', error);
+      console.warn('Failed to load categories from storage:', error);
       return [];
     }
   }
 
   private async saveCategories(categories: Category[]): Promise<void> {
     try {
-      await AsyncStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(categories));
+      await storage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(categories));
     } catch (error) {
-      console.warn('Failed to save categories to AsyncStorage:', error);
+      console.warn('Failed to save categories to storage:', error);
     }
   }
 
   async getCategories(): Promise<Category[]> {
+    console.log('MockCategoryService: getCategories called');
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 100));
     
     const categories = await this.getStoredCategories();
+    console.log('MockCategoryService: loaded categories from storage:', categories.length);
     
     // Initialize with sample data if empty
     if (categories.length === 0) {
+      console.log('MockCategoryService: initializing with sample data');
       const sampleCategories: Category[] = [
         {
           id: 'cat-1',
@@ -56,9 +84,11 @@ class MockCategoryService {
       ];
       
       await this.saveCategories(sampleCategories);
+      console.log('MockCategoryService: saved sample categories');
       return sampleCategories;
     }
     
+    console.log('MockCategoryService: returning existing categories:', categories);
     return categories;
   }
 

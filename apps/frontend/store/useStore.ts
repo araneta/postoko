@@ -88,21 +88,24 @@ const useStore = create<StoreState>((set, get) => ({
   userId: undefined,
 
   initializeStore: async () => {
-    console.log('Initializing store');
+    console.log('Store: Initializing store');
     const { initializing } = get();
     if (initializing) {
-      console.log('Store initialization already in progress, skipping...');
+      console.log('Store: initialization already in progress, skipping...');
       return;
     }
     
     set({ initializing: true });
     try {
+      console.log('Store: fetching data from API...');
       const [products, categories, orders, settings] = await Promise.all([
         apiClient.getProducts(),
         apiClient.getCategories(),
         apiClient.getOrders(),
         apiClient.getSettings()
       ]);
+      
+      console.log('Store: received categories:', categories.length);
       
       // Categories are now handled by the API client (with mock fallback)
       const finalCategories = categories;
@@ -215,8 +218,10 @@ const useStore = create<StoreState>((set, get) => ({
         settings: finalSettings,
         initializing: false,
       });
+      
+      console.log('Store: initialization complete, categories set:', finalCategories.length);
     } catch (error) {
-      console.error('Failed to initialize store:', error);
+      console.error('Store: Failed to initialize store:', error);
       set({ initializing: false });
     }
   },
