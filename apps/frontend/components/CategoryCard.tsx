@@ -27,9 +27,9 @@ export default function CategoryCard({
       <View style={styles.content}>
         <View style={styles.info}>
           <Text style={styles.name}>{category.name}</Text>
-          {category.description && (
-            <Text style={styles.description}>{category.description}</Text>
-          )}
+          {category.description ? (
+  <Text style={styles.description}>{category.description}</Text>
+) : null}
         </View>
         
         {showActions && (

@@ -117,12 +117,12 @@ export default function POSScreen() {
       const order = selectedCustomer
         ? await createOrder(paymentDetails, selectedCustomer)
         : await createOrder(paymentDetails);
-        
+
       // Log the authenticated employee
       if (authenticatedEmployee) {
         console.log('Order processed by employee:', authenticatedEmployee.name);
       }
-      
+
       console.log('order', order);
       setShowPaymentModal(false);
 
@@ -130,7 +130,7 @@ export default function POSScreen() {
         await printReceipt(order, settings, formatPrice);
         // Check for low stock alerts after order completion
         await checkLowStockAlerts();
-        
+
         // Award loyalty points if customer exists
         if (selectedCustomer && order.id && order.total) {
           try {
@@ -162,10 +162,10 @@ export default function POSScreen() {
         setPrintError('Failed to process payment or print receipt. Please try again.');
         setTimeout(() => setPrintError(null), 3000);
       }
-      
+
       // Show error alert
       let errorMessage = 'Failed to create order. Please try again.';
-      
+
       if (error instanceof Error) {
         try {
           // Try to parse the error message as JSON
@@ -180,7 +180,7 @@ export default function POSScreen() {
           errorMessage = error.message;
         }
       }
-      
+
       showAlert(
         'Order Failed',
         errorMessage,
@@ -226,12 +226,12 @@ export default function POSScreen() {
     setShowEmployeePinModal(false);
     //router.replace('/(tabs)')
   };
-return (
-  <ScrollView style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
-   
-    {/* Existing POS UI */}
+  return (
+    <ScrollView style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
+
+      {/* Existing POS UI */}
       <View style={styles.container}>
-        
+
         <View style={styles.productsContainer}>
           <View style={styles.productsHeader}>
             {/*<Pressable
@@ -241,7 +241,7 @@ return (
               <Text style={{ color: '#007AFF', fontWeight: '600', fontSize: 16 }}>PIN Login</Text>
             </Pressable>*/}
             <Text style={styles.productsTitle}>Products</Text>
-            
+
             {/* Search Bar */}
             <View style={styles.searchContainer}>
               <Ionicons name="search" size={16} color="#666" />
@@ -252,7 +252,7 @@ return (
                 onChangeText={setSearchQuery}
               />
             </View>
-            
+
             <View style={styles.barcodeContainer}>
               <TextInput
                 style={styles.barcodeInput}
@@ -275,14 +275,14 @@ return (
               </Pressable>
             </View>
           </View>
-          
+
           {/* Category Filter */}
           <CategoryFilter
             categories={categories}
             selectedCategoryId={selectedCategoryId}
             onCategorySelect={setSelectedCategoryId}
           />
-          
+
           <FlatList
             data={filteredProducts}
             renderItem={({ item }) => (
@@ -291,17 +291,17 @@ return (
                 onPress={() => handleAddToCart(item)}
               />
             )}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item) => item.id.toString()}
           />
         </View>
 
         <View style={styles.cartContainer}>
-           
-           
+
+
           {/* Employee Display */}
           <View style={{ marginBottom: 16 }}>
             <Text style={{ fontWeight: '600', fontSize: 16 }}>
-              Employee: {authenticatedEmployee ? authenticatedEmployee.name : 'No employee logged in'}
+              {`Employee: ${authenticatedEmployee ? (authenticatedEmployee.name || 'Unknown Employee') : 'No employee logged in'}`}
             </Text>
           </View>
 
@@ -331,9 +331,11 @@ return (
               onPress={() => setSelectedCustomer(null)}
               disabled={!selectedCustomer}
             >
-              <Text style={{ color: selectedCustomer ? '#FF3B30' : '#ccc', fontSize: 12 }}>
-                {selectedCustomer ? 'Clear' : ''}
-              </Text>
+              {selectedCustomer && (
+                <Text style={{ color: '#FF3B30', fontSize: 12 }}>
+                  Clear
+                </Text>
+              )}
             </Pressable>
           </View>
           <Text style={styles.cartTitle}>Current Order</Text>
@@ -459,17 +461,28 @@ return (
           type={customAlert.type}
           onClose={hideAlert}
         />
-        
+
         <EmployeePinLogin
-        visible={showEmployeePinModal}
-        employees={employees}
-        onEmployeeSelected={handleEmployeeSelected}
-        onClose={() => {
-          console.log('Employee PIN modal closed');
-          setShowEmployeePinModal(false);
-        }}
-      />
-        
+          visible={showEmployeePinModal}
+          employees={employees}
+          onEmployeeSelected={handleEmployeeSelected}
+          refreshEmployees={() => {
+            // Refresh employees function
+            (async () => {
+              try {
+                const employeesData = await getEmployees();
+                setEmployees(employeesData);
+              } catch (error) {
+                console.error('Failed to refresh employees', error);
+              }
+            })();
+          }}
+          onClose={() => {
+            console.log('Employee PIN modal closed');
+            setShowEmployeePinModal(false);
+          }}
+        />
+
       </View>
     </ScrollView>
   );

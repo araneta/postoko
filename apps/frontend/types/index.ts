@@ -8,7 +8,7 @@ export interface User {
 
 }
 export interface Category {
-  id: string;
+  id: string | number;
   name: string;
   description?: string;
   createdAt?: string;
@@ -25,7 +25,7 @@ export interface Product {
   stock: number;
   minStock?: number; // Minimum stock threshold for notifications
   category: string; // Keep as string for backward compatibility
-  categoryId?: string; // New field for category ID
+  categoryId?: number; // New field for category ID
   categoryName?: string; // New field for category name display
   barcode?: string;
 }

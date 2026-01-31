@@ -24,14 +24,14 @@ export default function ProductCard({ product, onPress, showAddToCart = true }: 
         style={styles.image}
       />
       <View style={styles.content}>
-        <Text style={styles.name}>{product.name}</Text>
-        <Text style={styles.price}>{formatPrice(product.price)}</Text>
+        <Text style={styles.name}>{product.name || 'Unknown Product'}</Text>
+        <Text style={styles.price}>{formatPrice(product.price || 0)}</Text>
         {(product.categoryName || product.category) && (
           <Text style={styles.category}>{product.categoryName || product.category}</Text>
         )}
         <View style={styles.stockContainer}>
           <Text style={[styles.stock, isLowStock && styles.lowStockText]}>
-            In Stock: {product.stock}
+            In Stock: {product.stock || 0}
           </Text>
           {isLowStock && (
             <View style={styles.lowStockIndicator}>
@@ -40,15 +40,16 @@ export default function ProductCard({ product, onPress, showAddToCart = true }: 
             </View>
           )}
         </View>
-        {product.barcode && (
-          <Text style={styles.barcode}>Barcode: {product.barcode}</Text>
-        )}
+        {(() => {
+          const barcode = product.barcode;
+          if (!barcode || typeof barcode !== 'string') return null;
+          const trimmedBarcode = barcode.trim();
+          if (!trimmedBarcode || trimmedBarcode === '.' || trimmedBarcode.length < 2) return null;
+          return (
+            <Text style={styles.barcode}>Barcode: {trimmedBarcode}</Text>
+          );
+        })()}
       </View>
-      {showAddToCart && (
-        <View style={styles.addButton}>
-          <Ionicons name="add-circle" size={24} color="#007AFF" />
-        </View>
-      )}
     </Pressable>
   );
 }

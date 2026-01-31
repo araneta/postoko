@@ -1,5 +1,11 @@
 //const BASE_URL = 'https://api.example.com';
-const BASE_URL = 'https://your-production-api-url.com/api';
+var baseurl = '';
+if (__DEV__) {
+  baseurl = 'http://localhost:3000/api';
+}else{
+  baseurl = 'https://your-production-api-url.com/api'
+}
+const BASE_URL = baseurl;
 
 import { User, Product, Order, Settings, Customer, CustomerPurchase, Employee, Role, CartItem, StripeSessionData, StripeSessionDetails, PayPalOrdersCreateRequest,OrdersGetRequest, EmployeePINLoginResponse, EmployeeSales, EmployeePerformance, EmployeeSalesDetail, Category } from '../types';
 import { safeToNumber, safeToInteger } from '../utils/formatters';
@@ -87,7 +93,7 @@ class APIClient {
     }
   }
 
-  async deleteCategory(id: string): Promise<void> {
+  async deleteCategory(id: string | number): Promise<void> {
     try {
       await this.fetchJSON(`${BASE_URL}/categories/${id}`, {
         method: 'DELETE',
@@ -395,7 +401,7 @@ export const getPaypalSession = (sessionID: string) => apiClient.getPaypalSessio
 export const getCategories = () => apiClient.getCategories();
 export const addCategory = (category: Category) => apiClient.addCategory(category);
 export const updateCategory = (category: Category) => apiClient.updateCategory(category);
-export const deleteCategory = (id: string) => apiClient.deleteCategory(id);
+export const deleteCategory = (id: string | number) => apiClient.deleteCategory(id);
 
 // Employee Sales exports
 export const getEmployeesSales = (period: 'week' | 'month' | 'year' = 'month') => apiClient.getEmployeesSales(period);

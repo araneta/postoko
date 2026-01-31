@@ -21,7 +21,7 @@ interface StoreState {
   deleteProduct: (id: string) => Promise<void>;
   addCategory: (category: Category) => Promise<void>;
   updateCategory: (category: Category) => Promise<void>;
-  deleteCategory: (id: string) => Promise<void>;
+  deleteCategory: (id: string | number) => Promise<void>;
   addToCart: (product: Product) => void;
   removeFromCart: (productId: string) => void;
   updateCartItemQuantity: (productId: string, quantity: number) => void;
@@ -276,7 +276,7 @@ const useStore = create<StoreState>((set, get) => ({
       await apiClient.updateCategory(category);
       set(state => ({
         categories: state.categories.map(c =>
-          c.id === category.id ? category : c
+          c.id.toString() === category.id.toString() ? category : c
         )
       }));
     } catch (error) {
@@ -287,9 +287,9 @@ const useStore = create<StoreState>((set, get) => ({
 
   deleteCategory: async (id) => {
     try {
-      await apiClient.deleteCategory(id);
+      await apiClient.deleteCategory(id.toString());
       set(state => ({
-        categories: state.categories.filter(c => c.id !== id)
+        categories: state.categories.filter(c => c.id.toString() !== id.toString())
       }));
     } catch (error) {
       console.error('Failed to delete category:', error);

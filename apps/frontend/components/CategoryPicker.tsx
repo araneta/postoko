@@ -45,9 +45,9 @@ export default function CategoryPicker({
           />
           {categories.map((category) => (
             <Picker.Item
-              key={category.id}
+              key={category.id.toString()}
               label={category.name}
-              value={category.id}
+              value={category.id.toString()}
             />
           ))}
         </Picker>

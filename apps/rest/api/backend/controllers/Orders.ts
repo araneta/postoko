@@ -68,7 +68,7 @@ export default class OrdersController {
                             description: row.product.description,
                             image: row.product.image,
                             stock: row.product.stock,
-                            category: row.product.category,
+                            category: row.product.categoryId,
                             barcode: row.product.barcode,
                             quantity: row.orderItem!.quantity
                         });

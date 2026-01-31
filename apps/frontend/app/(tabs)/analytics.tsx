@@ -143,7 +143,7 @@ export default function AnalyticsScreen() {
             <Text style={{ fontSize: 16, fontWeight: '500', marginTop: 8 }}>Top Products:</Text>
             {analytics.topProducts && analytics.topProducts.length > 0 ? (
               analytics.topProducts.map((prod: any, idx: number) => (
-                <Text key={prod.productId} style={{ marginLeft: 8 }}>{idx + 1}. {prod.productId} (Sold: {prod.quantitySold})</Text>
+                <Text key={prod.productId} style={{ marginLeft: 8 }}>{idx + 1} {prod.productId} (Sold: {prod.quantitySold})</Text>
               ))
             ) : (
               <Text style={{ marginLeft: 8 }}>No data</Text>
@@ -214,7 +214,7 @@ export default function AnalyticsScreen() {
             {bestSellers.map((product: any, idx: number) => (
               <View key={product.productId} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4, borderBottomWidth: 1, borderBottomColor: '#eee' }}>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 16, fontWeight: '600' }}>{idx + 1}. {product.productName}</Text>
+                  <Text style={{ fontSize: 16, fontWeight: '600' }}>{idx + 1} {product.productName}</Text>
                   <Text style={{ fontSize: 14, color: '#666' }}>Qty: {product.totalQuantity}</Text>
                 </View>
                 <View style={{ alignItems: 'flex-end' }}>

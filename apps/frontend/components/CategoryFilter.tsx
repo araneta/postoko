@@ -47,16 +47,16 @@ export default function CategoryFilter({
         
         {categories.map((category) => (
           <Pressable
-            key={category.id}
+            key={category.id.toString()}
             style={[
               styles.filterChip,
-              selectedCategoryId === category.id && styles.filterChipActive
+              selectedCategoryId === category.id.toString() && styles.filterChipActive
             ]}
-            onPress={() => onCategorySelect(category.id)}
+            onPress={() => onCategorySelect(category.id.toString())}
           >
             <Text style={[
               styles.filterText,
-              selectedCategoryId === category.id && styles.filterTextActive
+              selectedCategoryId === category.id.toString() && styles.filterTextActive
             ]}>
               {category.name}
             </Text>

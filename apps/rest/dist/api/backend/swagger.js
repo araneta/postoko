@@ -44,9 +44,13 @@ const options = {
                             type: 'string',
                             description: 'Product description',
                         },
-                        category: {
+                        categoryId: {
+                            type: 'integer',
+                            description: 'Product category ID',
+                        },
+                        categoryName: {
                             type: 'string',
-                            description: 'Product category',
+                            description: 'Product category name',
                         },
                         stock: {
                             type: 'number',
@@ -94,6 +98,33 @@ const options = {
                             type: 'string',
                             format: 'date-time',
                             description: 'Order creation timestamp',
+                        },
+                    },
+                },
+                Category: {
+                    type: 'object',
+                    required: ['name'],
+                    properties: {
+                        id: {
+                            type: 'integer',
+                            description: 'Category ID',
+                        },
+                        storeInfoId: {
+                            type: 'integer',
+                            description: 'Store ID',
+                        },
+                        name: {
+                            type: 'string',
+                            description: 'Category name',
+                        },
+                        description: {
+                            type: 'string',
+                            description: 'Category description',
+                        },
+                        createdAt: {
+                            type: 'string',
+                            format: 'date-time',
+                            description: 'Category creation timestamp',
                         },
                     },
                 },

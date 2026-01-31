@@ -95,12 +95,12 @@ class MockCategoryService {
     }
   }
 
-  async deleteCategory(id: string): Promise<void> {
+  async deleteCategory(id: string | number): Promise<void> {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 100));
     
     const categories = await this.getStoredCategories();
-    const filteredCategories = categories.filter(c => c.id !== id);
+    const filteredCategories = categories.filter(c => c.id.toString() !== id.toString());
     
     if (filteredCategories.length === categories.length) {
       throw new Error('Category not found');

@@ -63,7 +63,7 @@ export default function CategoriesScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await deleteCategory(category.id);
+              await deleteCategory(category.id.toString());
             } catch (error) {
               Alert.alert('Error', 'Failed to delete category. Please try again.');
             }
@@ -127,13 +127,8 @@ export default function CategoriesScreen() {
           <Pressable 
             style={[styles.addButton, { marginRight: 8, backgroundColor: '#34C759' }]} 
             onPress={() => initializeStore()}
-          >
-            <Ionicons name="refresh" size={20} color="white" />
-          </Pressable>
-          <Pressable style={styles.addButton} onPress={handleAddCategory}>
-            <Ionicons name="add" size={24} color="white" />
-            <Text style={styles.addButtonText}>Add Category</Text>
-          </Pressable>
+          ><Ionicons name="refresh" size={20} color="white" /></Pressable>
+          <Pressable style={styles.addButton} onPress={handleAddCategory}><Ionicons name="add" size={24} color="white" /><Text style={styles.addButtonText}>Add Category</Text></Pressable>
         </View>
       </View>
 
@@ -150,9 +145,7 @@ export default function CategoriesScreen() {
           <Pressable
             style={styles.clearButton}
             onPress={() => setSearchQuery('')}
-          >
-            <Ionicons name="close-circle" size={20} color="#666" />
-          </Pressable>
+          ><Ionicons name="close-circle" size={20} color="#666" /></Pressable>
         )}
       </View>
 
@@ -160,7 +153,7 @@ export default function CategoriesScreen() {
       <FlatList
         data={filteredCategories}
         renderItem={renderCategoryCard}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.listContainer}
         ListEmptyComponent={renderEmptyState}
         showsVerticalScrollIndicator={false}

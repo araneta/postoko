@@ -37,19 +37,19 @@ const EmployeePinLogin: React.FC<EmployeePinLoginProps> = ({
       setError('Please select an employee first');
       return;
     }
-    
+
     if (!pin) {
       setError('Please enter your PIN');
       return;
     }
-    
+
     console.log('Validating PIN for employee:', selectedEmployee.id);
     setLoading(true);
     setError('');
-    
+
     try {
       const result = await validateEmployeePin(selectedEmployee.id, pin);
-      const isValid = result && result.message==='PIN is valid';
+      const isValid = result && result.message === 'PIN is valid';
       console.log('PIN validation result:', isValid);
       if (isValid) {
         console.log('Employee authenticated:', selectedEmployee.name);
@@ -98,7 +98,7 @@ const EmployeePinLogin: React.FC<EmployeePinLoginProps> = ({
                   <Ionicons name="close" size={24} color="#666" />
                 </TouchableOpacity>
               </View>
-              
+
               <Text style={styles.modalSubtitle}>
                 Please select an employee to continue
               </Text>
@@ -117,8 +117,8 @@ const EmployeePinLogin: React.FC<EmployeePinLoginProps> = ({
                   >
                     <Ionicons name="person" size={24} color="#007AFF" style={styles.employeeIcon} />
                     <View style={styles.employeeInfo}>
-                      <Text style={styles.employeeName}>{employee.name}</Text>
-                      <Text style={styles.employeeEmail}>{employee.email}</Text>
+                      <Text style={styles.employeeName}>{employee.name || 'Unknown Employee'}</Text>
+                      <Text style={styles.employeeEmail}>{employee.email || 'No email'}</Text>
                     </View>
                     <Ionicons name="chevron-forward" size={20} color="#ccc" />
                   </TouchableOpacity>
@@ -137,14 +137,14 @@ const EmployeePinLogin: React.FC<EmployeePinLoginProps> = ({
                   <Ionicons name="close" size={24} color="#666" />
                 </TouchableOpacity>
               </View>
-              
+
               <View style={styles.pinSection}>
                 <Ionicons name="person-circle" size={64} color="#007AFF" style={styles.employeeAvatar} />
-                <Text style={styles.employeeNameLarge}>{selectedEmployee.name}</Text>
+                <Text style={styles.employeeNameLarge}>{selectedEmployee.name || 'Unknown Employee'}</Text>
                 <Text style={styles.pinInstruction}>
                   Enter your 4-6 digit PIN to continue
                 </Text>
-                
+
                 <TextInput
                   style={styles.pinInput}
                   placeholder="Enter PIN"
@@ -155,9 +155,9 @@ const EmployeePinLogin: React.FC<EmployeePinLoginProps> = ({
                   autoFocus
                   onSubmitEditing={handlePinSubmit}
                 />
-                
-                {error ? <Text style={styles.errorText}>{error}</Text> : null}
-                
+
+                {error && error.trim() ? <Text style={styles.errorText}>{error}</Text> : null}
+
                 <TouchableOpacity
                   style={[styles.submitButton, loading && styles.disabledButton]}
                   onPress={handlePinSubmit}
