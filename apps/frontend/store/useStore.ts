@@ -240,12 +240,14 @@ const useStore = create<StoreState>((set, get) => ({
 
   updateProduct: async (product) => {
     try {
+      console.log('Store: updating product with category:', product.categoryId, product.categoryName);
       await apiClient.updateProduct(product);
       set(state => ({
         products: state.products.map(p =>
           p.id === product.id ? product : p
         )
       }));
+      console.log('Store: product updated successfully');
     } catch (error) {
       console.error('Failed to update product:', error);
       throw error;

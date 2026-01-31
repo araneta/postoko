@@ -20,7 +20,7 @@ export default function CategoryPicker({
 }: CategoryPickerProps) {
   const handleValueChange = (categoryId: string) => {
     if (categoryId) {
-      const category = categories.find(c => c.id === categoryId);
+      const category = categories.find(c => c.id.toString() === categoryId);
       if (category) {
         onCategoryChange(categoryId, category.name);
       }

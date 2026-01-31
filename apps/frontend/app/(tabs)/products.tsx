@@ -57,7 +57,7 @@ export default function ProductsScreen() {
 
   // Filter products based on selected category and search query
   const filteredProducts = filterProducts(products, searchQuery, selectedCategoryId);
-  
+
 
   const handleSave = async () => {
     const product: Product = {
@@ -77,8 +77,10 @@ export default function ProductsScreen() {
 
     try {
       if (editingProduct) {
+        console.log('Updating product with category:', product.categoryId, product.categoryName);
         await updateProduct(product);
       } else {
+        console.log('Adding product with category:', product.categoryId, product.categoryName);
         await addProduct(product);
       }
 
@@ -86,6 +88,7 @@ export default function ProductsScreen() {
       setEditingProduct(null);
       setFormData(initialFormData);
     } catch (error) {
+      console.error('Failed to save product:', error);
       Alert.alert('Error', 'Failed to save product. Please try again.');
     }
   };
@@ -107,6 +110,7 @@ export default function ProductsScreen() {
     });
     setUploadError(null);
     setModalVisible(true);
+    console.log('Editing product with category:', product.categoryId, product.categoryName);
   };
 
   const handleAddProduct = () => {
@@ -132,9 +136,9 @@ export default function ProductsScreen() {
   const handleImagePicker = async (useCamera: boolean = false) => {
     // Clear any previous errors
     setUploadError(null);
-    
+
     const imageUri = useCamera ? await takePhoto() : await pickImage();
-    
+
     if (imageUri) {
       // Check file size first
       const sizeError = await checkFileSize(imageUri);
@@ -142,15 +146,15 @@ export default function ProductsScreen() {
         setUploadError(sizeError);
         return;
       }
-      
+
       setIsUploading(true);
-      
+
       // Generate a unique filename
       const fileName = `product_${Date.now()}.jpg`;
-      
+
       // Upload to ImageKit
       const uploadResult = await uploadImageToImageKit(imageUri, fileName);
-      
+
       // Update form data with the uploaded image URL if upload was successful
       if (uploadResult) {
         setFormData({ ...formData, image: uploadResult.url });
@@ -158,7 +162,7 @@ export default function ProductsScreen() {
         // Set error message if upload failed
         setUploadError('Failed to upload image. Please check your connection and try again.');
       }
-      
+
       setIsUploading(false);
     }
   };
@@ -174,9 +178,10 @@ export default function ProductsScreen() {
   };
 
   const handleCategoryChange = (categoryId: string, categoryName: string) => {
-    setFormData({ 
-      ...formData, 
-      categoryId, 
+    console.log('Category changed:', { categoryId, categoryName });
+    setFormData({
+      ...formData,
+      categoryId,
       categoryName,
       category: categoryName // For backward compatibility
     });
@@ -260,14 +265,14 @@ export default function ProductsScreen() {
             {/* Image Upload Section */}
             <View style={styles.imageSection}>
               <Text style={styles.sectionTitle}>Product Image</Text>
-              
+
               {uploadError && (
                 <View style={styles.errorContainer}>
                   <Ionicons name="alert-circle" size={20} color="#FF3B30" />
                   <Text style={styles.errorText}>{uploadError}</Text>
                 </View>
               )}
-              
+
               {formData.image ? (
                 <View style={styles.imagePreviewContainer}>
                   <Image
@@ -289,7 +294,7 @@ export default function ProductsScreen() {
                     <Ionicons name="image-outline" size={32} color="#007AFF" />
                     <Text style={styles.imageUploadText}>Choose from Gallery</Text>
                   </Pressable>
-                  
+
                   <Pressable
                     style={styles.imageUploadButton}
                     onPress={() => handleImagePicker(true)}
@@ -299,7 +304,7 @@ export default function ProductsScreen() {
                   </Pressable>
                 </View>
               )}
-              
+
               {isUploading && (
                 <View style={styles.uploadingContainer}>
                   <ActivityIndicator size="small" color="#007AFF" />
@@ -437,7 +442,7 @@ export default function ProductsScreen() {
         onRequestClose={() => setShowBarcodeScanner(false)}>
         <BarcodeScanner
           onClose={() => setShowBarcodeScanner(false)}
-          onProductScanned={() => {}} // Not used in raw mode
+          onProductScanned={() => { }} // Not used in raw mode
           rawBarcodeMode={true}
           onBarcodeScanned={handleBarcodeScanned}
         />

@@ -25,7 +25,7 @@ export interface Product {
   stock: number;
   minStock?: number; // Minimum stock threshold for notifications
   category: string; // Keep as string for backward compatibility
-  categoryId?: number; // New field for category ID
+  categoryId?: string; // Changed from number to string for consistency
   categoryName?: string; // New field for category name display
   barcode?: string;
 }
