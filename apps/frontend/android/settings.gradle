@@ -1,7 +1,7 @@
-// 🔴 REQUIRED: define kotlinVersion EARLY for React Native plugin
-gradle.ext.kotlinVersion = "1.9.24"
-
 pluginManagement {
+  // ✅ kotlinVersion MUST be defined here for RN Gradle plugin
+  ext.kotlinVersion = "1.9.24"
+
   repositories {
     gradlePluginPortal()
     google()
