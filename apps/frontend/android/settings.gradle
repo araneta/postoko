@@ -1,10 +1,20 @@
-pluginManagement {
-  ext.kotlinVersion = "1.9.24"
+// 🔴 REQUIRED: define kotlinVersion EARLY for React Native plugin
+gradle.ext.kotlinVersion = "1.9.24"
 
+pluginManagement {
   repositories {
     gradlePluginPortal()
     google()
     mavenCentral()
+  }
+
+  resolutionStrategy {
+    eachPlugin {
+      if (requested.id.id == "com.facebook.react.settings" ||
+          requested.id.id == "com.facebook.react") {
+        useModule("com.facebook.react:react-native-gradle-plugin")
+      }
+    }
   }
 
   includeBuild(
