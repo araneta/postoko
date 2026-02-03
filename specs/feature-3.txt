@@ -15,9 +15,10 @@ manager = dashboard, index (Point of Sale), products, alerts, orders, analytics,
 admin = dashboard, index (Point of Sale), products, alerts, orders, analytics, customers, employees, settings [done]
 
 7. Advanced Inventory Features
-Bulk product import via CSV
-Product categories and filtering [working]
-Supplier information tracking
+Bulk product import via CSV [pending]
+Product categories and filtering [done]
+Supplier information tracking . see suplier.txt [working]
+
 Why valuable: Saves hours of manual data entry
 
 

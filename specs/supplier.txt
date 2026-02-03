@@ -1,0 +1,128 @@
+What “Supplier Information Tracking” actually means (in POS terms)
+
+At its core, it answers one simple question for the merchant:
+
+“Where did I buy this product from, and who do I contact to restock it?”
+
+That’s it.
+Not ERP. Not SAP. Not accounting hell.
+
+Minimum Useful Version (MVP) ✅ — What you SHOULD build
+1. Supplier Master Data (simple)
+
+One table / entity:
+
+Supplier
+- id
+- name
+- phone
+- email (optional)
+- address (optional)
+- notes (optional)
+- isActive
+
+
+👉 This alone already unlocks value.
+
+2. Link Supplier → Product (1-to-many)
+
+Each product can have ONE primary supplier.
+
+Product
+- id
+- name
+- sku
+- supplierId   ← THIS is the key
+
+
+Why this matters:
+
+Low stock alert → “Order from Supplier X”
+
+Inventory view → grouped by supplier
+
+Faster reordering
+
+3. Show supplier info in 3 places only
+
+As PM, I would restrict it to:
+
+Product detail page
+
+Supplier: PT Sumber Jaya
+
+Low stock alert
+
+“Product A low — Supplier: PT Sumber Jaya (0812…)”
+
+Product import (CSV)
+
+supplier_name column (auto-create if not exists)
+
+🚫 No purchase orders yet
+🚫 No invoices
+🚫 No payments
+
+What NOT to build (yet) ❌
+
+These are ERP features, not POS MVP:
+
+Supplier invoices
+
+Accounts payable
+
+Payment terms
+
+Partial deliveries
+
+Multi-supplier per product
+
+Purchase order approval flow
+
+If you build these too early → project explodes.
+
+When Supplier Tracking becomes REALLY useful
+
+Later (Phase 5+), supplier data enables:
+
+Feature	Uses supplier data
+Purchase Orders	Supplier is mandatory
+Restock suggestion	Group by supplier
+Cost tracking	Compare supplier prices
+Lead time analysis	Slow suppliers
+
+But none of these are required now.
+
+PM Decision Framework (use this)
+
+Ask this question before adding anything:
+
+“Can the cashier sell faster?”
+❌ No → not Phase 1–3
+
+“Can the owner restock smarter?”
+✅ Yes → keep it
+
+Supplier info passes the second test, not the first.
+
+Recommended Scope for YOUR project (clear answer)
+
+Given your current roadmap, I recommend:
+
+✅ Build now
+
+Supplier CRUD
+
+Product → Supplier link
+
+Show supplier on low-stock alert
+
+CSV import support
+
+⏳ Build later
+
+Purchase orders
+
+Supplier price history
+
+Supplier performance metrics
