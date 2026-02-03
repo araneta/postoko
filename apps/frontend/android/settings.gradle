@@ -5,21 +5,22 @@ pluginManagement {
     mavenCentral()
   }
 
-  // Expo modules plugin (REQUIRED)
-  includeBuild("../node_modules/expo-modules-core/android")
-
-  // React Native plugin
+  // React Native Gradle plugin (required)
   includeBuild(
     new File(
-      ["node", "--print", "require.resolve('@react-native/gradle-plugin/package.json')"]
+      ["node", "--print", "require.resolve('@react-native/gradle-plugin/package.json', { paths: [require.resolve('react-native/package.json')] })"]
         .execute(null, rootDir)
         .text
         .trim()
     ).getParentFile()
   )
+
+  // Expo Gradle plugin (REQUIRED for expo-module-gradle-plugin)
+  includeBuild("../node_modules/expo-modules-core/android")
 }
 
 dependencyResolutionManagement {
+  // IMPORTANT: must NOT be FAIL_ON_PROJECT_REPOS on EAS
   repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
   repositories {
     google()
@@ -27,6 +28,39 @@ dependencyResolutionManagement {
   }
 }
 
-
 rootProject.name = "bolt-expo-pos"
+
+plugins {
+  id("com.facebook.react.settings")
+}
+
+extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
+  if (System.getenv("EXPO_USE_COMMUNITY_AUTOLINKING") == "1") {
+    ex.autolinkLibrariesFromCommand()
+  } else {
+    def command = [
+      "node",
+      "--no-warnings",
+      "--eval",
+      "require(require.resolve('expo-modules-autolinking', { paths: [require.resolve('expo/package.json')] }))(process.argv.slice(1))",
+      "react-native-config",
+      "--json",
+      "--platform",
+      "android"
+    ]
+    ex.autolinkLibrariesFromCommand(command)
+  }
+}
+
+apply from: new File(
+  ["node", "--print", "require.resolve('expo/package.json')"]
+    .execute(null, rootDir)
+    .text
+    .trim(),
+  "../scripts/autolinking.gradle"
+)
+
+// REQUIRED: generates autolinking.json
+useExpoModules()
+
 include(":app")
