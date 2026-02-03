@@ -2,8 +2,8 @@ import { Request, Response } from 'express';
 import {  getAuth,clerkClient,  } from '@clerk/express';
 import { asc, between, count, eq, getTableColumns, sql } from 'drizzle-orm';
 
-import { db } from '../db';
-import { storeInfoTable, settingsTable, printerSettingsTable, currenciesTable, paymentSettingsTable, employeesTable, rolesTable } from '../db/schema';
+import { db } from '../db/index.js';
+import { storeInfoTable, settingsTable, printerSettingsTable, currenciesTable, paymentSettingsTable, employeesTable, rolesTable } from '../db/schema.js';
 
 export default class SettingsController {
     static async getSettings(req: Request, res: Response) {

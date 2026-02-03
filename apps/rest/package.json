@@ -67,5 +67,15 @@
 		"tsx": "^4.20.3",
 		"typescript": "^5.8.3"
 	},
+	"compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "outDir": "dist",
+    "rootDir": "api",
+    "esModuleInterop": true,
+    "strict": true,
+    "skipLibCheck": true
+  },
 	"type": "module"
 }

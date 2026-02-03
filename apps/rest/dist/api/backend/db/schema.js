@@ -139,3 +139,15 @@ export const employeesTable = pgTable("employees", {
     createdAt: timestamp().notNull().defaultNow(),
     deletedAt: timestamp(), // Soft delete
 });
+export const suppliersTable = pgTable("suppliers", {
+    id: varchar({ length: 36 }).primaryKey(),
+    storeInfoId: integer().notNull().references(() => storeInfoTable.id),
+    name: varchar({ length: 255 }).notNull(),
+    email: varchar({ length: 255 }),
+    phone: varchar({ length: 20 }),
+    address: text(),
+    notes: text(),
+    createdAt: timestamp().notNull().defaultNow(),
+    updatedAt: timestamp().notNull().defaultNow(),
+    deletedAt: timestamp(), // Soft delete field
+});

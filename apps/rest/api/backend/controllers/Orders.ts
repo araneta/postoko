@@ -1,6 +1,6 @@
-import { db } from '../db';
+import { db } from '../db/index.js';
 import { ordersTable, orderItemsTable, storeInfoTable, productsTable, customersTable,
-     customerPurchasesTable,employeesTable } from '../db/schema';
+     customerPurchasesTable,employeesTable } from '../db/schema.js';
 import { Request, Response } from 'express';
 import { getAuth } from '@clerk/express';
 import { eq, desc, and, inArray, sql } from 'drizzle-orm';

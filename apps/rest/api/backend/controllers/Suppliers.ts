@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { getAuth } from '@clerk/express';
-import { db } from '../db';
-import { suppliersTable,  storeInfoTable } from '../db/schema';
+import { db } from '../db/index.js';
+import { suppliersTable,  storeInfoTable } from '../db/schema.js';
 import { eq, sql, and } from 'drizzle-orm';
 
 export default class SuppliersController {

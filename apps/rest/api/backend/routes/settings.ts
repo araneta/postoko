@@ -1,5 +1,5 @@
 import express from 'express';
-import SettingsController from '../controllers/Settings';
+import SettingsController from '../controllers/Settings.js';
 import { requireAuth } from '@clerk/express';
 const router = express.Router();
 

@@ -1,7 +1,7 @@
 import { getAuth, } from '@clerk/express';
 import { eq } from 'drizzle-orm';
-import { db } from '../db';
-import { storeInfoTable, settingsTable, printerSettingsTable, currenciesTable, paymentSettingsTable } from '../db/schema';
+import { db } from '../db/index.js';
+import { storeInfoTable, settingsTable, printerSettingsTable, currenciesTable, paymentSettingsTable } from '../db/schema.js';
 export default class SettingsController {
     static async getSettings(req, res) {
         const auth = getAuth(req);

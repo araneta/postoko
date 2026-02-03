@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { getAuth } from '@clerk/express';
-import { db } from '../db';
-import { employeesTable, rolesTable, storeInfoTable, ordersTable, orderItemsTable, productsTable } from '../db/schema';
+import { db } from '../db/index.js';
+import { employeesTable, rolesTable, storeInfoTable, ordersTable, orderItemsTable, productsTable } from '../db/schema.js';
 import { eq, and, sql, desc, gte } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';

@@ -1,6 +1,6 @@
 import { getAuth } from '@clerk/express';
-import { db } from '../db';
-import { customersTable, customerPurchasesTable, storeInfoTable, ordersTable, orderItemsTable, productsTable, customerLoyaltyPointsTable } from '../db/schema';
+import { db } from '../db/index.js';
+import { customersTable, customerPurchasesTable, storeInfoTable, ordersTable, orderItemsTable, productsTable, customerLoyaltyPointsTable } from '../db/schema.js';
 import { eq, sql, and } from 'drizzle-orm';
 export default class CustomersController {
     static async getCustomers(req, res) {
@@ -156,7 +156,7 @@ export default class CustomersController {
                             description: row.product.description,
                             image: row.product.image,
                             stock: row.product.stock,
-                            category: row.product.category,
+                            category: row.product.categoryId,
                             barcode: row.product.barcode,
                             quantity: row.orderItem.quantity
                         });

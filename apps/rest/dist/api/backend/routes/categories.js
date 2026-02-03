@@ -1,5 +1,5 @@
 import express from 'express';
-import CategoriesController from '../controllers/Categories';
+import CategoriesController from '../controllers/Categories.js';
 import { requireAuth } from '@clerk/express';
 const router = express.Router();
 /**

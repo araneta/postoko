@@ -1,5 +1,5 @@
-import { db } from '../db';
-import { settingsTable, storeInfoTable, productsTable, customersTable, paymentSettingsTable, currenciesTable } from '../db/schema';
+import { db } from '../db/index.js';
+import { settingsTable, storeInfoTable, productsTable, customersTable, paymentSettingsTable, currenciesTable } from '../db/schema.js';
 import { Request, Response } from 'express';
 import { getAuth } from '@clerk/express';
 import { eq, desc, and, inArray, sql } from 'drizzle-orm';

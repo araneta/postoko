@@ -1,6 +1,6 @@
 import { getAuth } from '@clerk/express';
-import { db } from '../db';
-import { employeesTable, rolesTable, storeInfoTable, ordersTable, orderItemsTable } from '../db/schema';
+import { db } from '../db/index.js';
+import { employeesTable, rolesTable, storeInfoTable, ordersTable, orderItemsTable } from '../db/schema.js';
 import { eq, and, sql, desc, gte } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 // Helper: Check if user has required role

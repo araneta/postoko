@@ -1,6 +1,6 @@
 import { getAuth, clerkClient } from '@clerk/express';
-import { db } from '../db';
-import { employeesTable, paymentSettingsTable, printerSettingsTable, rolesTable, settingsTable, storeInfoTable, usersTable } from '../db/schema';
+import { db } from '../db/index.js';
+import { employeesTable, paymentSettingsTable, printerSettingsTable, rolesTable, settingsTable, storeInfoTable, usersTable } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
 export default class UsersController {
     static async login(req, res) {

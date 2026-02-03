@@ -1,7 +1,7 @@
 import e, { Request, Response } from 'express';
 import {  getAuth,clerkClient } from '@clerk/express';
-import { db } from '../db';
-import { currenciesTable, employeesTable, paymentSettingsTable, printerSettingsTable, rolesTable, settingsTable, storeInfoTable, usersTable } from '../db/schema';
+import { db } from '../db/index.js';
+import { currenciesTable, employeesTable, paymentSettingsTable, printerSettingsTable, rolesTable, settingsTable, storeInfoTable, usersTable } from '../db/schema.js';
 import { eq, and } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 

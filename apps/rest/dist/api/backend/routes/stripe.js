@@ -1,5 +1,5 @@
 import express from 'express';
-import stripeController from '../controllers/Stripe';
+import stripeController from '../controllers/Stripe.js';
 import { requireAuth } from '@clerk/express';
 const router = express.Router();
 router.post('/create-checkout-session', requireAuth(), stripeController.createCheckoutSession);

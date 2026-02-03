@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { getAuth } from '@clerk/express';
-import { db } from '../db';
-import { categoriesTable, storeInfoTable } from '../db/schema';
+import { db } from '../db/index.js';
+import { categoriesTable, storeInfoTable } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
 
 export default class CategoriesController {

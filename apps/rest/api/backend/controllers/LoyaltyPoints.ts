@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { getAuth } from '@clerk/express';
-import { db } from '../db';
-import { customerLoyaltyPointsTable, loyaltyTransactionsTable, loyaltySettingsTable, customersTable, storeInfoTable, ordersTable } from '../db/schema';
+import { db } from '../db/index.js';
+import { customerLoyaltyPointsTable, loyaltyTransactionsTable, loyaltySettingsTable, customersTable, storeInfoTable, ordersTable } from '../db/schema.js';
 import { eq, and, desc } from 'drizzle-orm';
 
 export default class LoyaltyPointsController {

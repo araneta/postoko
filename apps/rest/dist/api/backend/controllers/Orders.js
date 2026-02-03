@@ -1,5 +1,5 @@
-import { db } from '../db';
-import { ordersTable, orderItemsTable, storeInfoTable, productsTable, customersTable, customerPurchasesTable, employeesTable } from '../db/schema';
+import { db } from '../db/index.js';
+import { ordersTable, orderItemsTable, storeInfoTable, productsTable, customersTable, customerPurchasesTable, employeesTable } from '../db/schema.js';
 import { getAuth } from '@clerk/express';
 import { eq, desc, and, inArray, sql } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
@@ -54,7 +54,7 @@ export default class OrdersController {
                             description: row.product.description,
                             image: row.product.image,
                             stock: row.product.stock,
-                            category: row.product.category,
+                            category: row.product.categoryId,
                             barcode: row.product.barcode,
                             quantity: row.orderItem.quantity
                         });

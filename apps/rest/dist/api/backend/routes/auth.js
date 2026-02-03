@@ -1,5 +1,5 @@
 import express from 'express';
-import usersController from '../controllers/Users';
+import usersController from '../controllers/Users.js';
 import { requireAuth } from '@clerk/express';
 const router = express.Router();
 router.post('/login', requireAuth(), usersController.login);

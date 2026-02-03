@@ -1,5 +1,5 @@
 import express from 'express';
-import EmployeesController from '../controllers/Employees';
+import EmployeesController from '../controllers/Employees.js';
 import { requireAuth } from '@clerk/express';
 const router = express.Router();
 

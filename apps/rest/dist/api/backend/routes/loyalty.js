@@ -1,5 +1,5 @@
 import express from 'express';
-import LoyaltyPointsController from '../controllers/LoyaltyPoints';
+import LoyaltyPointsController from '../controllers/LoyaltyPoints.js';
 import { requireAuth } from '@clerk/express';
 const router = express.Router();
 /**

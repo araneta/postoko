@@ -1,5 +1,5 @@
-import { db } from './index';
-import { rolesTable } from './schema';
+import { db } from './index.js';
+import { rolesTable } from './schema.js';
 import { eq } from 'drizzle-orm';
 
 const defaultRoles = [

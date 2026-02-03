@@ -1,5 +1,5 @@
-import { db } from '../db';
-import { settingsTable, storeInfoTable, paymentSettingsTable, currenciesTable } from '../db/schema';
+import { db } from '../db/index.js';
+import { settingsTable, storeInfoTable, paymentSettingsTable, currenciesTable } from '../db/schema.js';
 import { getAuth } from '@clerk/express';
 import { eq } from 'drizzle-orm';
 import paypal from '@paypal/checkout-server-sdk';

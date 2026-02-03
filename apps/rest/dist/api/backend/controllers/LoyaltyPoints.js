@@ -1,6 +1,6 @@
 import { getAuth } from '@clerk/express';
-import { db } from '../db';
-import { customerLoyaltyPointsTable, loyaltyTransactionsTable, loyaltySettingsTable, storeInfoTable } from '../db/schema';
+import { db } from '../db/index.js';
+import { customerLoyaltyPointsTable, loyaltyTransactionsTable, loyaltySettingsTable, storeInfoTable } from '../db/schema.js';
 import { eq, desc } from 'drizzle-orm';
 export default class LoyaltyPointsController {
     // Get customer's loyalty points balance

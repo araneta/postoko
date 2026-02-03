@@ -1,5 +1,5 @@
 import express from 'express';
-import { RolesController } from '../controllers/Employees';
+import { RolesController } from '../controllers/Employees.js';
 import { requireAuth } from '@clerk/express';
 const router = express.Router();
 

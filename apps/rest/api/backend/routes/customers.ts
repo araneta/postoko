@@ -1,5 +1,5 @@
 import express from 'express';
-import CustomersController from '../controllers/Customers';
+import CustomersController from '../controllers/Customers.js';
 import { requireAuth } from '@clerk/express';
 const router = express.Router();
 

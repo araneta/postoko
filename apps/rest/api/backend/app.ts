@@ -11,18 +11,18 @@ import { clerkMiddleware,requireAuth } from '@clerk/express';
 import Stripe from 'stripe';
 import { setupSwagger } from './swagger.js';
 
-import productsRoutes from './routes/products';
-import categoriesRoutes from './routes/categories';
-import ordersRoutes from './routes/orders';
-import authRoutes from './routes/auth';
-import settingsRoutes from './routes/settings';
-import customersRoutes from './routes/customers';
-import supplierRoutes from './routes/suppliers';
-import loyaltyRoutes from './routes/loyalty';
-import employeesRoutes from './routes/employees';
-import rolesRoutes from './routes/roles';
-import stripeRoutes from './routes/stripe';
-import paypalRoutes from './routes/paypal';
+import productsRoutes from './routes/products.js';
+import categoriesRoutes from './routes/categories.js';
+import ordersRoutes from './routes/orders.js';
+import authRoutes from './routes/auth.js';
+import settingsRoutes from './routes/settings.js';
+import customersRoutes from './routes/customers.js';
+import supplierRoutes from './routes/suppliers.js';
+import loyaltyRoutes from './routes/loyalty.js';
+import employeesRoutes from './routes/employees.js';
+import rolesRoutes from './routes/roles.js';
+import stripeRoutes from './routes/stripe.js';
+import paypalRoutes from './routes/paypal.js';
 
 const app = express();
 
