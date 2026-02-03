@@ -7,7 +7,7 @@ pluginManagement {
     mavenCentral()
   }
 
-  // ✅ React Native Gradle plugin (composite build)
+  // React Native Gradle plugin
   includeBuild(
     new File(
       ["node", "--print", "require.resolve('@react-native/gradle-plugin/package.json', { paths: [require.resolve('react-native/package.json')] })"]
@@ -17,8 +17,16 @@ pluginManagement {
     ).getParentFile()
   )
 
-  // ✅ Expo modules Gradle plugin
-  includeBuild("../node_modules/expo-modules-core/android")
+  // ✅ THIS IS THE CRITICAL ONE (fixes expo-module-gradle-plugin)
+  includeBuild(
+    new File(
+      ["node", "--print", "require.resolve('expo-modules-core/package.json')"]
+        .execute(null, rootDir)
+        .text
+        .trim(),
+      "android"
+    )
+  )
 }
 
 plugins {

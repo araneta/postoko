@@ -1,0 +1,4 @@
+ eas --version
+node -v
+eas-cli/16.32.0 linux-x64 node-v18.20.8
+v18.20.8
