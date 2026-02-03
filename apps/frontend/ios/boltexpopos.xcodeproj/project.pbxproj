@@ -14,7 +14,7 @@
 		96905EF65AED1B983A6B3ABC /* libPods-boltexpopos.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 58EEBF8E8E6FB1BC6CAF49B5 /* libPods-boltexpopos.a */; };
 		B18059E884C0ABDD17F3DC3D /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAC715A2D49A985799AEE119 /* ExpoModulesProvider.swift */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
-		8F53A3974A4243B9B61AD75D /* noop-file.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9D6F585F4754F3B8DA31F8A /* noop-file.swift */; };
+		483732BEAE504700A6517BF3 /* noop-file.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DC3527F4B8047BBA00EF02B /* noop-file.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -31,8 +31,8 @@
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		FAC715A2D49A985799AEE119 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-boltexpopos/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
-		B9D6F585F4754F3B8DA31F8A /* noop-file.swift */ = {isa = PBXFileReference; name = "noop-file.swift"; path = "boltexpopos/noop-file.swift"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.swift; explicitFileType = undefined; includeInIndex = 0; };
-		13E9D870D5B942E3ACBC83E2 /* boltexpopos-Bridging-Header.h */ = {isa = PBXFileReference; name = "boltexpopos-Bridging-Header.h"; path = "boltexpopos/boltexpopos-Bridging-Header.h"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; explicitFileType = undefined; includeInIndex = 0; };
+		8DC3527F4B8047BBA00EF02B /* noop-file.swift */ = {isa = PBXFileReference; name = "noop-file.swift"; path = "boltexpopos/noop-file.swift"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.swift; explicitFileType = undefined; includeInIndex = 0; };
+		4ED3F8FAEF8C479BB9EFE5C6 /* boltexpopos-Bridging-Header.h */ = {isa = PBXFileReference; name = "boltexpopos-Bridging-Header.h"; path = "boltexpopos/boltexpopos-Bridging-Header.h"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; explicitFileType = undefined; includeInIndex = 0; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -57,8 +57,8 @@
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				13B07FB71A68108700A75B9A /* main.m */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				B9D6F585F4754F3B8DA31F8A /* noop-file.swift */,
-				13E9D870D5B942E3ACBC83E2 /* boltexpopos-Bridging-Header.h */,
+				8DC3527F4B8047BBA00EF02B /* noop-file.swift */,
+				4ED3F8FAEF8C479BB9EFE5C6 /* boltexpopos-Bridging-Header.h */,
 			);
 			name = boltexpopos;
 			sourceTree = "<group>";
@@ -149,7 +149,7 @@
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				560BF71498C449E4B0A03AF1 /* Upload Debug Symbols to Sentry */,
+				1C1F411F8E294FF7A81F9223 /* Upload Debug Symbols to Sentry */,
 			);
 			buildRules = (
 			);
@@ -199,7 +199,7 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				86A8EF0CAF0B4B14AC5135F9 /* boltexpopos-Bridging-Header.h in Resources */,
+				0B9528BC9D8B4BC69E651034 /* boltexpopos-Bridging-Header.h in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -265,7 +265,7 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-boltexpopos/Pods-boltexpopos-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		560BF71498C449E4B0A03AF1 /* Upload Debug Symbols to Sentry */ = {
+		1C1F411F8E294FF7A81F9223 /* Upload Debug Symbols to Sentry */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -277,7 +277,7 @@
 			outputPaths = (
 			);
 			shellPath = /bin/sh;
-			shellScript = "/bin/sh ../node_modules/@sentry/react-native/scripts/sentry-xcode-debug-files.sh";
+			shellScript = "/bin/sh `${NODE_BINARY:-node} --print \"require('path').dirname(require.resolve('@sentry/react-native/package.json')) + '/scripts/sentry-xcode-debug-files.sh'\"`";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -289,7 +289,7 @@
 				13B07FBC1A68108700A75B9A /* AppDelegate.mm in Sources */,
 				13B07FC11A68108700A75B9A /* main.m in Sources */,
 				B18059E884C0ABDD17F3DC3D /* ExpoModulesProvider.swift in Sources */,
-				8F53A3974A4243B9B61AD75D /* noop-file.swift in Sources */,
+				483732BEAE504700A6517BF3 /* noop-file.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
