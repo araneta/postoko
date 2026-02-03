@@ -36,6 +36,7 @@
         <category android:name="android.intent.category.BROWSABLE"/>
         <data android:scheme="myapp"/>
         <data android:scheme="com.boltexpo.pos"/>
+        <data android:scheme="exp+bolt-expo-nativewind"/>
       </intent-filter>
     </activity>
   </application>
