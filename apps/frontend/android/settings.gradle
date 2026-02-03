@@ -1,5 +1,4 @@
 pluginManagement {
-  // ✅ kotlinVersion MUST be defined here for RN Gradle plugin
   ext.kotlinVersion = "1.9.24"
 
   repositories {
@@ -8,15 +7,7 @@ pluginManagement {
     mavenCentral()
   }
 
-  resolutionStrategy {
-    eachPlugin {
-      if (requested.id.id == "com.facebook.react.settings" ||
-          requested.id.id == "com.facebook.react") {
-        useModule("com.facebook.react:react-native-gradle-plugin")
-      }
-    }
-  }
-
+  // ✅ React Native Gradle plugin (composite build)
   includeBuild(
     new File(
       ["node", "--print", "require.resolve('@react-native/gradle-plugin/package.json', { paths: [require.resolve('react-native/package.json')] })"]
@@ -26,6 +17,7 @@ pluginManagement {
     ).getParentFile()
   )
 
+  // ✅ Expo modules Gradle plugin
   includeBuild("../node_modules/expo-modules-core/android")
 }
 
