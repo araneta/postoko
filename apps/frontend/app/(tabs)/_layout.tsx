@@ -69,8 +69,8 @@ export default function TabLayout() {
     const roleMenus = {
       staff: ['dashboard', 'index', 'products', 'categories', 'alerts'],
       cashier: ['dashboard', 'index', 'orders', 'customers'],
-      manager: ['dashboard', 'index', 'products', 'categories', 'alerts', 'orders', 'analytics', 'customers', 'employees'],
-      admin: ['dashboard', 'index', 'products', 'categories', 'alerts', 'orders', 'analytics', 'customers', 'employees', 'settings']
+      manager: ['dashboard', 'index', 'products', 'categories', 'alerts', 'orders', 'analytics', 'customers', 'suppliers', 'employees'],
+      admin: ['dashboard', 'index', 'products', 'categories', 'alerts', 'orders', 'analytics', 'customers', 'suppliers', 'employees', 'settings']
     };
 
     return roleMenus[roleName as keyof typeof roleMenus] || ['dashboard', 'index'];
@@ -189,6 +189,16 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="suppliers"
+        options={{
+          title: 'Suppliers',
+          tabBarIcon: ({ size, color }) => (
+            <Ionicons name="person" size={size} color={color} />
+          ),
+          href: allowedTabs.includes('suppliers') ? undefined : null,
+        }}
+      />
+      <Tabs.Screen
         name="settings"
         options={{
           title: 'Settings',
@@ -202,8 +212,12 @@ export default function TabLayout() {
         name="employee-sales"
         options={{
           title: 'Employee Sales',
+          tabBarIcon: ({ size, color }) => (
+            <Ionicons name="settings" size={size} color={color} />
+          ),
           tabBarButton: () => null, // Hide from tab bar
         }}
+        
       />
     </Tabs>
   );

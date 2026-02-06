@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Product, CartItem, Order, Currency, Settings, StoreInfo, PrinterSettings, PaymentDetails, PaymentConfig, StockAlert, Customer, Employee, Category } from '../types';
+import { Product, CartItem, Order, Currency, Settings, StoreInfo, PrinterSettings, PaymentDetails, PaymentConfig, StockAlert, Customer, Employee, Category, Supplier } from '../types';
 import { apiClient, configureAPI } from '../lib/api';
 import { safeToFixed } from '../utils/formatters';
 import paymentService from '../lib/payment';
@@ -9,6 +9,7 @@ import notificationService from '../lib/notifications';
 interface StoreState {
   products: Product[];
   categories: Category[];
+  suppliers: Supplier[];
   cart: CartItem[];
   orders: Order[];
   settings: Settings;
@@ -71,6 +72,7 @@ const defaultPaymentConfig: PaymentConfig = {
 const useStore = create<StoreState>((set, get) => ({
   products: [],
   categories: [],
+  suppliers: [],
   cart: [],
   orders: [],
   settings: {
@@ -98,15 +100,17 @@ const useStore = create<StoreState>((set, get) => ({
     set({ initializing: true });
     try {
       console.log('Store: fetching data from API...');
-      const [products, categories, orders, settings] = await Promise.all([
+      const [products, categories, orders, settings, suppliers] = await Promise.all([
         apiClient.getProducts(),
         apiClient.getCategories(),
         apiClient.getOrders(),
-        apiClient.getSettings()
+        apiClient.getSettings(),
+        apiClient.getSuppliers(),
       ]);
       
       console.log('Store: received categories:', categories.length);
-      
+      console.log('Store: received suppliers:', suppliers.length);
+
       // Categories are now handled by the API client (with mock fallback)
       const finalCategories = categories;
 
@@ -501,6 +505,7 @@ const useStore = create<StoreState>((set, get) => ({
     set({
       products: [],
       categories: [],
+      suppliers: [],
       cart: [],
       orders: [],
       settings: {

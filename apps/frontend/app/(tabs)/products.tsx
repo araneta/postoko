@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import ProductCard from '../../components/ProductCard';
 import BarcodeScanner from '../../components/BarcodeScanner';
 import CategoryPicker from '../../components/CategoryPicker';
+import SupplierPicker from '../../components/SupplierPicker';
 import CategoryFilter from '../../components/CategoryFilter';
 import useStore from '../../store/useStore';
 import { Product } from '../../types';
@@ -30,6 +31,9 @@ const initialFormData = {
   category: '',
   categoryId: '',
   categoryName: '',
+  supplier: '',
+  supplierId: '',
+  supplierName: '',
   description: '',
   image: '',
   barcode: '',
@@ -37,7 +41,7 @@ const initialFormData = {
 };
 
 export default function ProductsScreen() {
-  const { products, categories, addProduct, updateProduct, deleteProduct, authenticatedEmployee } = useStore();
+  const { products, categories, addProduct, updateProduct, deleteProduct, authenticatedEmployee, suppliers } = useStore();
   const [modalVisible, setModalVisible] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -103,6 +107,9 @@ export default function ProductsScreen() {
       category: product.category,
       categoryId: product.categoryId || '',
       categoryName: product.categoryName || product.category,
+      supplier: product.supplierName || '',
+      supplierId: product.supplierId || '',
+      supplierName: product.supplierName || '',
       description: product.description || '',
       image: product.image || '',
       barcode: product.barcode || '',
@@ -184,6 +191,14 @@ export default function ProductsScreen() {
       categoryId,
       categoryName,
       category: categoryName // For backward compatibility
+    });
+  };
+
+  const handleSupplierChange = (supplierId: string, supplierName: string) => {
+    setFormData({
+      ...formData,
+      supplierId,
+      supplierName
     });
   };
 
@@ -372,7 +387,12 @@ export default function ProductsScreen() {
                 <Ionicons name="scan-outline" size={20} color="white" />
               </Pressable>
             </View>
-
+              <SupplierPicker
+              suppliers={suppliers}
+              selectedSupplierId={formData.supplierId}
+              onSupplierChange={handleSupplierChange}
+              placeholder="Select a supplier"
+            />
             <TextInput
               style={[styles.input, styles.textArea]}
               placeholder="Description"

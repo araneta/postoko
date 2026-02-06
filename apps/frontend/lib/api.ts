@@ -2,12 +2,12 @@
 var baseurl = '';
 if (__DEV__) {
   baseurl = 'http://localhost:3000/api';
-}else{
+} else {
   baseurl = 'https://your-production-api-url.com/api'
 }
 const BASE_URL = baseurl;
 
-import { User, Product, Order, Settings, Customer, CustomerPurchase, Employee, Role, CartItem, StripeSessionData, StripeSessionDetails, PayPalOrdersCreateRequest,OrdersGetRequest, EmployeePINLoginResponse, EmployeeSales, EmployeePerformance, EmployeeSalesDetail, Category } from '../types';
+import { User, Product, Order, Settings, Customer, CustomerPurchase, Employee, Role, CartItem, StripeSessionData, StripeSessionDetails, PayPalOrdersCreateRequest, OrdersGetRequest, EmployeePINLoginResponse, EmployeeSales, EmployeePerformance, EmployeeSalesDetail, Category, Supplier } from '../types';
 import { safeToNumber, safeToInteger } from '../utils/formatters';
 import { mockCategoryService } from './mockCategoryService';
 
@@ -20,15 +20,15 @@ class APIClient {
   }
 
   private async fetchJSON<T>(url: string, options: RequestInit = {}): Promise<T> {
-    const headers: Record<string, string> = { 
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json'
     };
-    
+
     // Add any additional headers from options
     if (options.headers) {
       Object.assign(headers, options.headers);
     }
-    
+
     // Always get the latest token before each request
     if (this.getToken && typeof this.getToken === 'function') {
       try {
@@ -146,7 +146,7 @@ class APIClient {
     const orders = await this.fetchJSON<Order[]>(`${BASE_URL}/orders`);
     // Normalize the data to ensure totals and item prices are numbers
     if (!Array.isArray(orders)) {
-        return [];
+      return [];
     }
 
     return orders.map(order => ({
@@ -275,7 +275,7 @@ class APIClient {
   async getEmployees(): Promise<Employee[]> {
     return this.fetchJSON<Employee[]>(`${BASE_URL}/employees`);
   }
-  async addEmployee(employee: Partial<Employee> & {  pin?: string }): Promise<void> {
+  async addEmployee(employee: Partial<Employee> & { pin?: string }): Promise<void> {
     await this.fetchJSON(`${BASE_URL}/employees`, {
       method: 'POST',
       body: JSON.stringify(employee),
@@ -288,15 +288,15 @@ class APIClient {
     });
   }
   async validateEmployeePin(employeeId: string, pin: string): Promise<EmployeePINLoginResponse> {
-    
-      console.log(`Validating PIN for employee ${employeeId}`);
-      const result = await this.fetchJSON<EmployeePINLoginResponse>(`${BASE_URL}/employees/${employeeId}/validate-pin`, {
-        method: 'POST',
-        body: JSON.stringify({ pin }),
-      });
-      //console.log(`PIN validation result for employee ${employeeId}:`, result.message);
-      return result;
-    
+
+    console.log(`Validating PIN for employee ${employeeId}`);
+    const result = await this.fetchJSON<EmployeePINLoginResponse>(`${BASE_URL}/employees/${employeeId}/validate-pin`, {
+      method: 'POST',
+      body: JSON.stringify({ pin }),
+    });
+    //console.log(`PIN validation result for employee ${employeeId}:`, result.message);
+    return result;
+
   }
   async deleteEmployee(id: string): Promise<void> {
     await this.fetchJSON(`${BASE_URL}/employees/${id}`, {
@@ -321,35 +321,60 @@ class APIClient {
     return this.fetchJSON<{ employee: EmployeeSales; sales: EmployeeSalesDetail[] }>(`${BASE_URL}/employees/${employeeId}/sales?period=${period}&limit=${limit}`);
   }
 
-  async processCardPaymentStripe(cart:CartItem[]): Promise<StripeSessionData> {
-      const data = await this.fetchJSON<StripeSessionData>(`${BASE_URL}/stripe/create-checkout-session`, {
-        method: 'POST',
-        body: JSON.stringify(cart),
-      });
-      return data; // Use URL for redirection to Stripe Checkout
-    }
+  async processCardPaymentStripe(cart: CartItem[]): Promise<StripeSessionData> {
+    const data = await this.fetchJSON<StripeSessionData>(`${BASE_URL}/stripe/create-checkout-session`, {
+      method: 'POST',
+      body: JSON.stringify(cart),
+    });
+    return data; // Use URL for redirection to Stripe Checkout
+  }
 
-    async getStripeSession(sessionID:string): Promise<StripeSessionDetails> {
-      const data = await this.fetchJSON<StripeSessionDetails>(`${BASE_URL}/stripe/check-session/${sessionID}`, {
-        method: 'GET',        
-      });
-      return data; // Use URL for redirection to Stripe Checkout
-    }
+  async getStripeSession(sessionID: string): Promise<StripeSessionDetails> {
+    const data = await this.fetchJSON<StripeSessionDetails>(`${BASE_URL}/stripe/check-session/${sessionID}`, {
+      method: 'GET',
+    });
+    return data; // Use URL for redirection to Stripe Checkout
+  }
 
-     async processPaypal(cart:CartItem[]): Promise<PayPalOrdersCreateRequest> {
-      const data = await this.fetchJSON<PayPalOrdersCreateRequest>(`${BASE_URL}/paypal/create-checkout-session`, {
-        method: 'POST',
-        body: JSON.stringify(cart),
-      });
-      return data; // Use URL for redirection to Stripe Checkout
-    }
+  async processPaypal(cart: CartItem[]): Promise<PayPalOrdersCreateRequest> {
+    const data = await this.fetchJSON<PayPalOrdersCreateRequest>(`${BASE_URL}/paypal/create-checkout-session`, {
+      method: 'POST',
+      body: JSON.stringify(cart),
+    });
+    return data; // Use URL for redirection to Stripe Checkout
+  }
 
-    async getPaypalSession(sessionID:string): Promise<OrdersGetRequest> {
-      const data = await this.fetchJSON<OrdersGetRequest>(`${BASE_URL}/paypal/check-session/${sessionID}`, {
-        method: 'GET',        
-      });
-      return data; // Use URL for redirection to Stripe Checkout
-    }
+  async getPaypalSession(sessionID: string): Promise<OrdersGetRequest> {
+    const data = await this.fetchJSON<OrdersGetRequest>(`${BASE_URL}/paypal/check-session/${sessionID}`, {
+      method: 'GET',
+    });
+    return data; // Use URL for redirection to Stripe Checkout
+  }
+
+  // Suppliers
+  async getSuppliers(): Promise<Supplier[]> {
+    return this.fetchJSON<Supplier[]>(`${BASE_URL}/suppliers`);
+  }
+
+  async addSupplier(supplier: Supplier): Promise<void> {
+    await this.fetchJSON(`${BASE_URL}/suppliers`, {
+      method: 'POST',
+      body: JSON.stringify(supplier),
+    });
+  }
+
+  async updateSupplier(supplier: Supplier): Promise<void> {
+    await this.fetchJSON(`${BASE_URL}/suppliers/${supplier.id}`, {
+      method: 'PUT',
+      body: JSON.stringify(supplier),
+    });
+  }
+
+  async deleteSupplier(id: string): Promise<void> {
+    await this.fetchJSON(`${BASE_URL}/suppliers/${id}`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 // Create a singleton instance
@@ -373,20 +398,20 @@ export const getOrders = () => apiClient.getOrders();
 export const addOrder = (order: Order) => apiClient.addOrder(order);
 export const getSettings = () => apiClient.getSettings();
 export const updateSettings = (settings: Settings) => apiClient.updateSettings(settings);
-export const login = (email: string) => apiClient.login(email); 
+export const login = (email: string) => apiClient.login(email);
 export const getCustomers = () => apiClient.getCustomers();
 export const addCustomer = (customer: Customer) => apiClient.addCustomer(customer);
 export const updateCustomer = (customer: Customer) => apiClient.updateCustomer(customer);
 export const deleteCustomer = (id: string) => apiClient.deleteCustomer(id);
-export const getCustomerPurchases = (customerId: string) => apiClient.getCustomerPurchases(customerId); 
+export const getCustomerPurchases = (customerId: string) => apiClient.getCustomerPurchases(customerId);
 
 // Loyalty exports
 export const getCustomerPoints = (customerId: string) => apiClient.getCustomerPoints(customerId);
 export const getCustomerTransactions = (customerId: string) => apiClient.getCustomerTransactions(customerId);
 export const earnPoints = (params: { customerId: string, orderId: string, amount: string }) => apiClient.earnPoints(params);
-export const redeemPoints = (params: { customerId: string, pointsToRedeem: number, orderId?: string }) => apiClient.redeemPoints(params); 
+export const redeemPoints = (params: { customerId: string, pointsToRedeem: number, orderId?: string }) => apiClient.redeemPoints(params);
 export const getLoyaltySettings = () => apiClient.getLoyaltySettings();
-export const updateLoyaltySettings = (settings: any) => apiClient.updateLoyaltySettings(settings); 
+export const updateLoyaltySettings = (settings: any) => apiClient.updateLoyaltySettings(settings);
 
 // Employee exports
 export const getEmployees = () => apiClient.getEmployees();
@@ -398,7 +423,7 @@ export const validateEmployeePin = (employeeId: string, pin: string) => apiClien
 
 //stripe payment processing
 export const processCardPaymentStripe = (cart: CartItem[]) => apiClient.processCardPaymentStripe(cart);
-export const getStripeSession = (sessionID: string) => apiClient.getStripeSession(sessionID);          
+export const getStripeSession = (sessionID: string) => apiClient.getStripeSession(sessionID);
 //paypal payment processing
 export const processPaypal = (cart: CartItem[]) => apiClient.processPaypal(cart); // Export the function to process PayPal payments
 export const getPaypalSession = (sessionID: string) => apiClient.getPaypalSession(sessionID);
@@ -413,3 +438,9 @@ export const deleteCategory = (id: string | number) => apiClient.deleteCategory(
 export const getEmployeesSales = (period: 'week' | 'month' | 'year' = 'month') => apiClient.getEmployeesSales(period);
 export const getEmployeesPerformance = (period: 'week' | 'month' | 'year' = 'week') => apiClient.getEmployeesPerformance(period);
 export const getEmployeeSalesDetail = (employeeId: string, period: 'week' | 'month' | 'year' = 'month', limit: number = 50) => apiClient.getEmployeeSalesDetail(employeeId, period, limit);          
+
+//supplier 
+export const getSuppliers = () => apiClient.getSuppliers();
+export const addSupplier = (supplier: Supplier) => apiClient.addSupplier(supplier);
+export const updateSupplier = (supplier: Supplier) => apiClient.updateSupplier(supplier);
+export const deleteSupplier = (id: string) => apiClient.deleteSupplier(id);

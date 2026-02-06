@@ -28,6 +28,9 @@ export interface Product {
   categoryId?: string; // Changed from number to string for consistency
   categoryName?: string; // New field for category name display
   barcode?: string;
+  supplier?: string;
+  supplierId?: string;
+  supplierName?: string;
 }
 
 export interface CartItem extends Product {
@@ -348,3 +351,12 @@ export interface EmployeeSalesDetail {
   items: CartItem[];
 }
 
+export interface Supplier{
+  id: string;
+  storeInfoId: number;
+  name: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  createdAt: string;
+}
