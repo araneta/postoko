@@ -36,6 +36,7 @@ export default class ProductsController {
                 categoryId: productsTable.categoryId,
                 categoryName: categoriesTable.name,
                 barcode: productsTable.barcode,
+                supplierId: productsTable.supplierId,
             })
             .from(productsTable)
             .leftJoin(categoriesTable, eq(productsTable.categoryId, categoriesTable.id))
@@ -54,11 +55,11 @@ export default class ProductsController {
             return res.status(401).send('Unauthorized');
         }
 
-        const { id, name, price, stock, minStock, categoryId, description, image, barcode, cost } = req.body;
+        const { id, name, price, stock, minStock, categoryId, description, image, barcode, cost, supplierId,  } = req.body;
 
         // Validate required fields
-        if (!id || !name || !price || !stock || !categoryId) {
-            return res.status(400).json({ message: 'Missing required fields: id, name, price, stock, categoryId' });
+        if (!id || !name || !price || !stock || !categoryId || !supplierId) {
+            return res.status(400).json({ message: 'Missing required fields: id, name, price, stock, categoryId, supplierId' });
         }
 
         try {
@@ -86,6 +87,7 @@ export default class ProductsController {
                 description: description || null,
                 image: image||'',
                 barcode: barcode||'',
+                supplierId: supplierId||'',
             }).returning();
 
             res.status(201).json(newProduct[0]);
@@ -102,7 +104,7 @@ export default class ProductsController {
             return res.status(401).send('Unauthorized');
         }
         const productId = req.params.id;
-        const {  name, price, stock, minStock, categoryId, description, image, barcode, cost } = req.body;
+        const {  name, price, stock, minStock, categoryId, description, image, barcode, cost, supplierId } = req.body;
 
         // Validate required fields
         if (!name || !price || !stock || !categoryId) {
@@ -122,6 +124,7 @@ export default class ProductsController {
                     description: description || null,
                     image: image||'',
                     barcode: barcode||'',
+                    supplierId: supplierId||'',
                 })
                 .where(eq(productsTable.id, productId))
                 .returning();

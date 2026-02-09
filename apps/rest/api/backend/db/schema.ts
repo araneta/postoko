@@ -26,6 +26,7 @@ export const productsTable = pgTable("products", {
   stock: integer().notNull(),
   minStock: integer().default(10), // Minimum stock threshold for notifications
   categoryId: integer().notNull().references(() => categoriesTable.id),
+  supplierId: varchar({ length: 36 }).references(() => suppliersTable.id),
   barcode: varchar({ length: 255 }),
 });
 
@@ -166,6 +167,18 @@ export const suppliersTable = pgTable("suppliers", {
   phone: varchar({ length: 20 }),
   address: text(),
   notes: text(),
+  website: varchar({ length: 255 }),
+  taxId: varchar({ length: 50 }),
+  paymentTerms: text(),
+  creditLimit: numeric({ precision: 10, scale: 2 }).default('0.00'),
+  currency: varchar({ length: 10 }).references(() => currenciesTable.code),
+  rating: integer(), // Supplier rating from 1 to 5
+  totalOrders: integer().notNull().default(0),
+  totalSpent: numeric({ precision: 15, scale: 2 }).notNull().default('0.00'),
+  averageDeliveryDays: integer(),
+  isActive: boolean().notNull().default(true),
+  
+
   createdAt: timestamp().notNull().defaultNow(),
   updatedAt: timestamp().notNull().defaultNow(),
   deletedAt: timestamp(), // Soft delete field

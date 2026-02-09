@@ -351,12 +351,51 @@ export interface EmployeeSalesDetail {
   items: CartItem[];
 }
 
-export interface Supplier{
+export interface Supplier {
   id: string;
   storeInfoId: number;
-  name: string;
+  name: string; // Company name (e.g., "Acme Corporation")
   email: string;
   phone?: string;
   address?: string;
+  website?: string;
+  taxId?: string;
+
+  // Business terms
+  paymentTerms?: string; // e.g., "Net 30", "COD", "Net 15"
+  creditLimit?: number;
+  currency?: string;
+
+  // Performance tracking
+  rating?: number; // 1-5 star rating
+  totalOrders?: number;
+  totalSpent?: number;
+  averageDeliveryDays?: number;
+
+  // Status and notes
+  status: 'active' | 'inactive' | 'pending';
+  notes?: string;
+
   createdAt: string;
+  updatedAt?: string;
+}
+
+export interface SupplierOrder {
+  id: string;
+  supplierId: string;
+  orderDate: string;
+  expectedDelivery?: string;
+  actualDelivery?: string;
+  status: 'pending' | 'shipped' | 'delivered' | 'cancelled';
+  items: SupplierOrderItem[];
+  totalAmount: number;
+  notes?: string;
+}
+
+export interface SupplierOrderItem {
+  productId: string;
+  productName: string;
+  quantity: number;
+  unitCost: number;
+  totalCost: number;
 }
