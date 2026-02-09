@@ -42,6 +42,7 @@ const initialFormData = {
 
 export default function ProductsScreen() {
   const { products, categories, addProduct, updateProduct, deleteProduct, authenticatedEmployee, suppliers } = useStore();
+  console.log('ProductsScreen: suppliers from store:', suppliers?.length || 0, suppliers);
   const [modalVisible, setModalVisible] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -73,6 +74,9 @@ export default function ProductsScreen() {
       category: formData.categoryName || formData.category, // Backward compatibility
       categoryId: formData.categoryId,
       categoryName: formData.categoryName,
+      supplier: formData.supplierName || formData.supplier, // Backward compatibility
+      supplierId: formData.supplierId,
+      supplierName: formData.supplierName,
       description: formData.description,
       image: formData.image || undefined,
       barcode: formData.barcode || undefined,
@@ -387,7 +391,7 @@ export default function ProductsScreen() {
                 <Ionicons name="scan-outline" size={20} color="white" />
               </Pressable>
             </View>
-              <SupplierPicker
+            <SupplierPicker
               suppliers={suppliers}
               selectedSupplierId={formData.supplierId}
               onSupplierChange={handleSupplierChange}

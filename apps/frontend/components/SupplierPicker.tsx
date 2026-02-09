@@ -18,6 +18,8 @@ export default function SupplierPicker({
   placeholder = 'Select a supplier',
   style,
 }: SupplierPickerProps) {
+  console.log('SupplierPicker: received suppliers:', suppliers?.length || 0, suppliers);
+  
   return (
     <View style={[styles.container, style]}>
       <Picker

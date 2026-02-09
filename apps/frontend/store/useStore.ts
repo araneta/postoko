@@ -23,6 +23,9 @@ interface StoreState {
   addCategory: (category: Category) => Promise<void>;
   updateCategory: (category: Category) => Promise<void>;
   deleteCategory: (id: string | number) => Promise<void>;
+  addSupplier: (supplier: Supplier) => Promise<void>;
+  updateSupplier: (supplier: Supplier) => Promise<void>;
+  deleteSupplier: (id: string) => Promise<void>;
   addToCart: (product: Product) => void;
   removeFromCart: (productId: string) => void;
   updateCartItemQuantity: (productId: string, quantity: number) => void;
@@ -110,6 +113,7 @@ const useStore = create<StoreState>((set, get) => ({
       
       console.log('Store: received categories:', categories.length);
       console.log('Store: received suppliers:', suppliers.length);
+      console.log('Store: suppliers data:', suppliers);
 
       // Categories are now handled by the API client (with mock fallback)
       const finalCategories = categories;
@@ -218,6 +222,7 @@ const useStore = create<StoreState>((set, get) => ({
       set({
         products: finalProducts,
         categories: finalCategories,
+        suppliers,
         orders,
         settings: finalSettings,
         initializing: false,
@@ -304,6 +309,44 @@ const useStore = create<StoreState>((set, get) => ({
       }));
     } catch (error) {
       console.error('Failed to delete category:', error);
+      throw error;
+    }
+  },
+
+  addSupplier: async (supplier) => {
+    try {
+      await apiClient.addSupplier(supplier);
+      set(state => ({
+        suppliers: [...state.suppliers, supplier]
+      }));
+    } catch (error) {
+      console.error('Failed to add supplier:', error);
+      throw error;
+    }
+  },
+
+  updateSupplier: async (supplier) => {
+    try {
+      await apiClient.updateSupplier(supplier);
+      set(state => ({
+        suppliers: state.suppliers.map(s =>
+          s.id === supplier.id ? supplier : s
+        )
+      }));
+    } catch (error) {
+      console.error('Failed to update supplier:', error);
+      throw error;
+    }
+  },
+
+  deleteSupplier: async (id) => {
+    try {
+      await apiClient.deleteSupplier(id);
+      set(state => ({
+        suppliers: state.suppliers.filter(s => s.id !== id)
+      }));
+    } catch (error) {
+      console.error('Failed to delete supplier:', error);
       throw error;
     }
   },
