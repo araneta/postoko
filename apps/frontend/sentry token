@@ -1,0 +1,8 @@
+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
+
+eas secret:create --name SENTRY_AUTH_TOKEN --value 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
+eas env:create --name SENTRY_AUTH_TOKEN --value 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 --type string
+
+
+eas env:create --name SENTRY_ORG --value aldopraherda --type string --environment production
+eas env:create --name SENTRY_PROJECT --value bolt-expo-nativewind --type string --environment production

@@ -3,7 +3,7 @@ var baseurl = '';
 if (__DEV__) {
   baseurl = 'http://localhost:3000/api';
 } else {
-  baseurl = 'https://your-production-api-url.com/api'
+  baseurl = 'https://postoko.aldoapp.com/api'
 }
 const BASE_URL = baseurl;
 
