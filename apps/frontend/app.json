@@ -71,7 +71,16 @@
           "project": "react-native",
           "organization": "adminujianku"
         }
-      ]
+      ],
+      "@sentry/react-native",
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.boltexpo.pos",
+          "enableGooglePay": true
+        }
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,

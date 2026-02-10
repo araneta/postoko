@@ -18,6 +18,8 @@ admin = dashboard, index (Point of Sale), products, alerts, orders, analytics, c
 Bulk product import via CSV [pending]
 Product categories and filtering [done]
 Supplier information tracking . see suplier.txt [working]
+on supplier when i click View Orders, Analytics, New Order , nothing happen
+
 
 Why valuable: Saves hours of manual data entry
 
