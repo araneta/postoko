@@ -7,7 +7,7 @@ if (__DEV__) {
 }
 const BASE_URL = baseurl;
 
-import { User, Product, Order, Settings, Customer, CustomerPurchase, Employee, Role, CartItem, StripeSessionData, StripeSessionDetails, PayPalOrdersCreateRequest, OrdersGetRequest, EmployeePINLoginResponse, EmployeeSales, EmployeePerformance, EmployeeSalesDetail, Category, Supplier } from '../types';
+import { User, Product, Order, Settings, Customer, CustomerPurchase, Employee, Role, CartItem, StripeSessionData, StripeSessionDetails, PayPalOrdersCreateRequest, OrdersGetRequest, EmployeePINLoginResponse, EmployeeSales, EmployeePerformance, EmployeeSalesDetail, Category, Supplier, Promotion, DiscountValidationRequest, DiscountValidationResponse, PromotionStats } from '../types';
 import { safeToNumber, safeToInteger } from '../utils/formatters';
 import { mockCategoryService } from './mockCategoryService';
 
@@ -375,6 +375,46 @@ class APIClient {
       method: 'DELETE',
     });
   }
+
+  // Promotions & Discounts
+  async getPromotions(storeId: number): Promise<Promotion[]> {
+    return this.fetchJSON<Promotion[]>(`${BASE_URL}/promotions/${storeId}`);
+  }
+
+  async createPromotion(storeId: number, promotion: Omit<Promotion, 'id' | 'createdAt' | 'updatedAt'>): Promise<{ promotion: Promotion }> {
+    return this.fetchJSON<{ promotion: Promotion }>(`${BASE_URL}/promotions/${storeId}`, {
+      method: 'POST',
+      body: JSON.stringify(promotion),
+    });
+  }
+
+  async updatePromotion(promotionId: string, promotion: Partial<Promotion>): Promise<void> {
+    await this.fetchJSON(`${BASE_URL}/promotions/detail/${promotionId}`, {
+      method: 'PUT',
+      body: JSON.stringify(promotion),
+    });
+  }
+
+  async deletePromotion(promotionId: string): Promise<void> {
+    await this.fetchJSON(`${BASE_URL}/promotions/detail/${promotionId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async validateDiscountCode(request: DiscountValidationRequest): Promise<DiscountValidationResponse> {
+    return this.fetchJSON(`${BASE_URL}/promotions/validate-code`, {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  }
+
+  async getPromotionStats(promotionId: string): Promise<{ stats: PromotionStats }> {
+    return this.fetchJSON(`${BASE_URL}/promotions/stats/${promotionId}`);
+  }
+
+  async getPromotionDetail(promotionId: string): Promise<Promotion> {
+    return this.fetchJSON(`${BASE_URL}/promotions/detail/${promotionId}`);
+  }
 }
 
 // Create a singleton instance
@@ -437,10 +477,19 @@ export const deleteCategory = (id: string | number) => apiClient.deleteCategory(
 // Employee Sales exports
 export const getEmployeesSales = (period: 'week' | 'month' | 'year' = 'month') => apiClient.getEmployeesSales(period);
 export const getEmployeesPerformance = (period: 'week' | 'month' | 'year' = 'week') => apiClient.getEmployeesPerformance(period);
-export const getEmployeeSalesDetail = (employeeId: string, period: 'week' | 'month' | 'year' = 'month', limit: number = 50) => apiClient.getEmployeeSalesDetail(employeeId, period, limit);          
+export const getEmployeeSalesDetail = (employeeId: string, period: 'week' | 'month' | 'year' = 'month', limit: number = 50) => apiClient.getEmployeeSalesDetail(employeeId, period, limit);
 
 //supplier 
 export const getSuppliers = () => apiClient.getSuppliers();
 export const addSupplier = (supplier: Supplier) => apiClient.addSupplier(supplier);
 export const updateSupplier = (supplier: Supplier) => apiClient.updateSupplier(supplier);
 export const deleteSupplier = (id: string) => apiClient.deleteSupplier(id);
+
+// Promotions & Discounts exports
+export const getPromotions = (storeId: number) => apiClient.getPromotions(storeId);
+export const createPromotion = (storeId: number, promotion: Omit<Promotion, 'id' | 'createdAt' | 'updatedAt'>) => apiClient.createPromotion(storeId, promotion);
+export const updatePromotion = (promotionId: string, promotion: Partial<Promotion>) => apiClient.updatePromotion(promotionId, promotion);
+export const deletePromotion = (promotionId: string) => apiClient.deletePromotion(promotionId);
+export const validateDiscountCode = (request: DiscountValidationRequest) => apiClient.validateDiscountCode(request);
+export const getPromotionStats = (promotionId: string) => apiClient.getPromotionStats(promotionId);
+export const getPromotionDetail = (promotionId: string) => apiClient.getPromotionDetail(promotionId);

@@ -399,3 +399,96 @@ export interface SupplierOrderItem {
   unitCost: number;
   totalCost: number;
 }
+
+// Promotion and Discount Types
+export type PromotionType = 'percentage' | 'fixed_amount' | 'buy_x_get_y' | 'time_based';
+export type TimeBasedType = 'daily' | 'weekly' | 'specific_dates';
+export type GetDiscountType = 'free' | 'percentage' | 'fixed_amount';
+
+export interface Promotion {
+  id?: string;
+  storeInfoId: number;
+  name: string;
+  description: string;
+  type: PromotionType;
+  
+  // Basic discount settings
+  discountValue: number; // Percentage (0-100) or fixed amount
+  minimumPurchase?: number;
+  maximumDiscount?: number;
+  
+  // BOGO settings
+  buyQuantity?: number;
+  getQuantity?: number;
+  getDiscountType?: GetDiscountType;
+  getDiscountValue?: number;
+  
+  // Time-based settings
+  timeBasedType?: TimeBasedType;
+  activeTimeStart?: string; // HH:MM:SS format
+  activeTimeEnd?: string;   // HH:MM:SS format
+  activeDays?: number[];    // 0=Sunday, 1=Monday, etc.
+  specificDates?: string[]; // YYYY-MM-DD format
+  
+  // Product/Category restrictions
+  applicableToProducts?: string[];
+  applicableToCategories?: string[];
+  
+  // Usage limits
+  usageLimit?: number;
+  customerUsageLimit?: number;
+  
+  // Validity period
+  startDate: string;
+  endDate: string;
+  
+  // Discount codes
+  discountCodes: string[];
+  
+  // Status and tracking
+  isActive?: boolean;
+  totalUsage?: number;
+  totalDiscount?: number;
+  
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface DiscountValidationRequest {
+  code: string;
+  storeInfoId: number;
+  orderItems: Array<{
+    productId: string;
+    quantity: number;
+    price?: number;
+    categoryId?: string;
+  }>;
+  customerId?: string;
+  orderTotal?: number;
+}
+
+export interface DiscountValidationResponse {
+  valid: boolean;
+  discountAmount: number;
+  eligibleItems: Array<{
+    productId: string;
+    quantity: number;
+    discountPerItem: number;
+    totalDiscount: number;
+  }>;
+  promotion?: Promotion;
+  message?: string;
+}
+
+export interface PromotionStats {
+  totalUsage: number;
+  totalDiscount: number;
+  averageDiscount: number;
+  uniqueCustomers: number;
+  topProducts: Array<{
+    productId: string;
+    productName: string;
+    usageCount: number;
+    totalDiscount: number;
+  }>;
+}

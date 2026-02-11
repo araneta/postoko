@@ -77,67 +77,6 @@ const router = Router();
 
 /**
  * @swagger
- * /api/promotions/{storeInfoId}:
- *   post:
- *     summary: Create a new promotion
- *     tags: [Promotions]
- *     parameters:
- *       - in: path
- *         name: storeInfoId
- *         required: true
- *         schema:
- *           type: integer
- *         description: Store ID
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/Promotion'
- *     responses:
- *       201:
- *         description: Promotion created successfully
- *       400:
- *         description: Invalid input data
- *       500:
- *         description: Server error
- */
-router.post('/:storeInfoId', PromotionsController.createPromotion);
-
-/**
- * @swagger
- * /api/promotions/{storeInfoId}:
- *   get:
- *     summary: Get all promotions for a store
- *     tags: [Promotions]
- *     parameters:
- *       - in: path
- *         name: storeInfoId
- *         required: true
- *         schema:
- *           type: integer
- *         description: Store ID
- *       - in: query
- *         name: active
- *         schema:
- *           type: boolean
- *         description: Filter for active promotions only
- *     responses:
- *       200:
- *         description: List of promotions
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Promotion'
- *       500:
- *         description: Server error
- */
-router.get('/:storeInfoId', PromotionsController.getPromotions);
-
-/**
- * @swagger
  * /api/promotions/detail/{id}:
  *   get:
  *     summary: Get promotion by ID
@@ -315,5 +254,66 @@ router.delete('/detail/:id', PromotionsController.deletePromotion);
  *         description: Server error
  */
 router.get('/stats/:id', PromotionsController.getPromotionStats);
+
+/**
+ * @swagger
+ * /api/promotions/{storeInfoId}:
+ *   post:
+ *     summary: Create a new promotion
+ *     tags: [Promotions]
+ *     parameters:
+ *       - in: path
+ *         name: storeInfoId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Store ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Promotion'
+ *     responses:
+ *       201:
+ *         description: Promotion created successfully
+ *       400:
+ *         description: Invalid input data
+ *       500:
+ *         description: Server error
+ */
+router.post('/:storeInfoId', PromotionsController.createPromotion);
+
+/**
+ * @swagger
+ * /api/promotions/{storeInfoId}:
+ *   get:
+ *     summary: Get all promotions for a store
+ *     tags: [Promotions]
+ *     parameters:
+ *       - in: path
+ *         name: storeInfoId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Store ID
+ *       - in: query
+ *         name: active
+ *         schema:
+ *           type: boolean
+ *         description: Filter for active promotions only
+ *     responses:
+ *       200:
+ *         description: List of promotions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Promotion'
+ *       500:
+ *         description: Server error
+ */
+router.get('/:storeInfoId', PromotionsController.getPromotions);
 
 export default router;

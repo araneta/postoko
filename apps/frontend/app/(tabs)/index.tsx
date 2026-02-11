@@ -8,9 +8,10 @@ import PaymentModal from '../../components/PaymentModal';
 import CustomAlert from '../../components/CustomAlert';
 import EmployeePinLogin from '@/components/EmployeePinLogin';
 import CategoryFilter from '../../components/CategoryFilter';
+import { DiscountValidator } from '../../components/DiscountValidator';
 import useStore from '../../store/useStore';
 import { printReceipt } from '../../utils/printer';
-import { PaymentDetails, Employee } from '../../types';
+import { PaymentDetails, Employee, DiscountValidationResponse } from '../../types';
 import { getCustomers, getEmployees } from '../../lib/api';
 import { Customer } from '../../types';
 import loyaltyService from '../../lib/loyalty';
@@ -59,6 +60,8 @@ export default function POSScreen() {
   const [searchCustomer, setSearchCustomer] = useState('');
   const [showEmployeePinModal, setShowEmployeePinModal] = useState(false);
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [showDiscountModal, setShowDiscountModal] = useState(false);
+  const [appliedDiscount, setAppliedDiscount] = useState<DiscountValidationResponse | null>(null);
 
   // Check for low stock alerts when component mounts
   useEffect(() => {
@@ -87,6 +90,8 @@ export default function POSScreen() {
   }
 
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const discountAmount = appliedDiscount?.discountAmount || 0;
+  const finalTotal = total - discountAmount;
 
   const showAlert = (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
     setCustomAlert({
@@ -104,6 +109,16 @@ export default function POSScreen() {
       message: '',
       type: 'info',
     });
+  };
+
+  const handleApplyDiscount = (discount: DiscountValidationResponse) => {
+    setAppliedDiscount(discount);
+    showAlert('Discount Applied!', `${discount.promotion?.name || 'Discount'} applied successfully`, 'success');
+  };
+
+  const handleRemoveDiscount = () => {
+    setAppliedDiscount(null);
+    showAlert('Discount Removed', 'Discount has been removed from the order', 'info');
   };
 
   const handleSelectCustomer = (customer: Customer) => {
@@ -370,9 +385,49 @@ export default function POSScreen() {
             )}
             keyExtractor={(item) => item.id}
           />
+
+          {/* Discount Section */}
+          <View style={styles.discountSection}>
+            {appliedDiscount ? (
+              <View style={styles.appliedDiscountContainer}>
+                <View style={styles.discountInfo}>
+                  <Text style={styles.discountName}>{appliedDiscount.promotion?.name}</Text>
+                  <Text style={styles.discountAmount}>-{formatPrice(appliedDiscount.discountAmount)}</Text>
+                </View>
+                <Pressable onPress={handleRemoveDiscount} style={styles.removeDiscountButton}>
+                  <Ionicons name="close-circle" size={20} color="#FF3B30" />
+                </Pressable>
+              </View>
+            ) : (
+              <Pressable
+                style={styles.addDiscountButton}
+                onPress={() => {
+                  console.log('Opening discount modal with customer:', selectedCustomer?.id, selectedCustomer?.name);
+                  setShowDiscountModal(true);
+                }}
+                disabled={cart.length === 0}
+              >
+                <Ionicons name="pricetag-outline" size={20} color="#007AFF" />
+                <Text style={styles.addDiscountText}>Add Discount Code</Text>
+              </Pressable>
+            )}
+          </View>
+
           <View style={styles.totalContainer}>
+            {appliedDiscount && (
+              <>
+                <View style={styles.subtotalRow}>
+                  <Text style={styles.subtotalText}>Subtotal:</Text>
+                  <Text style={styles.subtotalAmount}>{formatPrice(total)}</Text>
+                </View>
+                <View style={styles.discountRow}>
+                  <Text style={styles.discountText}>Discount:</Text>
+                  <Text style={styles.discountAmountText}>-{formatPrice(discountAmount)}</Text>
+                </View>
+              </>
+            )}
             <Text style={styles.totalText}>Total:</Text>
-            <Text style={styles.totalAmount}>{formatPrice(total)}</Text>
+            <Text style={styles.totalAmount}>{formatPrice(finalTotal)}</Text>
           </View>
           <Pressable
             style={[styles.checkoutButton, (cart.length === 0 || !authenticatedEmployee) && styles.disabledButton]}
@@ -391,7 +446,10 @@ export default function POSScreen() {
           visible={showPaymentModal}
           onClose={() => setShowPaymentModal(false)}
           onPaymentComplete={handlePaymentComplete}
-          total={total}
+          total={finalTotal}
+          subtotal={total}
+          discountAmount={discountAmount}
+          appliedDiscount={appliedDiscount}
           formatPrice={formatPrice}
           cart={cart}
         />
@@ -460,6 +518,15 @@ export default function POSScreen() {
           message={customAlert.message}
           type={customAlert.type}
           onClose={hideAlert}
+        />
+
+        <DiscountValidator
+          visible={showDiscountModal}
+          onClose={() => setShowDiscountModal(false)}
+          onApplyDiscount={handleApplyDiscount}
+          cartItems={cart}
+          storeId={1} // You may want to get this from settings or store
+          customer={selectedCustomer}
         />
 
         <EmployeePinLogin
@@ -617,6 +684,35 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#e5e5e5',
   },
+  subtotalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  subtotalText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  subtotalAmount: {
+    fontSize: 14,
+    color: '#666',
+  },
+  discountRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  discountText: {
+    fontSize: 14,
+    color: '#34C759',
+  },
+  discountAmountText: {
+    fontSize: 14,
+    color: '#34C759',
+    fontWeight: '600',
+  },
   totalText: {
     fontSize: 18,
     fontWeight: '600',
@@ -625,6 +721,55 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '700',
     color: '#007AFF',
+  },
+  discountSection: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e5e5',
+  },
+  addDiscountButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#007AFF',
+    borderRadius: 8,
+    borderStyle: 'dashed',
+  },
+  addDiscountText: {
+    color: '#007AFF',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  appliedDiscountContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 12,
+    backgroundColor: '#f0f9ff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#34C759',
+  },
+  discountInfo: {
+    flex: 1,
+  },
+  discountName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 2,
+  },
+  discountAmount: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#34C759',
+  },
+  removeDiscountButton: {
+    padding: 4,
   },
   checkoutButton: {
     backgroundColor: '#007AFF',

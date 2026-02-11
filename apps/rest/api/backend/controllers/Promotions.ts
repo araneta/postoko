@@ -1,15 +1,28 @@
 import { Request, Response } from 'express';
+import { getAuth } from '@clerk/express';
 import { db } from '../db/index.js';
-import { promotionsTable, discountCodesTable, promotionUsageTable, ordersTable, orderItemsTable, productsTable, categoriesTable } from '../db/schema.js';
+import { storeInfoTable, promotionsTable, discountCodesTable, promotionUsageTable, ordersTable, orderItemsTable, productsTable, categoriesTable } from '../db/schema.js';
 import { eq, and, gte, lte, isNull, sql, inArray } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
 export class PromotionsController {
   // Create a new promotion
   static async createPromotion(req: Request, res: Response) {
+	  const auth = getAuth(req);
+        if (!auth.userId) {
+            return res.status(401).send('Unauthorized');
+        }
+	   
     try {
-      const {
-        storeInfoId,
+		const storeInfo = await db.select()
+			.from(storeInfoTable)
+			.where(eq(storeInfoTable.userId, auth.userId));
+		if (storeInfo.length === 0) {
+			return res.status(200).json([]);
+		}
+		const storeInfoId = storeInfo[0].id;
+		
+      const {        
         name,
         description,
         type,
@@ -35,11 +48,26 @@ export class PromotionsController {
         activeTimeEnd,
         specificDates
       } = req.body;
-
+	console.log('createPromotion');
       // Validate required fields
-      if (!name || !type || !discountValue || !startDate || !endDate) {
-        return res.status(400).json({ error: 'Missing required fields' });
-      }
+      const requiredFields = {
+		  name,
+		  type,
+		  discountValue,
+		  startDate,
+		  endDate,
+		};
+
+		const missingFields = Object.entries(requiredFields)
+		  .filter(([_, value]) => value === undefined || value === null || value === '')
+		  .map(([key]) => key);
+
+		if (missingFields.length > 0) {
+		  return res.status(400).json({
+			error: `Missing required field(s): ${missingFields.join(', ')}`,
+			missingFields,
+		  });
+		}
 
       // Validate promotion type
       if (!['percentage', 'fixed_amount', 'buy_x_get_y', 'time_based'].includes(type)) {
@@ -128,8 +156,20 @@ export class PromotionsController {
 
   // Get all promotions for a store
   static async getPromotions(req: Request, res: Response) {
+	  const auth = getAuth(req);
+        if (!auth.userId) {
+            return res.status(401).send('Unauthorized');
+        }
+        
     try {
-      const { storeInfoId } = req.params;
+      const storeInfo = await db.select()
+			.from(storeInfoTable)
+			.where(eq(storeInfoTable.userId, auth.userId));
+		if (storeInfo.length === 0) {
+			return res.status(200).json([]);
+		}
+		const storeInfoId = storeInfo[0].id;
+		
       const { active } = req.query;
 
       let query = db.select().from(promotionsTable)
@@ -175,13 +215,26 @@ export class PromotionsController {
 
   // Get promotion by ID
   static async getPromotionById(req: Request, res: Response) {
+	  const auth = getAuth(req);
+        if (!auth.userId) {
+            return res.status(401).send('Unauthorized');
+        }
     try {
+		const storeInfo = await db.select()
+			.from(storeInfoTable)
+			.where(eq(storeInfoTable.userId, auth.userId));
+		if (storeInfo.length === 0) {
+			return res.status(200).json([]);
+		}
+		const storeInfoId = storeInfo[0].id;
+		
       const { id } = req.params;
 
       const [promotion] = await db.select().from(promotionsTable)
         .where(and(
           eq(promotionsTable.id, id),
-          isNull(promotionsTable.deletedAt)
+          isNull(promotionsTable.deletedAt),          
+          eq(promotionsTable.storeInfoId, parseInt(storeInfoId)),
         ));
 
       if (!promotion) {
@@ -208,11 +261,28 @@ export class PromotionsController {
 
   // Validate and apply discount code
   static async validateDiscountCode(req: Request, res: Response) {
+	  const auth = getAuth(req);
+        if (!auth.userId) {
+            return res.status(401).send('Unauthorized');
+        }
     try {
-      const { code, storeInfoId, customerId, orderItems } = req.body;
-
-      if (!code || !storeInfoId || !orderItems) {
-        return res.status(400).json({ error: 'Missing required fields' });
+		const storeInfo = await db.select()
+			.from(storeInfoTable)
+			.where(eq(storeInfoTable.userId, auth.userId));
+		if (storeInfo.length === 0) {
+			return res.status(200).json([]);
+		}
+		const storeInfoId = storeInfo[0].id;
+      const { code, customerId, orderItems } = req.body;
+	
+      if (!code) {
+        return res.status(400).json({ error: 'Missing required fields: code' });
+      }
+      if (!storeInfoId ) {
+        return res.status(400).json({ error: 'Missing required fields: storeInfoId' });
+      }
+      if (!orderItems) {
+        return res.status(400).json({ error: 'Missing required fields: orderItems' });
       }
 
       // Find discount code
@@ -244,7 +314,7 @@ export class PromotionsController {
 
       // Check time-based promotion constraints
       if (promotion.type === 'time_based') {
-        const isTimeValid = this.isTimeBasedPromotionActive(promotion, now);
+        const isTimeValid = PromotionsController.isTimeBasedPromotionActive(promotion, now);
         if (!isTimeValid) {
           return res.status(400).json({ error: 'Promotion is not active at this time' });
         }
@@ -270,7 +340,7 @@ export class PromotionsController {
       }
 
       // Calculate discount
-      const discountResult = await this.calculateDiscount(promotion, orderItems);
+      const discountResult = await PromotionsController.calculateDiscount(promotion, orderItems);
 
       if (discountResult.discountAmount === 0) {
         return res.status(400).json({ error: 'No eligible items for this promotion' });
@@ -354,7 +424,7 @@ export class PromotionsController {
       const eligibleSubtotal = eligibleItems.reduce((sum, item) => sum + item.itemTotal, 0);
       discountAmount = Math.min(parseFloat(promotion.discountValue), eligibleSubtotal);
     } else if (promotion.type === 'buy_x_get_y') {
-      discountAmount = this.calculateBOGODiscount(promotion, eligibleItems);
+      discountAmount = PromotionsController.calculateBOGODiscount(promotion, eligibleItems);
     } else if (promotion.type === 'time_based') {
       // Time-based promotions use the base discount value (percentage or fixed)
       const eligibleSubtotal = eligibleItems.reduce((sum, item) => sum + item.itemTotal, 0);
@@ -453,7 +523,18 @@ export class PromotionsController {
 
   // Update promotion
   static async updatePromotion(req: Request, res: Response) {
+	  const auth = getAuth(req);
+        if (!auth.userId) {
+            return res.status(401).send('Unauthorized');
+        }
     try {
+		const storeInfo = await db.select()
+			.from(storeInfoTable)
+			.where(eq(storeInfoTable.userId, auth.userId));
+		if (storeInfo.length === 0) {
+			return res.status(200).json([]);
+		}
+		const storeInfoId = storeInfo[0].id;
       const { id } = req.params;
       const updateData = { ...req.body, updatedAt: new Date() };
 
@@ -466,7 +547,8 @@ export class PromotionsController {
         .set(updateData)
         .where(and(
           eq(promotionsTable.id, id),
-          isNull(promotionsTable.deletedAt)
+          isNull(promotionsTable.deletedAt),
+          eq(promotionsTable.storeInfoId, parseInt(storeInfoId)),
         ))
         .returning();
 
@@ -483,14 +565,26 @@ export class PromotionsController {
 
   // Delete promotion (soft delete)
   static async deletePromotion(req: Request, res: Response) {
+	  const auth = getAuth(req);
+        if (!auth.userId) {
+            return res.status(401).send('Unauthorized');
+        }
     try {
+		const storeInfo = await db.select()
+			.from(storeInfoTable)
+			.where(eq(storeInfoTable.userId, auth.userId));
+		if (storeInfo.length === 0) {
+			return res.status(200).json([]);
+		}
+		const storeInfoId = storeInfo[0].id;
       const { id } = req.params;
 
       const [deletedPromotion] = await db.update(promotionsTable)
         .set({ deletedAt: new Date() })
         .where(and(
           eq(promotionsTable.id, id),
-          isNull(promotionsTable.deletedAt)
+          isNull(promotionsTable.deletedAt),
+          eq(promotionsTable.storeInfoId, parseInt(storeInfoId)),
         ))
         .returning();
 
@@ -507,13 +601,25 @@ export class PromotionsController {
 
   // Get promotion usage statistics
   static async getPromotionStats(req: Request, res: Response) {
+	  const auth = getAuth(req);
+        if (!auth.userId) {
+            return res.status(401).send('Unauthorized');
+        }
     try {
+		const storeInfo = await db.select()
+			.from(storeInfoTable)
+			.where(eq(storeInfoTable.userId, auth.userId));
+		if (storeInfo.length === 0) {
+			return res.status(200).json([]);
+		}
+		const storeInfoId = storeInfo[0].id;
       const { id } = req.params;
 
       const [promotion] = await db.select().from(promotionsTable)
         .where(and(
           eq(promotionsTable.id, id),
-          isNull(promotionsTable.deletedAt)
+          isNull(promotionsTable.deletedAt),
+          eq(promotionsTable.storeInfoId, parseInt(storeInfoId)),
         ));
 
       if (!promotion) {

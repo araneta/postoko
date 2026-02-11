@@ -11,7 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { PaymentMethod, PaymentDetails, CartItem } from '../types';
+import { PaymentMethod, PaymentDetails, CartItem, DiscountValidationResponse } from '../types';
 import paymentService from '../lib/payment';
 import { processCardPaymentStripe, getStripeSession, processPaypal, getPaypalSession } from '../lib/api'; // Import the function to process card payment
 
@@ -20,6 +20,9 @@ interface PaymentModalProps {
   onClose: () => void;
   onPaymentComplete: (paymentDetails: PaymentDetails[]) => void;
   total: number;
+  subtotal?: number;
+  discountAmount?: number;
+  appliedDiscount?: DiscountValidationResponse | null;
   formatPrice: (price: number) => string;
   cart: CartItem[];
 }
@@ -35,6 +38,9 @@ export default function PaymentModal({
   onClose,
   onPaymentComplete,
   total,
+  subtotal,
+  discountAmount = 0,
+  appliedDiscount,
   formatPrice,
   cart
 }: PaymentModalProps) {
@@ -563,8 +569,29 @@ export default function PaymentModal({
           </View>
 
           <View style={styles.paymentDetails}>
-            <Text style={styles.paymentLabel}>Total Amount:</Text>
-            <Text style={styles.paymentAmount}>{formatPrice(total)}</Text>
+            {appliedDiscount && subtotal ? (
+              <View style={styles.paymentBreakdown}>
+                <View style={styles.paymentRow}>
+                  <Text style={styles.paymentLabel}>Subtotal:</Text>
+                  <Text style={styles.paymentSubtotal}>{formatPrice(subtotal)}</Text>
+                </View>
+                <View style={styles.discountRow}>
+                  <Text style={styles.discountLabel}>
+                    Discount ({appliedDiscount.promotion?.name}):
+                  </Text>
+                  <Text style={styles.discountAmount}>-{formatPrice(discountAmount)}</Text>
+                </View>
+                <View style={styles.totalRow}>
+                  <Text style={styles.totalLabel}>Total Amount:</Text>
+                  <Text style={styles.paymentAmount}>{formatPrice(total)}</Text>
+                </View>
+              </View>
+            ) : (
+              <View style={styles.paymentRow}>
+                <Text style={styles.paymentLabel}>Total Amount:</Text>
+                <Text style={styles.paymentAmount}>{formatPrice(total)}</Text>
+              </View>
+            )}
           </View>
 
           <ScrollView style={styles.methodsContainer}>
@@ -692,17 +719,55 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   paymentDetails: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     marginBottom: 24,
     paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#e5e5e5',
   },
+  paymentBreakdown: {
+    // Container for detailed breakdown
+  },
+  paymentRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   paymentLabel: {
     fontSize: 16,
     color: '#666',
+  },
+  paymentSubtotal: {
+    fontSize: 16,
+    color: '#666',
+  },
+  discountRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  discountLabel: {
+    fontSize: 14,
+    color: '#34C759',
+  },
+  discountAmount: {
+    fontSize: 14,
+    color: '#34C759',
+    fontWeight: '600',
+  },
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e5e5',
+  },
+  totalLabel: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
   },
   paymentAmount: {
     fontSize: 24,

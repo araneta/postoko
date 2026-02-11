@@ -69,8 +69,8 @@ export default function TabLayout() {
     const roleMenus = {
       staff: ['dashboard', 'index', 'products', 'categories', 'alerts'],
       cashier: ['dashboard', 'index', 'orders', 'customers'],
-      manager: ['dashboard', 'index', 'products', 'categories', 'alerts', 'orders', 'analytics', 'customers', 'suppliers', 'employees'],
-      admin: ['dashboard', 'index', 'products', 'categories', 'alerts', 'orders', 'analytics', 'customers', 'suppliers', 'employees', 'settings']
+      manager: ['dashboard', 'index', 'products', 'categories', 'alerts', 'orders', 'analytics', 'customers', 'suppliers', 'employees', 'promotions'],
+      admin: ['dashboard', 'index', 'products', 'categories', 'alerts', 'orders', 'analytics', 'customers', 'suppliers', 'employees', 'promotions', 'settings']
     };
 
     return roleMenus[roleName as keyof typeof roleMenus] || ['dashboard', 'index'];
@@ -196,6 +196,16 @@ export default function TabLayout() {
             <Ionicons name="person" size={size} color={color} />
           ),
           href: allowedTabs.includes('suppliers') ? undefined : null,
+        }}
+      />
+      <Tabs.Screen
+        name="promotions"
+        options={{
+          title: 'Promotions',
+          tabBarIcon: ({ size, color }) => (
+            <Ionicons name="pricetag" size={size} color={color} />
+          ),
+          href: allowedTabs.includes('promotions') ? undefined : null,
         }}
       />
       <Tabs.Screen
