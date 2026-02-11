@@ -1,9 +1,9 @@
 import { db } from '../db/index.js';
 import { ordersTable, orderItemsTable, storeInfoTable, productsTable, customersTable,
-     customerPurchasesTable,employeesTable } from '../db/schema.js';
+     customerPurchasesTable,employeesTable, promotionsTable, promotionUsageTable, discountCodesTable } from '../db/schema.js';
 import { Request, Response } from 'express';
 import { getAuth } from '@clerk/express';
-import { eq, desc, and, inArray, sql } from 'drizzle-orm';
+import { eq, desc, and, inArray, sql, isNull, gte, lte } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 
 export default class OrdersController {
@@ -91,12 +91,12 @@ export default class OrdersController {
             return res.status(401).send('Unauthorized');
         }
 
-        const { items, total, date, paymentMethod, status, customer, employee } = req.body;
+        const { items, total, subtotal, discountAmount = 0, discountCode, date, paymentMethod, status, customer, employee } = req.body;
 
         // Validate required fields
-        if ( !items || !Array.isArray(items) || items.length === 0 || !total || !date || !paymentMethod || !status || !employee) {
+        if ( !items || !Array.isArray(items) || items.length === 0 || !total || !subtotal || !date || !paymentMethod || !status || !employee) {
             return res.status(400).json({ 
-                message: 'Missing required fields: items (array), total, date, paymentMethod, status, employee' 
+                message: 'Missing required fields: items (array), total, subtotal, date, paymentMethod, status, employee' 
             });
         }
 
@@ -148,7 +148,8 @@ export default class OrdersController {
                     errors: stockValidationErrors 
                 });
             }
-            //validate customer
+
+            // Validate customer
             if (customer) {
                 const customerData = await db.select()
                 .from(customersTable)
@@ -158,7 +159,7 @@ export default class OrdersController {
                 }
             }
 
-            //validate employee
+            // Validate employee
             const employeeData = await db.select()
             .from(employeesTable)
             .where(and(eq(employeesTable.storeInfoId, storeInfoId), eq(employeesTable.id, employee.id)));
@@ -166,7 +167,59 @@ export default class OrdersController {
                 return res.status(400).json({ message: 'Employee not found' });
             }
 
-            const id = randomUUID(); // Or let Postgres handle this
+            // Validate discount code if provided
+            let promotionId = null;
+            if (discountCode && discountAmount > 0) {
+                const [discountCodeData] = await db.select({
+                    code: discountCodesTable.code,
+                    promotion: promotionsTable
+                })
+                .from(discountCodesTable)
+                .innerJoin(promotionsTable, eq(discountCodesTable.promotionId, promotionsTable.id))
+                .where(and(
+                    eq(discountCodesTable.code, discountCode.toUpperCase()),
+                    eq(discountCodesTable.isActive, true),
+                    eq(promotionsTable.storeInfoId, storeInfoId),
+                    eq(promotionsTable.isActive, true),
+                    isNull(promotionsTable.deletedAt)
+                ));
+
+                if (!discountCodeData) {
+                    return res.status(400).json({ message: 'Invalid discount code' });
+                }
+
+                const promotion = discountCodeData.promotion;
+                const now = new Date();
+
+                // Check if promotion is within date range
+                if (now < promotion.startDate || now > promotion.endDate) {
+                    return res.status(400).json({ message: 'Promotion is not currently active' });
+                }
+
+                // Check usage limits
+                if (promotion.usageLimit && promotion.usageCount >= promotion.usageLimit) {
+                    return res.status(400).json({ message: 'Promotion usage limit exceeded' });
+                }
+
+                // Check customer usage limit
+                if (customer && promotion.customerUsageLimit) {
+                    const [customerUsage] = await db.select({ count: sql<number>`count(*)` })
+                        .from(promotionUsageTable)
+                        .where(and(
+                            eq(promotionUsageTable.promotionId, promotion.id),
+                            eq(promotionUsageTable.customerId, customer.id)
+                        ));
+
+                    if (customerUsage.count >= promotion.customerUsageLimit) {
+                        return res.status(400).json({ message: 'Customer usage limit exceeded for this promotion' });
+                    }
+                }
+
+                promotionId = promotion.id;
+            }
+
+            const id = randomUUID();
+            
             // Use a transaction to ensure data consistency
             const result = await db.transaction(async (tx) => {
                 // Create the order
@@ -174,6 +227,8 @@ export default class OrdersController {
                     id: id,
                     storeInfoId: storeInfoId,
                     total: total,
+                    subtotal: subtotal,
+                    discountAmount: discountAmount,
                     date: date,
                     paymentMethod: paymentMethod,
                     status: status,
@@ -192,7 +247,8 @@ export default class OrdersController {
                         unitCost: String(product?.cost ?? 0)     // ensure string type
                     };
                 });
-                //create customer purchase
+
+                // Create customer purchase
                 if (customer) {
                     await tx.insert(customerPurchasesTable).values({
                         customerId: customer.id,
@@ -201,6 +257,24 @@ export default class OrdersController {
                 }
 
                 await tx.insert(orderItemsTable).values(orderItems);
+
+                // Record promotion usage if discount was applied
+                if (promotionId && discountAmount > 0) {
+                    await tx.insert(promotionUsageTable).values({
+                        promotionId: promotionId,
+                        customerId: customer?.id || null,
+                        orderId: id,
+                        discountAmount: discountAmount
+                    });
+
+                    // Update promotion usage count
+                    await tx.update(promotionsTable)
+                        .set({ 
+                            usageCount: sql`${promotionsTable.usageCount} + 1`,
+                            updatedAt: new Date()
+                        })
+                        .where(eq(promotionsTable.id, promotionId));
+                }
 
                 // Update product stock
                 for (const item of items) {

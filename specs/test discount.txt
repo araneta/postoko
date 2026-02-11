@@ -1,0 +1,403 @@
+// Test script for promotions and discounts functionality
+const API_BASE = 'http://localhost:3000/api';
+
+// Test data
+const testStoreId = 1;
+
+// Different promotion types for testing
+const testPromotions = {
+    percentage: {
+        storeInfoId: testStoreId,
+        name: "Summer Sale 2024",
+        description: "Get 20% off on all items",
+        type: "percentage",
+        discountValue: 20,
+        minimumPurchase: 50,
+        maximumDiscount: 100,
+        startDate: new Date().toISOString(),
+        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        usageLimit: 100,
+        customerUsageLimit: 1,
+        discountCodes: ["SUMMER20", "SAVE20"]
+    },
+
+    bogo: {
+        storeInfoId: testStoreId,
+        name: "Buy 2 Get 1 Free",
+        description: "Buy any 2 items and get the 3rd one free",
+        type: "buy_x_get_y",
+        discountValue: 0, // Not used for BOGO
+        buyQuantity: 2,
+        getQuantity: 1,
+        getDiscountType: "free",
+        startDate: new Date().toISOString(),
+        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        usageLimit: 50,
+        customerUsageLimit: 2,
+        discountCodes: ["BOGO2024"]
+    },
+
+    bogoPercentage: {
+        storeInfoId: testStoreId,
+        name: "Buy 1 Get 1 Half Off",
+        description: "Buy any item and get the second one 50% off",
+        type: "buy_x_get_y",
+        discountValue: 0,
+        buyQuantity: 1,
+        getQuantity: 1,
+        getDiscountType: "percentage",
+        getDiscountValue: 50,
+        startDate: new Date().toISOString(),
+        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        discountCodes: ["BOGO50"]
+    },
+
+    happyHour: {
+        storeInfoId: testStoreId,
+        name: "Happy Hour Special",
+        description: "15% off during happy hour",
+        type: "time_based",
+        discountValue: 15, // 15% discount
+        timeBasedType: "daily",
+        activeTimeStart: "17:00:00", // 5 PM
+        activeTimeEnd: "19:00:00",   // 7 PM
+        startDate: new Date().toISOString(),
+        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        discountCodes: ["HAPPYHOUR"]
+    },
+
+    weekendSpecial: {
+        storeInfoId: testStoreId,
+        name: "Weekend Special",
+        description: "Weekend discount on all items",
+        type: "time_based",
+        discountValue: 25,
+        timeBasedType: "weekly",
+        activeDays: [0, 6], // Sunday and Saturday
+        activeTimeStart: "10:00:00",
+        activeTimeEnd: "22:00:00",
+        startDate: new Date().toISOString(),
+        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        discountCodes: ["WEEKEND25"]
+    },
+
+    holidaySpecial: {
+        storeInfoId: testStoreId,
+        name: "Holiday Special",
+        description: "Special discount on specific dates",
+        type: "time_based",
+        discountValue: 30,
+        timeBasedType: "specific_dates",
+        specificDates: ["2024-12-25", "2024-01-01", "2024-07-04"],
+        activeTimeStart: "00:00:00",
+        activeTimeEnd: "23:59:59",
+        startDate: new Date().toISOString(),
+        endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+        discountCodes: ["HOLIDAY30"]
+    }
+};
+
+const testOrderItems = [
+    { productId: "test-product-1", quantity: 2 },
+    { productId: "test-product-2", quantity: 1 },
+    { productId: "test-product-3", quantity: 3 }
+];
+
+async function testPromotionsAPI() {
+    console.log('🧪 Testing Promotions API with All Types...\n');
+
+    const createdPromotions = [];
+
+    try {
+        // Test creating different types of promotions
+        for (const [type, promotion] of Object.entries(testPromotions)) {
+            console.log(`\n📝 Creating ${type} promotion...`);
+
+            const createResponse = await fetch(`${API_BASE}/promotions/${testStoreId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(promotion)
+            });
+
+            if (createResponse.ok) {
+                const createResult = await createResponse.json();
+                console.log(`✅ ${type} promotion created successfully`);
+                console.log('   Promotion ID:', createResult.promotion.id);
+                createdPromotions.push({ type, id: createResult.promotion.id, codes: promotion.discountCodes });
+            } else {
+                const createError = await createResponse.json();
+                console.log(`❌ Failed to create ${type} promotion:`, createError.error);
+            }
+        }
+
+        // Test validation of different discount codes
+        console.log('\n🔍 Testing discount code validation...');
+
+        for (const promotion of createdPromotions) {
+            if (promotion.codes && promotion.codes.length > 0) {
+                console.log(`\nTesting ${promotion.type} promotion code: ${promotion.codes[0]}`);
+
+                const validateResponse = await fetch(`${API_BASE}/promotions/validate-code`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        code: promotion.codes[0],
+                        storeInfoId: testStoreId,
+                        orderItems: testOrderItems
+                    })
+                });
+
+                if (validateResponse.ok) {
+                    const validateResult = await validateResponse.json();
+                    console.log(`✅ ${promotion.type} code validated successfully`);
+                    console.log('   Valid:', validateResult.valid);
+                    console.log('   Discount amount:', validateResult.discountAmount);
+                    console.log('   Eligible items:', validateResult.eligibleItems.length);
+                } else {
+                    const validateError = await validateResponse.json();
+                    console.log(`❌ ${promotion.type} code validation failed:`, validateError.error);
+                }
+            }
+        }
+
+        // Test fetching all promotions
+        console.log('\n📋 Fetching all promotions...');
+        const getResponse = await fetch(`${API_BASE}/promotions/${testStoreId}`);
+
+        if (getResponse.ok) {
+            const promotions = await getResponse.json();
+            console.log('✅ Promotions fetched successfully');
+            console.log('   Total promotions:', promotions.length);
+
+            // Display promotion types
+            const typeCount = {};
+            promotions.forEach(p => {
+                typeCount[p.type] = (typeCount[p.type] || 0) + 1;
+            });
+            console.log('   Promotion types:', typeCount);
+        } else {
+            console.log('❌ Failed to fetch promotions');
+        }
+
+        // Test statistics for each promotion
+        console.log('\n📊 Testing promotion statistics...');
+        for (const promotion of createdPromotions) {
+            const statsResponse = await fetch(`${API_BASE}/promotions/stats/${promotion.id}`);
+
+            if (statsResponse.ok) {
+                const stats = await statsResponse.json();
+                console.log(`✅ ${promotion.type} promotion stats fetched`);
+                console.log('   Usage:', stats.stats.totalUsage);
+                console.log('   Discount given:', stats.stats.totalDiscount);
+            } else {
+                console.log(`❌ Failed to fetch ${promotion.type} promotion stats`);
+            }
+        }
+
+        // Cleanup - delete test promotions
+        console.log('\n🧹 Cleaning up test promotions...');
+        for (const promotion of createdPromotions) {
+            const deleteResponse = await fetch(`${API_BASE}/promotions/detail/${promotion.id}`, {
+                method: 'DELETE'
+            });
+
+            if (deleteResponse.ok) {
+                console.log(`✅ ${promotion.type} promotion deleted successfully`);
+            } else {
+                console.log(`❌ Failed to delete ${promotion.type} promotion`);
+            }
+        }
+
+    } catch (error) {
+        console.error('❌ Test failed with error:', error.message);
+    }
+
+    console.log('\n🏁 Promotions API testing completed!');
+}
+
+// Test order creation with discount
+async function testOrderWithDiscount() {
+    console.log('\n🛒 Testing Order Creation with Discount...\n');
+
+    const testOrder = {
+        items: [
+            { id: "test-product-1", quantity: 2 },
+            { id: "test-product-2", quantity: 1 }
+        ],
+        subtotal: 150.00,
+        discountAmount: 30.00,
+        total: 120.00,
+        discountCode: "SUMMER20",
+        date: new Date().toISOString(),
+        paymentMethod: "cash",
+        status: "completed",
+        employee: { id: "test-employee-1" }
+    };
+
+    try {
+        const response = await fetch(`${API_BASE}/orders`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(testOrder)
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            console.log('✅ Order with discount created successfully');
+            console.log('   Order ID:', result.id);
+            console.log('   Total:', result.total);
+            console.log('   Discount Amount:', result.discountAmount);
+        } else {
+            const error = await response.json();
+            console.log('❌ Failed to create order with discount:', error.message);
+        }
+    } catch (error) {
+        console.error('❌ Order test failed with error:', error.message);
+    }
+}
+
+// Run tests
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { testPromotionsAPI, testOrderWithDiscount };
+} else {
+    // Browser environment
+    testPromotionsAPI().then(() => {
+        return testOrderWithDiscount();
+    });
+}
+/
+    / Additional test functions for specific promotion types
+async function testBOGOPromotion() {
+        console.log('\n🛍️ Testing BOGO Promotion Logic...\n');
+
+        const bogoPromotion = {
+            type: 'buy_x_get_y',
+            buyQuantity: 2,
+            getQuantity: 1,
+            getDiscountType: 'free',
+            applicableToProducts: null,
+            applicableToCategories: null,
+            minimumPurchase: '0.00'
+        };
+
+        const orderItems = [
+            { productId: "product-1", quantity: 3 }, // Should trigger BOGO: Buy 2, Get 1 free
+            { productId: "product-2", quantity: 1 }  // Not enough for BOGO
+        ];
+
+        console.log('BOGO Test Case:');
+        console.log('- Buy 2 Get 1 Free promotion');
+        console.log('- Order: 3x Product-1, 1x Product-2');
+        console.log('- Expected: 1 free item (Product-1)');
+
+        // This would be called by the calculateDiscount method
+        // The actual calculation logic is in the controller
+    }
+
+async function testTimeBasedPromotion() {
+    console.log('\n⏰ Testing Time-Based Promotion Logic...\n');
+
+    const happyHourPromotion = {
+        type: 'time_based',
+        timeBasedType: 'daily',
+        activeTimeStart: '17:00:00',
+        activeTimeEnd: '19:00:00',
+        discountValue: '15'
+    };
+
+    console.log('Happy Hour Test Cases:');
+    console.log('- Active: 5:00 PM - 7:00 PM daily');
+    console.log('- Discount: 15%');
+
+    const testTimes = [
+        { time: '16:30:00', expected: false, desc: 'Before happy hour' },
+        { time: '17:30:00', expected: true, desc: 'During happy hour' },
+        { time: '19:30:00', expected: false, desc: 'After happy hour' }
+    ];
+
+    testTimes.forEach(test => {
+        console.log(`- ${test.time} (${test.desc}): Expected active = ${test.expected}`);
+    });
+}
+
+async function testWeeklyPromotion() {
+    console.log('\n📅 Testing Weekly Time-Based Promotion...\n');
+
+    const weekendPromotion = {
+        type: 'time_based',
+        timeBasedType: 'weekly',
+        activeDays: [0, 6], // Sunday and Saturday
+        activeTimeStart: '10:00:00',
+        activeTimeEnd: '22:00:00',
+        discountValue: '25'
+    };
+
+    console.log('Weekend Special Test:');
+    console.log('- Active: Saturdays and Sundays, 10 AM - 10 PM');
+    console.log('- Discount: 25%');
+
+    const testDays = [
+        { day: 0, dayName: 'Sunday', expected: true },
+        { day: 1, dayName: 'Monday', expected: false },
+        { day: 6, dayName: 'Saturday', expected: true }
+    ];
+
+    testDays.forEach(test => {
+        console.log(`- ${test.dayName}: Expected active = ${test.expected}`);
+    });
+}
+
+// Example usage scenarios
+function displayUsageExamples() {
+    console.log('\n📖 Promotion Usage Examples:\n');
+
+    console.log('1. PERCENTAGE DISCOUNT:');
+    console.log('   - 20% off all items');
+    console.log('   - Minimum purchase: $50');
+    console.log('   - Maximum discount: $100');
+
+    console.log('\n2. FIXED AMOUNT DISCOUNT:');
+    console.log('   - $10 off orders over $50');
+    console.log('   - No maximum limit');
+
+    console.log('\n3. BUY X GET Y (BOGO):');
+    console.log('   - Buy 2 Get 1 Free');
+    console.log('   - Buy 1 Get 1 Half Off (50% discount)');
+    console.log('   - Buy 3 Get 2 for $5 each (fixed amount)');
+
+    console.log('\n4. TIME-BASED PROMOTIONS:');
+    console.log('   - Happy Hour: 15% off 5-7 PM daily');
+    console.log('   - Weekend Special: 25% off Sat-Sun 10 AM-10 PM');
+    console.log('   - Holiday Special: 30% off on specific dates');
+
+    console.log('\n5. COMBINATION EXAMPLES:');
+    console.log('   - BOGO + Time-based: Buy 2 Get 1 Free during happy hour');
+    console.log('   - Category-specific: 20% off electronics on weekends');
+    console.log('   - Customer limits: Each customer can use code once per day');
+}
+
+// Run all tests
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        testPromotionsAPI,
+        testOrderWithDiscount,
+        testBOGOPromotion,
+        testTimeBasedPromotion,
+        testWeeklyPromotion,
+        displayUsageExamples
+    };
+} else {
+    // Browser environment
+    testPromotionsAPI()
+        .then(() => testOrderWithDiscount())
+        .then(() => testBOGOPromotion())
+        .then(() => testTimeBasedPromotion())
+        .then(() => testWeeklyPromotion())
+        .then(() => displayUsageExamples());
+}

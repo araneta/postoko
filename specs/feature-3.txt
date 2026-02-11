@@ -17,8 +17,8 @@ admin = dashboard, index (Point of Sale), products, alerts, orders, analytics, c
 7. Advanced Inventory Features
 Bulk product import via CSV [pending]
 Product categories and filtering [done]
-Supplier information tracking . see suplier.txt [working]
-on supplier when i click View Orders, Analytics, New Order , nothing happen
+Supplier information tracking . see suplier.txt [done]
+on supplier when i click View Orders, Analytics, New Order , nothing happen[done]
 
 
 Why valuable: Saves hours of manual data entry

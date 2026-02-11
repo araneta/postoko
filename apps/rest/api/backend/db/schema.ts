@@ -34,6 +34,8 @@ export const ordersTable = pgTable("orders", {
   id: varchar({ length: 36 }).primaryKey(),
   storeInfoId: integer().notNull().references(() => storeInfoTable.id),
   total: numeric({ precision: 10, scale: 2 }).notNull(),
+  subtotal: numeric({ precision: 10, scale: 2 }).notNull().default('0.00'), // Subtotal before discounts
+  discountAmount: numeric({ precision: 10, scale: 2 }).notNull().default('0.00'), // Total discount applied
   date: varchar({ length: 50 }).notNull(),
   paymentMethod: varchar({ length: 50 }).notNull(),
   status: varchar({ length: 20 }).notNull(), // 'completed' | 'refunded'
@@ -182,4 +184,57 @@ export const suppliersTable = pgTable("suppliers", {
   createdAt: timestamp().notNull().defaultNow(),
   updatedAt: timestamp().notNull().defaultNow(),
   deletedAt: timestamp(), // Soft delete field
+});
+
+export const promotionsTable = pgTable("promotions", {
+  id: varchar({ length: 36 }).primaryKey(),
+  storeInfoId: integer().notNull().references(() => storeInfoTable.id),
+  name: varchar({ length: 255 }).notNull(),
+  description: text(),
+  type: varchar({ length: 20 }).notNull(), // 'percentage' | 'fixed_amount' | 'buy_x_get_y' | 'time_based'
+  discountValue: numeric({ precision: 10, scale: 2 }).notNull(), // Percentage (0-100) or fixed amount
+  minimumPurchase: numeric({ precision: 10, scale: 2 }).default('0.00'), // Minimum order amount
+  maximumDiscount: numeric({ precision: 10, scale: 2 }), // Maximum discount cap for percentage discounts
+  startDate: timestamp().notNull(),
+  endDate: timestamp().notNull(),
+  usageLimit: integer(), // Total usage limit (null = unlimited)
+  usageCount: integer().notNull().default(0), // Current usage count
+  customerUsageLimit: integer().default(1), // Per-customer usage limit
+  isActive: boolean().notNull().default(true),
+  applicableToCategories: text(), // JSON array of category IDs
+  applicableToProducts: text(), // JSON array of product IDs
+  
+  // BOGO specific fields
+  buyQuantity: integer(), // Buy X items
+  getQuantity: integer(), // Get Y items (free or discounted)
+  getDiscountType: varchar({ length: 20 }), // 'free' | 'percentage' | 'fixed_amount'
+  getDiscountValue: numeric({ precision: 10, scale: 2 }), // Discount for the "get" items
+  
+  // Time-based promotion fields
+  timeBasedType: varchar({ length: 20 }), // 'daily' | 'weekly' | 'specific_dates'
+  activeDays: text(), // JSON array of days (0=Sunday, 1=Monday, etc.) for weekly
+  activeTimeStart: varchar({ length: 8 }), // HH:MM:SS format
+  activeTimeEnd: varchar({ length: 8 }), // HH:MM:SS format
+  specificDates: text(), // JSON array of specific dates for 'specific_dates' type
+  
+  createdAt: timestamp().notNull().defaultNow(),
+  updatedAt: timestamp().notNull().defaultNow(),
+  deletedAt: timestamp(), // Soft delete
+});
+
+export const promotionUsageTable = pgTable("promotion_usage", {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  promotionId: varchar({ length: 36 }).notNull().references(() => promotionsTable.id),
+  customerId: varchar({ length: 36 }).references(() => customersTable.id),
+  orderId: varchar({ length: 36 }).notNull().references(() => ordersTable.id),
+  discountAmount: numeric({ precision: 10, scale: 2 }).notNull(),
+  usedAt: timestamp().notNull().defaultNow(),
+});
+
+export const discountCodesTable = pgTable("discount_codes", {
+  id: varchar({ length: 36 }).primaryKey(),
+  promotionId: varchar({ length: 36 }).notNull().references(() => promotionsTable.id),
+  code: varchar({ length: 50 }).notNull().unique(),
+  isActive: boolean().notNull().default(true),
+  createdAt: timestamp().notNull().defaultNow(),
 });

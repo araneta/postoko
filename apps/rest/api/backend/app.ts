@@ -23,6 +23,7 @@ import employeesRoutes from './routes/employees.js';
 import rolesRoutes from './routes/roles.js';
 import stripeRoutes from './routes/stripe.js';
 import paypalRoutes from './routes/paypal.js';
+import promotionsRoutes from './routes/promotions.js';
 
 const app = express();
 
@@ -51,6 +52,7 @@ app.use('/api/employees',employeesRoutes);
 app.use('/api/roles',rolesRoutes);
 app.use('/api/stripe',stripeRoutes);
 app.use('/api/paypal',paypalRoutes);
+app.use('/api/promotions',promotionsRoutes);
 
 //imagekit auth endpoint
 // This endpoint is used to generate a signature for ImageKit uploads
