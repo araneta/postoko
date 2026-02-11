@@ -282,7 +282,7 @@ router.get('/stats/:id', PromotionsController.getPromotionStats);
  *       500:
  *         description: Server error
  */
-router.post('/:storeInfoId', PromotionsController.createPromotion);
+router.post('/', PromotionsController.createPromotion);
 
 /**
  * @swagger
@@ -314,6 +314,6 @@ router.post('/:storeInfoId', PromotionsController.createPromotion);
  *       500:
  *         description: Server error
  */
-router.get('/:storeInfoId', PromotionsController.getPromotions);
+router.get('/', PromotionsController.getPromotions);
 
 export default router;

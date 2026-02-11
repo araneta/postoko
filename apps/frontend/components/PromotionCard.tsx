@@ -13,6 +13,13 @@ export const PromotionCard: React.FC<PromotionCardProps> = ({
   onEdit,
   onDelete,
 }) => {
+  // Debug log to see the actual promotion data structure
+  console.log('PromotionCard received promotion:', {
+    name: promotion.name,
+    discountCodes: promotion.discountCodes,
+    discountCodesType: typeof promotion.discountCodes,
+    discountCodesIsArray: Array.isArray(promotion.discountCodes)
+  });
   const getPromotionTypeLabel = (type: string) => {
     switch (type) {
       case 'percentage':
@@ -62,6 +69,31 @@ export const PromotionCard: React.FC<PromotionCardProps> = ({
     }
   };
 
+  const getDiscountCodesDisplay = () => {
+    if (!promotion.discountCodes) {
+      return 'No codes available';
+    }
+    
+    if (Array.isArray(promotion.discountCodes)) {
+      return promotion.discountCodes.join(', ');
+    }
+    
+    if (typeof promotion.discountCodes === 'string') {
+      return promotion.discountCodes;
+    }
+    
+    // If it's an object or other type, try to extract meaningful data
+    if (typeof promotion.discountCodes === 'object') {
+      try {
+        return JSON.stringify(promotion.discountCodes);
+      } catch (e) {
+        return 'Invalid codes format';
+      }
+    }
+    
+    return 'Unknown codes format';
+  };
+
   const isActive = () => {
     const now = new Date();
     const startDate = new Date(promotion.startDate);
@@ -89,7 +121,9 @@ export const PromotionCard: React.FC<PromotionCardProps> = ({
 
       <View style={styles.codesSection}>
         <Text style={styles.codesLabel}>Codes:</Text>
-        <Text style={styles.codes}>{promotion.discountCodes.join(', ')}</Text>
+        <Text style={styles.codes}>
+          {getDiscountCodesDisplay()}
+        </Text>
       </View>
 
       <View style={styles.detailsRow}>

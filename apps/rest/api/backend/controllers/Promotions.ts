@@ -536,8 +536,18 @@ export class PromotionsController {
 		}
 		const storeInfoId = storeInfo[0].id;
       const { id } = req.params;
-      const updateData = { ...req.body, updatedAt: new Date() };
+      const updateData = { ...req.body, storeInfoId, updatedAt: new Date() };
+		
+	// ❗ Convert date fields properly
+    if (updateData.startDate) {
+      updateData.startDate = new Date(updateData.startDate);
+    }
 
+    if (updateData.endDate) {
+      updateData.endDate = new Date(updateData.endDate);
+    }
+
+	
       // Remove fields that shouldn't be updated directly
       delete updateData.id;
       delete updateData.createdAt;

@@ -377,12 +377,12 @@ class APIClient {
   }
 
   // Promotions & Discounts
-  async getPromotions(storeId: number): Promise<Promotion[]> {
-    return this.fetchJSON<Promotion[]>(`${BASE_URL}/promotions/${storeId}`);
+  async getPromotions(): Promise<Promotion[]> {
+    return this.fetchJSON<Promotion[]>(`${BASE_URL}/promotions`);
   }
 
-  async createPromotion(storeId: number, promotion: Omit<Promotion, 'id' | 'createdAt' | 'updatedAt'>): Promise<{ promotion: Promotion }> {
-    return this.fetchJSON<{ promotion: Promotion }>(`${BASE_URL}/promotions/${storeId}`, {
+  async createPromotion( promotion: Omit<Promotion, 'id' | 'createdAt' | 'updatedAt'>): Promise<{ promotion: Promotion }> {
+    return this.fetchJSON<{ promotion: Promotion }>(`${BASE_URL}/promotions`, {
       method: 'POST',
       body: JSON.stringify(promotion),
     });
@@ -486,8 +486,8 @@ export const updateSupplier = (supplier: Supplier) => apiClient.updateSupplier(s
 export const deleteSupplier = (id: string) => apiClient.deleteSupplier(id);
 
 // Promotions & Discounts exports
-export const getPromotions = (storeId: number) => apiClient.getPromotions(storeId);
-export const createPromotion = (storeId: number, promotion: Omit<Promotion, 'id' | 'createdAt' | 'updatedAt'>) => apiClient.createPromotion(storeId, promotion);
+export const getPromotions = () => apiClient.getPromotions();
+export const createPromotion = (promotion: Omit<Promotion, 'id' | 'createdAt' | 'updatedAt'>) => apiClient.createPromotion(promotion);
 export const updatePromotion = (promotionId: string, promotion: Partial<Promotion>) => apiClient.updatePromotion(promotionId, promotion);
 export const deletePromotion = (promotionId: string) => apiClient.deletePromotion(promotionId);
 export const validateDiscountCode = (request: DiscountValidationRequest) => apiClient.validateDiscountCode(request);
