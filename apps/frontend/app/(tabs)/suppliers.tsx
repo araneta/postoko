@@ -60,8 +60,10 @@ const SuppliersScreen = () => {
     };
     if (authenticatedEmployee) {
       fetchSuppliers();
+    } else {
+      setLoading(false); // Stop loading if no authenticated employee
     }
-  }, []);
+  }, [authenticatedEmployee]); // Add authenticatedEmployee as dependency
 
   // Redirect to dashboard if no employee is logged in
   if (!authenticatedEmployee) {
@@ -177,6 +179,14 @@ const SuppliersScreen = () => {
     return products.filter(product => product.supplierId === supplierId);
   };
 
+  const getLowStockProducts = (supplierId: string) => {
+    const supplierProducts = getSupplierProducts(supplierId);
+    return supplierProducts.filter(product => {
+      const threshold = product.minStock || 10; // Default threshold of 10
+      return product.stock <= threshold; // Use product.stock, not product.quantity
+    });
+  };
+
   const getStatusColor = (status?: string) => {
     switch (status) {
       case 'active': return '#34C759';
@@ -205,12 +215,18 @@ const SuppliersScreen = () => {
 
   const renderSupplier = ({ item }: { item: Supplier }) => {
     const supplierProducts = getSupplierProducts(item.id);
+    const lowStockProducts = getLowStockProducts(item.id);
 
     return (
       <TouchableOpacity style={styles.supplierItem} onPress={() => handleSelectSupplier(item)}>
         <View style={styles.supplierIcon}>
           <Ionicons name="business" size={32} color="#007AFF" />
           <View style={[styles.statusDot, { backgroundColor: getStatusColor(item.status) }]} />
+          {lowStockProducts.length > 0 && (
+            <View style={styles.lowStockBadge}>
+              <Ionicons name="warning" size={12} color="#FF9500" />
+            </View>
+          )}
         </View>
 
         <View style={styles.supplierInfo}>
@@ -220,6 +236,9 @@ const SuppliersScreen = () => {
             {renderStars(item.rating)}
             <Text style={styles.productCount}>
               {supplierProducts.length} product{supplierProducts.length !== 1 ? 's' : ''}
+              {lowStockProducts.length > 0 && (
+                <Text style={styles.lowStockIndicator}> • {lowStockProducts.length} low stock</Text>
+              )}
             </Text>
           </View>
         </View>
@@ -410,23 +429,33 @@ const SuppliersScreen = () => {
                 )}
               </View>
 
-              {/* Quick Actions */}
+              {/* Low Stock Alert */}
               <View style={styles.profileSection}>
-                <Text style={styles.sectionTitle}>Quick Actions</Text>
-                <View style={styles.actionButtons}>
-                  <Pressable style={styles.actionButton}>
-                    <Ionicons name="document-text-outline" size={20} color="#007AFF" />
-                    <Text style={styles.actionButtonText}>View Orders</Text>
-                  </Pressable>
-                  <Pressable style={styles.actionButton}>
-                    <Ionicons name="analytics-outline" size={20} color="#007AFF" />
-                    <Text style={styles.actionButtonText}>Analytics</Text>
-                  </Pressable>
-                  <Pressable style={styles.actionButton}>
-                    <Ionicons name="add-circle-outline" size={20} color="#007AFF" />
-                    <Text style={styles.actionButtonText}>New Order</Text>
-                  </Pressable>
-                </View>
+                <Text style={styles.sectionTitle}>Stock Status</Text>
+                {getLowStockProducts(selectedSupplier.id).length > 0 ? (
+                  <View style={styles.lowStockAlert}>
+                    <View style={styles.alertHeader}>
+                      <Ionicons name="warning" size={20} color="#FF9500" />
+                      <Text style={styles.alertTitle}>Low Stock Alert</Text>
+                    </View>
+                    <Text style={styles.alertSubtitle}>
+                      {getLowStockProducts(selectedSupplier.id).length} product(s) running low
+                    </Text>
+                    {getLowStockProducts(selectedSupplier.id).map(product => (
+                      <View key={product.id} style={styles.lowStockItem}>
+                        <Text style={styles.lowStockProductName}>{product.name}</Text>
+                        <Text style={styles.lowStockQuantity}>
+                          Current stock: {product.stock} (Threshold: {product.minStock || 10})
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  <View style={styles.stockOkAlert}>
+                    <Ionicons name="checkmark-circle" size={20} color="#34C759" />
+                    <Text style={styles.stockOkText}>All products have adequate stock</Text>
+                  </View>
+                )}
               </View>
             </>
           )}
@@ -693,6 +722,19 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'white',
   },
+  lowStockBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#FFF3CD',
+    borderWidth: 1,
+    borderColor: '#FF9500',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   supplierInfo: {
     flex: 1,
   },
@@ -721,6 +763,10 @@ const styles = StyleSheet.create({
   productCount: {
     fontSize: 12,
     color: '#666',
+  },
+  lowStockIndicator: {
+    color: '#FF9500',
+    fontWeight: '600',
   },
   supplierActions: {
     flexDirection: 'row',
@@ -824,6 +870,61 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#999',
     fontStyle: 'italic',
+  },
+  lowStockAlert: {
+    backgroundColor: '#FFF3CD',
+    borderRadius: 8,
+    padding: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#FF9500',
+  },
+  alertHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  alertTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#856404',
+    marginLeft: 8,
+  },
+  alertSubtitle: {
+    fontSize: 14,
+    color: '#856404',
+    marginBottom: 8,
+  },
+  lowStockItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0E68C',
+  },
+  lowStockProductName: {
+    fontSize: 14,
+    color: '#856404',
+    flex: 1,
+  },
+  lowStockQuantity: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FF9500',
+  },
+  stockOkAlert: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#D4EDDA',
+    borderRadius: 8,
+    padding: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#34C759',
+  },
+  stockOkText: {
+    fontSize: 16,
+    color: '#155724',
+    marginLeft: 8,
   },
   actionButtons: {
     flexDirection: 'row',
