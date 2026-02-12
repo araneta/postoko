@@ -6,12 +6,14 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
   Switch,
+  Platform,
 } from 'react-native';
+import DatePicker from 'react-native-date-picker';
 import { Promotion, PromotionType } from '../types';
 import { createPromotion, updatePromotion } from '../lib/api';
 import { PromotionTemplates } from '../lib/discountCalculator';
+import CustomAlert from './CustomAlert';
 
 interface PromotionFormProps {
   storeId: number;
@@ -39,23 +41,41 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
     activeTimeStart: promotion?.activeTimeStart || '17:00:00',
     activeTimeEnd: promotion?.activeTimeEnd || '19:00:00',
     activeDays: promotion?.activeDays || [0, 6],
-    discountCodes: promotion?.discountCodes?.join(', ') || '',
+    discountCodes: promotion?.discountCodes ?
+      (Array.isArray(promotion.discountCodes) && promotion.discountCodes.length > 0 && typeof promotion.discountCodes[0] === 'object' && 'code' in promotion.discountCodes[0]
+        ? (promotion.discountCodes as any[]).map((codeObj: any) => codeObj.code || '').join(', ')
+        : Array.isArray(promotion.discountCodes)
+        ? promotion.discountCodes.join(', ')
+        : ''
+      ) : '',
     usageLimit: promotion?.usageLimit?.toString() || '',
     customerUsageLimit: promotion?.customerUsageLimit?.toString() || '',
-    startDate: promotion?.startDate ? new Date(promotion.startDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-    endDate: promotion?.endDate ? new Date(promotion.endDate).toISOString().split('T')[0] : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    startDate: promotion?.startDate ? new Date(promotion.startDate) : new Date(),
+    endDate: promotion?.endDate ? new Date(promotion.endDate) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
   });
 
   const [loading, setLoading] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [pickerMode, setPickerMode] = useState<'start' | 'end'>('start');
+  const [customAlert, setCustomAlert] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type?: 'success' | 'error' | 'warning' | 'info';
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+  });
 
   const handleSubmit = async () => {
     if (!formData.name.trim() || !formData.description.trim()) {
-      Alert.alert('Error', 'Please fill in all required fields');
+      showAlert('Error', 'Please fill in all required fields', 'error');
       return;
     }
 
     if (!formData.discountCodes.trim()) {
-      Alert.alert('Error', 'Please provide at least one discount code');
+      showAlert('Error', 'Please provide at least one discount code', 'error');
       return;
     }
 
@@ -78,9 +98,9 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
         activeTimeStart: formData.type === 'time_based' ? formData.activeTimeStart : undefined,
         activeTimeEnd: formData.type === 'time_based' ? formData.activeTimeEnd : undefined,
         activeDays: formData.type === 'time_based' && formData.timeBasedType === 'weekly' ? formData.activeDays : undefined,
-        startDate: new Date(formData.startDate).toISOString(),
-        endDate: new Date(formData.endDate).toISOString(),
-        discountCodes: formData.discountCodes.split(',').map(code => code.trim()).filter(code => code),
+        startDate: formData.startDate.toISOString(),
+        endDate: formData.endDate.toISOString(),
+        discountCodes: formData.discountCodes.split(',').map((code: string) => code.trim()).filter((code: string) => code),
         usageLimit: formData.usageLimit ? parseInt(formData.usageLimit) : undefined,
         customerUsageLimit: formData.customerUsageLimit ? parseInt(formData.customerUsageLimit) : undefined,
         isActive: true,
@@ -89,16 +109,53 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
       if (promotion?.id) {
         await updatePromotion(promotion.id, promotionData);
       } else {
-        await createPromotion(storeId, promotionData);
+        await createPromotion(promotionData);
       }
 
-      Alert.alert('Success', `Promotion ${promotion ? 'updated' : 'created'} successfully`);
+      showAlert('Success', `Promotion ${promotion ? 'updated' : 'created'} successfully`, 'success');
       onClose();
     } catch (error) {
       console.error('Failed to save promotion:', error);
-      Alert.alert('Error', `Failed to ${promotion ? 'update' : 'create'} promotion`);
+      showAlert('Error', `Failed to ${promotion ? 'update' : 'create'} promotion`, 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const showAlert = (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
+    setCustomAlert({
+      visible: true,
+      title,
+      message,
+      type,
+    });
+  };
+
+  const hideAlert = () => {
+    setCustomAlert({
+      visible: false,
+      title: '',
+      message: '',
+    });
+  };
+
+  const handleDateConfirm = (selectedDate: Date) => {
+    setShowDatePicker(false);
+    if (pickerMode === 'start') {
+      setFormData({ ...formData, startDate: selectedDate });
+    } else {
+      setFormData({ ...formData, endDate: selectedDate });
+    }
+  };
+
+  const handleDateCancel = () => {
+    setShowDatePicker(false);
+  };
+
+  const showDatePickerFor = (mode: 'start' | 'end') => {
+    if (Platform.OS !== 'web') {
+      setPickerMode(mode);
+      setShowDatePicker(true);
     }
   };
 
@@ -423,20 +480,60 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
           <Text style={styles.sectionTitle}>Validity Period</Text>
 
           <Text style={styles.label}>Start Date</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.startDate}
-            onChangeText={(text) => setFormData({ ...formData, startDate: text })}
-            placeholder="YYYY-MM-DD"
-          />
+          {Platform.OS === 'web' ? (
+            <input
+              type="date"
+              style={{
+                borderWidth: 1,
+                borderColor: '#ddd',
+                borderRadius: 8,
+                padding: 12,
+                fontSize: 16,
+                backgroundColor: '#fff',
+                width: '100%',
+                boxSizing: 'border-box',
+              }}
+              value={formData.startDate.toISOString().split('T')[0]}
+              onChange={(e) => setFormData({ ...formData, startDate: new Date(e.target.value) })}
+            />
+          ) : (
+            <TouchableOpacity
+              style={styles.input}
+              onPress={() => showDatePickerFor('start')}
+            >
+              <Text style={styles.dateText}>
+                {formData.startDate.toLocaleDateString()}
+              </Text>
+            </TouchableOpacity>
+          )}
 
           <Text style={styles.label}>End Date</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.endDate}
-            onChangeText={(text) => setFormData({ ...formData, endDate: text })}
-            placeholder="YYYY-MM-DD"
-          />
+          {Platform.OS === 'web' ? (
+            <input
+              type="date"
+              style={{
+                borderWidth: 1,
+                borderColor: '#ddd',
+                borderRadius: 8,
+                padding: 12,
+                fontSize: 16,
+                backgroundColor: '#fff',
+                width: '100%',
+                boxSizing: 'border-box',
+              }}
+              value={formData.endDate.toISOString().split('T')[0]}
+              onChange={(e) => setFormData({ ...formData, endDate: new Date(e.target.value) })}
+            />
+          ) : (
+            <TouchableOpacity
+              style={styles.input}
+              onPress={() => showDatePickerFor('end')}
+            >
+              <Text style={styles.dateText}>
+                {formData.endDate.toLocaleDateString()}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         <TouchableOpacity
@@ -449,6 +546,25 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
           </Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {Platform.OS !== 'web' && (
+        <DatePicker
+          modal
+          open={showDatePicker}
+          date={pickerMode === 'start' ? formData.startDate : formData.endDate}
+          onConfirm={handleDateConfirm}
+          onCancel={handleDateCancel}
+          mode="date"
+        />
+      )}
+
+      <CustomAlert
+        visible={customAlert.visible}
+        title={customAlert.title}
+        message={customAlert.message}
+        type={customAlert.type}
+        onClose={hideAlert}
+      />
     </View>
   );
 };
@@ -522,6 +638,10 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 16,
     backgroundColor: '#fff',
+  },
+  dateText: {
+    fontSize: 16,
+    color: '#333',
   },
   textArea: {
     height: 80,

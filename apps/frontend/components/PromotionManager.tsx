@@ -22,7 +22,7 @@ export const PromotionManager: React.FC<PromotionManagerProps> = ({ storeId }) =
   const loadPromotions = async () => {
     try {
       setLoading(true);
-      const data = await getPromotions(storeId);
+      const data = await getPromotions();
       setPromotions(data);
     } catch (error) {
       console.error('Failed to load promotions:', error);

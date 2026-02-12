@@ -400,6 +400,14 @@ export interface SupplierOrderItem {
   totalCost: number;
 }
 
+export interface DiscountCode {
+  id: string;
+  promotionId: string;
+  code: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
 // Promotion and Discount Types
 export type PromotionType = 'percentage' | 'fixed_amount' | 'buy_x_get_y' | 'time_based';
 export type TimeBasedType = 'daily' | 'weekly' | 'specific_dates';
@@ -442,8 +450,8 @@ export interface Promotion {
   startDate: string;
   endDate: string;
   
-  // Discount codes
-  discountCodes: string[];
+  // Discount codes - can be array of strings or array of objects
+  discountCodes: string[] | DiscountCode[];
   
   // Status and tracking
   isActive?: boolean;

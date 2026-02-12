@@ -181,7 +181,7 @@ export const DiscountValidator: React.FC<DiscountValidatorProps> = ({
                       <Text style={styles.eligibleTitle}>Eligible Items:</Text>
                       {validationResult.eligibleItems.map((item, index) => (
                         <Text key={index} style={styles.eligibleItem}>
-                          • {item.quantity}x items - ${item.totalDiscount.toFixed(2)} off
+                          • {item.quantity}x items - ${(item.totalDiscount || 0).toFixed(2)} off
                         </Text>
                       ))}
                     </View>

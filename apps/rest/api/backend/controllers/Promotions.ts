@@ -536,8 +536,14 @@ export class PromotionsController {
 		}
 		const storeInfoId = storeInfo[0].id;
       const { id } = req.params;
-      const updateData = { ...req.body, storeInfoId, updatedAt: new Date() };
-		
+      const { discountCodes, ...restBody } = req.body;
+
+      
+	  const updateData: any = {
+		...restBody,
+		storeInfoId,
+		updatedAt: new Date(),
+	};
 	// ❗ Convert date fields properly
     if (updateData.startDate) {
       updateData.startDate = new Date(updateData.startDate);
@@ -565,7 +571,22 @@ export class PromotionsController {
       if (!updatedPromotion) {
         return res.status(404).json({ error: 'Promotion not found' });
       }
+		if (discountCodes) {
+		  // Delete old codes
+		  await db.delete(discountCodesTable)
+			.where(eq(discountCodesTable.promotionId, id));
 
+		  // Insert new codes
+		  if (discountCodes.length > 0) {
+			const codeInserts = discountCodes.map((code: string) => ({
+			  id: uuidv4(),
+			  promotionId: id,
+			  code: code.toUpperCase()
+			}));
+
+			await db.insert(discountCodesTable).values(codeInserts);
+		  }
+		}
       res.json({ promotion: updatedPromotion, message: 'Promotion updated successfully' });
     } catch (error) {
       console.error('Error updating promotion:', error);

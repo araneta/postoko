@@ -75,6 +75,11 @@ export const PromotionCard: React.FC<PromotionCardProps> = ({
     }
     
     if (Array.isArray(promotion.discountCodes)) {
+      // Handle array of objects with 'code' property
+      if (promotion.discountCodes.length > 0 && typeof promotion.discountCodes[0] === 'object' && promotion.discountCodes[0].code) {
+        return promotion.discountCodes.map(codeObj => codeObj.code).join(', ');
+      }
+      // Handle array of strings
       return promotion.discountCodes.join(', ');
     }
     
