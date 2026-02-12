@@ -30,7 +30,7 @@ interface StoreState {
   removeFromCart: (productId: string) => void;
   updateCartItemQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
-  createOrder: (paymentDetails: PaymentDetails[], customer?: Customer) => Promise<Order | undefined>;
+  createOrder: (paymentDetails: PaymentDetails[], totalAmount: number, subtotalAmount: number, customer?: Customer) => Promise<Order | undefined>;
   updateCurrency: (currency: Currency) => Promise<void>;
   updatePrinterSettings: (printerSettings: PrinterSettings) => Promise<void>;
   updateStoreInfo: (storeInfo: StoreInfo) => Promise<void>;
@@ -387,15 +387,14 @@ const useStore = create<StoreState>((set, get) => ({
     set({ cart: [] });
   },
 
-  createOrder: async (paymentDetails: PaymentDetails[], customer?: Customer) => {
+  createOrder: async (paymentDetails: PaymentDetails[], totalAmount: number, subtotalAmount: number, customer?: Customer) => {
     const { cart, products, authenticatedEmployee } = get();
     if (cart.length === 0) return;
 
-    const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
     const totalPaid = paymentDetails.reduce((sum, payment) => sum + payment.amount, 0);
 
     // Validate that total payment covers the order total
-    if (totalPaid < total) {
+    if (totalPaid < totalAmount) {
       throw new Error('Insufficient payment amount');
     }
 
@@ -405,7 +404,8 @@ const useStore = create<StoreState>((set, get) => ({
     const order: Order = {
       id: Date.now().toString(),
       items: [...cart],
-      total,
+      total: totalAmount,
+      subtotal: subtotalAmount,
       date: new Date().toISOString(),
       paymentMethod: primaryPaymentMethod,
       paymentDetails,

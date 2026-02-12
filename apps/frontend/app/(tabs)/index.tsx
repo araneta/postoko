@@ -129,9 +129,7 @@ export default function POSScreen() {
   const handlePaymentComplete = async (paymentDetails: PaymentDetails[]) => {
     try {
       // Pass customer and employee to createOrder if selected
-      const order = selectedCustomer
-        ? await createOrder(paymentDetails, selectedCustomer)
-        : await createOrder(paymentDetails);
+      const order = await createOrder(paymentDetails, finalTotal, total, selectedCustomer || undefined);
 
       // Log the authenticated employee
       if (authenticatedEmployee) {
@@ -162,6 +160,9 @@ export default function POSScreen() {
             showAlert('Loyalty Error', errorMsg, 'error');
           }
         }
+        // Clear applied discount after successful payment
+        setAppliedDiscount(null);
+
         // Show success alert
         showAlert(
           'Order Completed!',

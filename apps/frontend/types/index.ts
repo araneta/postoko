@@ -63,6 +63,7 @@ export interface Order {
   id: string;
   items: CartItem[];
   total: number;
+  subtotal?: number; // Original total before discounts
   date: string;
   paymentMethod: string;
   paymentDetails?: PaymentDetails[];
