@@ -363,7 +363,7 @@ const useStore = create<StoreState>((set, get) => ({
           )
         };
       }
-      return { cart: [...state.cart, { ...product, quantity: 1 }] };
+      return { cart: [...state.cart, { ...product, quantity: 1, discountValue:0, discountAmount:0, }] };
     });
   },
 
@@ -387,7 +387,7 @@ const useStore = create<StoreState>((set, get) => ({
     set({ cart: [] });
   },
 
-  createOrder: async (paymentDetails: PaymentDetails[], totalAmount: number, subtotalAmount: number, customer?: Customer) => {
+  createOrder: async (paymentDetails: PaymentDetails[], totalAmount: number, subtotalAmount: number, customer?: Customer, discountAmount: number, discountValue: number) => {
     const { cart, products, authenticatedEmployee } = get();
     if (cart.length === 0) return;
 
@@ -412,6 +412,9 @@ const useStore = create<StoreState>((set, get) => ({
       status: 'completed',
       customer, // Add customer to order
       employee: authenticatedEmployee || undefined, // Add employee to order
+      discountAmount,
+      discountValue,
+      
     };
 
     try {

@@ -293,8 +293,8 @@ export const promotionsTable = pgTable("promotions", {
   usageCount: integer().notNull().default(0), // Current usage count
   customerUsageLimit: integer().default(1), // Per-customer usage limit
   isActive: boolean().notNull().default(true),
-  applicableToCategories: jsonb(), // JSON array of category IDs
-  applicableToProducts: jsonb(), // JSON array of product IDs
+  applicableToCategories: text(), // JSON array of category IDs
+  applicableToProducts: text(), // JSON array of product IDs
   
   // BOGO specific fields
   buyQuantity: integer(), // Buy X items
@@ -304,13 +304,13 @@ export const promotionsTable = pgTable("promotions", {
   
   // Time-based promotion fields
   timeBasedType: timeBasedDiscountTypeEnum(), // 'daily' | 'weekly' | 'specific_dates'
-  activeDays: jsonb(), // JSON array of days (0=Sunday, 1=Monday, etc.) for weekly
-  //activeTimeStart: varchar({ length: 8 }), // HH:MM:SS format
-  //activeTimeEnd: varchar({ length: 8 }), // HH:MM:SS format
-  activeTimeStart: time(),
-  activeTimeEnd: time(),
+  activeDays: text(), // JSON array of days (0=Sunday, 1=Monday, etc.) for weekly
+  activeTimeStart: varchar({ length: 8 }), // HH:MM:SS format
+  activeTimeEnd: varchar({ length: 8 }), // HH:MM:SS format
+  //activeTimeStart: time(),
+  //activeTimeEnd: time(),
 
-  specificDates: jsonb(), // JSON array of specific dates for 'specific_dates' type
+  specificDates: text(), // JSON array of specific dates for 'specific_dates' type
   
   createdAt: timestamp().notNull().defaultNow(),
   updatedAt: timestamp().notNull().defaultNow(),

@@ -1,6 +1,6 @@
 import { db } from '../db/index.js';
-import { ordersTable, orderItemsTable, storeInfoTable, productsTable, customersTable,
-     customerPurchasesTable,employeesTable, promotionsTable, promotionUsageTable, discountCodesTable } from '../db/schema.js';
+import { ordersTable, orderItemsTable, storeInfoTable, productsTable, customersTable, 
+     employeesTable, promotionsTable, promotionUsageTable, discountCodesTable } from '../db/schema.js';
 import { Request, Response } from 'express';
 import { getAuth } from '@clerk/express';
 import { eq, desc, and, inArray, sql, isNull, gte, lte } from 'drizzle-orm';
@@ -9,12 +9,12 @@ import { randomUUID } from 'crypto';
 export default class OrdersController {
     static async getOrders(req: Request, res: Response) {
         try {
-			const auth = getAuth(req);
+            const auth = getAuth(req);
 
-			if (!auth.userId) {
-				return res.status(401).send('Unauthorized');
-			}
-			 // Get storeInfoId for the authenticated user
+            if (!auth.userId) {
+                return res.status(401).send('Unauthorized');
+            }
+            // Get storeInfoId for the authenticated user
             const storeInfo = await db.select()
                 .from(storeInfoTable)
                 .where(eq(storeInfoTable.userId, auth.userId));
@@ -37,7 +37,7 @@ export default class OrdersController {
                 .leftJoin(orderItemsTable, eq(ordersTable.id, orderItemsTable.orderId))
                 .leftJoin(productsTable, eq(orderItemsTable.productId, productsTable.id))
                 .where(eq(ordersTable.storeInfoId, storeInfoId))
-                .orderBy(desc(ordersTable.date))
+                .orderBy(desc(ordersTable.createdAt))
                 .limit(20);
 
             // Group the results by order
@@ -91,12 +91,27 @@ export default class OrdersController {
             return res.status(401).send('Unauthorized');
         }
 
-        const { items, total, subtotal, discountAmount = 0, discountCode, date, paymentMethod, status, customer, employee } = req.body;
+        const { 
+            items, 
+            total, 
+            subtotal, 
+            totalCost = 0,
+            discountAmount = 0,
+            discountType = null,
+            discountValue = 0,
+            taxAmount = 0,
+            serviceCharge = 0,
+            discountCode,
+            paymentMethod, 
+            status, 
+            customer, 
+            employee 
+        } = req.body;
 
         // Validate required fields
-        if ( !items || !Array.isArray(items) || items.length === 0 || !total || !subtotal || !date || !paymentMethod || !status || !employee) {
+        if (!items || !Array.isArray(items) || items.length === 0 || !total || !subtotal || !paymentMethod || !status || !employee) {
             return res.status(400).json({ 
-                message: 'Missing required fields: items (array), total, subtotal, date, paymentMethod, status, employee' 
+                message: 'Missing required fields: items (array), total, subtotal, paymentMethod, status, employee' 
             });
         }
 
@@ -189,16 +204,21 @@ export default class OrdersController {
                 }
 
                 const promotion = discountCodeData.promotion;
-                const now = new Date();
 
-                // Check if promotion is within date range
-                if (now < promotion.startDate || now > promotion.endDate) {
-                    return res.status(400).json({ message: 'Promotion is not currently active' });
+                // Validate promotion dates
+                const now = new Date();
+                if (new Date(promotion.startDate) > now || new Date(promotion.endDate) < now) {
+                    return res.status(400).json({ message: 'Discount code is not valid for the current date' });
                 }
 
-                // Check usage limits
+                // Validate minimum purchase
+                if (promotion.minimumPurchase && parseFloat(subtotal.toString()) < parseFloat(promotion.minimumPurchase.toString())) {
+                    return res.status(400).json({ message: `Minimum purchase of ${promotion.minimumPurchase} required` });
+                }
+
+                // Check usage limit
                 if (promotion.usageLimit && promotion.usageCount >= promotion.usageLimit) {
-                    return res.status(400).json({ message: 'Promotion usage limit exceeded' });
+                    return res.status(400).json({ message: 'Discount code usage limit exceeded' });
                 }
 
                 // Check customer usage limit
@@ -218,50 +238,70 @@ export default class OrdersController {
                 promotionId = promotion.id;
             }
 
-            const id = randomUUID();
-            
-            // Use a transaction to ensure data consistency
+            // Execute all operations in a transaction
             const result = await db.transaction(async (tx) => {
+                // Create order
+                const orderId = randomUUID();
+                const orderNumber = `ORD-${Date.now()}`;
+
+                // Calculate actual totalCost if not provided
+                let calculatedTotalCost = totalCost;
+                if (calculatedTotalCost === 0) {
+                    calculatedTotalCost = items.reduce((sum, item) => {
+                        const product = products.find(p => p.id === item.id);
+                        return sum + (parseFloat(product!.cost.toString()) * item.quantity);
+                    }, 0);
+                }
                 // Create the order
                 const newOrder = await tx.insert(ordersTable).values({
-                    id: id,
-                    storeInfoId: storeInfoId,
-                    total: total,
-                    subtotal: subtotal,
-                    discountAmount: discountAmount,
-                    date: date,
-                    paymentMethod: paymentMethod,
-                    status: status,
+                    id: orderId,
+                    storeInfoId,
+                    total: parseFloat(total.toString()),
+                    totalCost: calculatedTotalCost,
+                    orderNumber,
+                    subtotal: parseFloat(subtotal.toString()),
+                    discountType: discountType || null,
+                    discountValue: parseFloat(discountValue.toString()) || 0,
+                    taxAmount: parseFloat(taxAmount.toString()) || 0,
+                    serviceCharge: parseFloat(serviceCharge.toString()) || 0,
+                    discountAmount: parseFloat(discountAmount.toString()) || 0,
+                    paymentMethod,
+                    status,
+                    customerId: customer?.id || null,
                     employeeId: employee.id,
+                    promotionId: promotionId || null,
                 }).returning();
 
                 // Create order items
                 const orderItems = items.map(item => {
                     const product = products.find(p => p.id === item.id);
                     console.log('product',product);
+		            const unitCost = item.cost || parseFloat(product!.cost.toString());
+                    const itemSubtotal = (item.quantity * parseFloat(item.price));
+                    const itemDiscountAmount = item.discountAmount ? parseFloat(item.discountAmount.toString()) : 0;
+                    const finalPrice = itemSubtotal - itemDiscountAmount;
                     return {
-                        orderId: id,
+                        orderId: orderId,
                         productId: item.id,
+			productName: item.productName || product!.name,
                         quantity: item.quantity,
-                        unitPrice: String(product?.price ?? 0),  // ensure string type
-                        unitCost: String(product?.cost ?? 0)     // ensure string type
+                        unitPrice: parseFloat(item.price.toString()),
+                        unitCost,
+                        subtotal: itemSubtotal,
+                        discountType: item.discountType || null,
+                        discountValue: parseFloat(item.discountValue.toString()) || 0,
+                        discountAmount: itemDiscountAmount,
+                        finalPrice,
+                        promotionId: item.promotionId || null,
                     };
                 });
 
-                // Create customer purchase
-                if (customer) {
-                    await tx.insert(customerPurchasesTable).values({
-                        customerId: customer.id,
-                        orderId: id
-                    });
-                }
-
-                await tx.insert(orderItemsTable).values(orderItems);
+                
 
                 // Record promotion usage if discount was applied
                 if (promotionId && discountAmount > 0) {
                     await tx.insert(promotionUsageTable).values({
-                        promotionId: promotionId,
+                        promotionId,
                         customerId: customer?.id || null,
                         orderId: id,
                         discountAmount: discountAmount
@@ -417,22 +457,22 @@ export default class OrdersController {
                 
                 whereCondition = and(
                     whereCondition,
-                    sql`${ordersTable.date}::timestamp >= ${startDate.toISOString()}`
+                    gte(ordersTable.createdAt, startDate)
                 );
             }
 
             const bestSellers = await db.select({
                 productId: orderItemsTable.productId,
-                productName: productsTable.name,
+                productName: orderItemsTable.productName,
                 totalQuantity: sql`SUM(${orderItemsTable.quantity})`,
-                totalRevenue: sql`SUM(${orderItemsTable.quantity} * ${productsTable.price})`,
-                averagePrice: sql`AVG(${productsTable.price})`
+                totalRevenue: sql`SUM(${orderItemsTable.finalPrice})`,
+                averagePrice: sql`AVG(${orderItemsTable.unitPrice})`
             })
                 .from(orderItemsTable)
                 .leftJoin(ordersTable, eq(orderItemsTable.orderId, ordersTable.id))
                 .leftJoin(productsTable, eq(orderItemsTable.productId, productsTable.id))
                 .where(whereCondition)
-                .groupBy(orderItemsTable.productId, productsTable.name)
+                .groupBy(orderItemsTable.productId, orderItemsTable.productName)
                 .orderBy(sql`SUM(${orderItemsTable.quantity}) DESC`)
                 .limit(limitNum);
 
@@ -464,7 +504,7 @@ export default class OrdersController {
             startDate.setDate(startDate.getDate() - daysNum);
 
             const peakHours = await db.select({
-                hour: sql`EXTRACT(HOUR FROM ${ordersTable.date}::timestamp)`,
+                hour: sql`EXTRACT(HOUR FROM ${ordersTable.createdAt})`,
                 orderCount: sql`COUNT(*)`,
                 totalSales: sql`SUM(${ordersTable.total})`,
                 averageOrderValue: sql`AVG(${ordersTable.total})`
@@ -473,10 +513,10 @@ export default class OrdersController {
                 .where(and(
                     eq(ordersTable.storeInfoId, storeInfoId),
                     eq(ordersTable.status, 'completed'),
-                    sql`${ordersTable.date}::timestamp >= ${startDate.toISOString()}`
+                    gte(ordersTable.createdAt, startDate)
                 ))
-                .groupBy(sql`EXTRACT(HOUR FROM ${ordersTable.date}::timestamp)`)
-                .orderBy(sql`EXTRACT(HOUR FROM ${ordersTable.date}::timestamp)`);
+                .groupBy(sql`EXTRACT(HOUR FROM ${ordersTable.createdAt})`)
+                .orderBy(sql`EXTRACT(HOUR FROM ${ordersTable.createdAt})`);
 
             // Fill in missing hours with zero values
             const hourData = Array.from({ length: 24 }, (_, i) => {
@@ -530,13 +570,13 @@ export default class OrdersController {
                     startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); // 30 days default
             }
 
-            // Get profit margin data
+            // Get profit margin data from order items for accuracy
             const profitData = await db.select({
-					totalRevenue: sql`SUM(${orderItemsTable.quantity} * ${orderItemsTable.unitPrice})`,
-					totalCost: sql`SUM(${orderItemsTable.quantity} * ${orderItemsTable.unitCost})`,
-					totalProfit: sql`SUM(${orderItemsTable.quantity} * (${orderItemsTable.unitPrice} - ${orderItemsTable.unitCost}))`,
-					orderCount: sql`COUNT(DISTINCT ${ordersTable.id})`,
-					averageOrderValue: sql`AVG(${ordersTable.total})`
+                totalRevenue: sql`SUM(${orderItemsTable.finalPrice})`,
+                totalCost: sql`SUM(${orderItemsTable.quantity} * ${orderItemsTable.unitCost})`,
+                totalProfit: sql`SUM((${orderItemsTable.finalPrice}) - (${orderItemsTable.quantity} * ${orderItemsTable.unitCost}))`,
+                orderCount: sql`COUNT(DISTINCT ${ordersTable.id})`,
+                averageOrderValue: sql`AVG(${ordersTable.total})`
             })
                 .from(orderItemsTable)
                 .leftJoin(ordersTable, eq(orderItemsTable.orderId, ordersTable.id))
@@ -544,7 +584,7 @@ export default class OrdersController {
                 .where(and(
                     eq(ordersTable.storeInfoId, storeInfoId),
                     eq(ordersTable.status, 'completed'),
-                    sql`${ordersTable.date}::timestamp >= ${startDate.toISOString()}`
+                    gte(ordersTable.createdAt, startDate)
                 ));
 
             const data = profitData[0];
