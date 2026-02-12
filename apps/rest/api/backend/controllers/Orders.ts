@@ -296,7 +296,7 @@ export default class OrdersController {
                     };
                 });
 
-                
+                await tx.insert(orderItemsTable).values(orderItems);
 
                 // Record promotion usage if discount was applied
                 if (promotionId && discountAmount > 0) {
