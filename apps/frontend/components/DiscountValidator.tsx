@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { CartItem, DiscountValidationRequest, DiscountValidationResponse, Customer } from '../types';
 import { validateDiscountCode } from '../lib/api';
+import CustomAlert from './CustomAlert';
 
 interface DiscountValidatorProps {
   visible: boolean;
