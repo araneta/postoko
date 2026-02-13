@@ -20,7 +20,6 @@ export default class OrdersController {
                 .where(eq(storeInfoTable.userId, auth.userId));
 
             if (storeInfo.length === 0) {
-                //return res.status(400).json({ message: 'Store information not found. Please set up your store first.' });
                 return res.status(200).json(null);
             }
 
@@ -56,21 +55,23 @@ export default class OrdersController {
                 // Add item if it exists (order might not have items)
                 if (row.orderItem && row.product) {
                     const existingItem = ordersMap.get(orderId).items.find(
-                        (item: any) => item.id === row.orderItem!.productId
+                        (item: any) => item.productId === row.orderItem!.productId
                     );
                     
                     if (!existingItem) {
                         ordersMap.get(orderId).items.push({
-                            id: row.orderItem!.productId,
-                            storeInfoId: row.product.storeInfoId,
-                            name: row.product.name,
-                            price: row.product.price,
-                            description: row.product.description,
+                            productId: row.orderItem!.productId,
+                            productName: row.orderItem!.productName,
+                            quantity: row.orderItem!.quantity,
+                            unitPrice: row.orderItem!.unitPrice,
+                            unitCost: row.orderItem!.unitCost,
+                            subtotal: row.orderItem!.subtotal,
+                            discountType: row.orderItem!.discountType,
+                            discountValue: row.orderItem!.discountValue,
+                            discountAmount: row.orderItem!.discountAmount,
+                            finalPrice: row.orderItem!.finalPrice,
                             image: row.product.image,
-                            stock: row.product.stock,
-                            category: row.product.categoryId,
-                            barcode: row.product.barcode,
-                            quantity: row.orderItem!.quantity
+                            cost: row.product.cost,
                         });
                     }
                 }
@@ -128,7 +129,7 @@ export default class OrdersController {
             const storeInfoId = storeInfo[0].id;
 
             // Extract product IDs from items
-            const productIds = items.map(item => item.id);
+            const productIds = items.map(item => item.productId);
 
             // Get current product stock information
             const products = await db.select({
@@ -149,9 +150,9 @@ export default class OrdersController {
             // Validate stock availability
             const stockValidationErrors = [];
             for (const item of items) {
-                const product = products.find(p => p.id === item.id);
+                const product = products.find(p => p.id === item.productId);
                 if (!product) {
-                    stockValidationErrors.push(`Product with ID ${item.id} not found`);
+                    stockValidationErrors.push(`Product with ID ${item.productId} not found`);
                 } else if (product.stock < item.quantity) {
                     stockValidationErrors.push(`Insufficient stock for ${product.name}. Available: ${product.stock}, Requested: ${item.quantity}`);
                 }
@@ -164,8 +165,8 @@ export default class OrdersController {
                 });
             }
 
-            // Validate customer
-            if (customer) {
+            // Validate customer (optional)
+            if (customer && customer.id) {
                 const customerData = await db.select()
                 .from(customersTable)
                 .where(and(eq(customersTable.storeInfoId, storeInfoId), eq(customersTable.id, customer.id)));
@@ -221,17 +222,17 @@ export default class OrdersController {
                     return res.status(400).json({ message: 'Discount code usage limit exceeded' });
                 }
 
-                // Check customer usage limit
-                if (customer && promotion.customerUsageLimit) {
-                    const [customerUsage] = await db.select({ count: sql<number>`count(*)` })
+                // Check customer usage limit if customer provided
+                if (customer && customer.id && promotion.customerUsageLimit) {
+                    const customerUsageCount = await db.select({ count: sql`COUNT(*)` })
                         .from(promotionUsageTable)
                         .where(and(
                             eq(promotionUsageTable.promotionId, promotion.id),
                             eq(promotionUsageTable.customerId, customer.id)
                         ));
-
-                    if (customerUsage.count >= promotion.customerUsageLimit) {
-                        return res.status(400).json({ message: 'Customer usage limit exceeded for this promotion' });
+                    
+                    if (customerUsageCount[0].count >= promotion.customerUsageLimit) {
+                        return res.status(400).json({ message: 'Customer has reached usage limit for this promotion' });
                     }
                 }
 
@@ -248,12 +249,13 @@ export default class OrdersController {
                 let calculatedTotalCost = totalCost;
                 if (calculatedTotalCost === 0) {
                     calculatedTotalCost = items.reduce((sum, item) => {
-                        const product = products.find(p => p.id === item.id);
+                        const product = products.find(p => p.id === item.productId);
                         return sum + (parseFloat(product!.cost.toString()) * item.quantity);
                     }, 0);
                 }
-                // Create the order
-                const newOrder = await tx.insert(ordersTable).values({
+
+                // Insert order
+                await tx.insert(ordersTable).values({
                     id: orderId,
                     storeInfoId,
                     total: parseFloat(total.toString()),
@@ -270,22 +272,22 @@ export default class OrdersController {
                     customerId: customer?.id || null,
                     employeeId: employee.id,
                     promotionId: promotionId || null,
-                }).returning();
+                });
 
-                // Create order items
-                const orderItems = items.map(item => {
-                    const product = products.find(p => p.id === item.id);
-                    console.log('product',product);
-		            const unitCost = item.cost || parseFloat(product!.cost.toString());
-                    const itemSubtotal = (item.quantity * parseFloat(item.price));
-                    const itemDiscountAmount = item.discountAmount ? parseFloat(item.discountAmount.toString()) : 0;
+                // Insert order items
+                const orderItemsData = items.map(item => {
+                    const product = products.find(p => p.id === item.productId);
+                    const unitCost = item.unitCost || parseFloat(product!.cost.toString());
+                    const itemSubtotal = parseFloat(item.subtotal.toString()) || (item.quantity * parseFloat(item.unitPrice.toString()));
+                    const itemDiscountAmount = parseFloat(item.discountAmount.toString()) || 0;
                     const finalPrice = itemSubtotal - itemDiscountAmount;
+
                     return {
-                        orderId: orderId,
-                        productId: item.id,
-			productName: item.productName || product!.name,
+                        orderId,
+                        productId: item.productId,
+                        productName: item.productName || product!.name,
                         quantity: item.quantity,
-                        unitPrice: parseFloat(item.price.toString()),
+                        unitPrice: parseFloat(item.unitPrice.toString()),
                         unitCost,
                         subtotal: itemSubtotal,
                         discountType: item.discountType || null,
@@ -296,170 +298,49 @@ export default class OrdersController {
                     };
                 });
 
-                await tx.insert(orderItemsTable).values(orderItems);
-
-                // Record promotion usage if discount was applied
-                if (promotionId && discountAmount > 0) {
-                    await tx.insert(promotionUsageTable).values({
-                        promotionId,
-                        customerId: customer?.id || null,
-                        orderId: id,
-                        discountAmount: discountAmount
-                    });
-
-                    // Update promotion usage count
-                    await tx.update(promotionsTable)
-                        .set({ 
-                            usageCount: sql`${promotionsTable.usageCount} + 1`,
-                            updatedAt: new Date()
-                        })
-                        .where(eq(promotionsTable.id, promotionId));
+                for (const itemData of orderItemsData) {
+                    await tx.insert(orderItemsTable).values(itemData);
                 }
 
                 // Update product stock
                 for (const item of items) {
-                    const product = products.find(p => p.id === item.id);
-                    if (product) {
-                        const newStock = product.stock - item.quantity;
-                        await tx.update(productsTable)
-                            .set({
-                                stock: newStock
-                            })
-                            .where(eq(productsTable.id, item.id));
-                    }
+                    const product = products.find(p => p.id === item.productId);
+                    await tx.update(productsTable)
+                        .set({ stock: product!.stock - item.quantity })
+                        .where(eq(productsTable.id, item.productId));
                 }
 
-                return newOrder[0];
+                // Record promotion usage if applied
+                if (promotionId) {
+                    await tx.insert(promotionUsageTable).values({
+                        promotionId,
+                        customerId: customer?.id || null,
+                        orderId,
+                        discountAmount: parseFloat(discountAmount.toString()),
+                    });
+
+                    // Update promotion usage count
+                    await tx.update(promotionsTable)
+                        .set({ usageCount: sql`${promotionsTable.usageCount} + 1` })
+                        .where(eq(promotionsTable.id, promotionId));
+                }
+
+                return { orderId, orderNumber };
             });
 
-            res.status(201).json(result);
+            res.status(201).json({ 
+                message: 'Order created successfully',
+                orderId: result.orderId,
+                orderNumber: result.orderNumber
+            });
         } catch (error) {
             console.error(error);
             res.status(500).json({ message: 'Error creating order' });
         }
     }
 
-    static async getAnalytics(req: Request, res: Response) {
-        try {
-            const auth = getAuth(req);
-            if (!auth.userId) {
-                return res.status(401).send('Unauthorized');
-            }
-            // Get storeInfoId for the authenticated user
-            const storeInfo = await db.select().from(storeInfoTable).where(eq(storeInfoTable.userId, auth.userId));
-            if (storeInfo.length === 0) {
-                return res.status(200).json(null);
-            }
-            const storeInfoId = storeInfo[0].id;
-            // Total sales
-            const [{ totalSales = 0 } = {}] = await db.select({ totalSales: sql`COALESCE(SUM(${ordersTable.total}), 0)` })
-                .from(ordersTable)
-                .where(and(eq(ordersTable.storeInfoId, storeInfoId), eq(ordersTable.status, 'completed')));
-            // Number of orders
-            const [{ orderCount = 0 } = {}] = await db.select({ orderCount: sql`COUNT(*)` })
-                .from(ordersTable)
-                .where(and(eq(ordersTable.storeInfoId, storeInfoId), eq(ordersTable.status, 'completed')));
-            // Top 5 products by quantity sold
-            const topProducts = await db.select({
-                productId: orderItemsTable.productId,
-                quantitySold: sql`SUM(${orderItemsTable.quantity})`
-            })
-                .from(orderItemsTable)
-                .leftJoin(ordersTable, eq(orderItemsTable.orderId, ordersTable.id))
-                .where(and(eq(ordersTable.storeInfoId, storeInfoId), eq(ordersTable.status, 'completed')))
-                .groupBy(orderItemsTable.productId)
-                .orderBy(sql`SUM(${orderItemsTable.quantity}) DESC`)
-                .limit(5);
-            res.status(200).json({ totalSales, orderCount, topProducts });
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ message: 'Error fetching analytics' });
-        }
-    }
-
-    static async getSalesReport(req: Request, res: Response) {
-        try {
-            const auth = getAuth(req);
-            if (!auth.userId) {
-                return res.status(401).send('Unauthorized');
-            }
-
-            const { period = 'daily' } = req.query;
-
-            // Get storeInfoId for the authenticated user
-            const storeInfo = await db.select().from(storeInfoTable).where(eq(storeInfoTable.userId, auth.userId));
-            if (storeInfo.length === 0) {
-                return res.status(200).json([]);
-            }
-
-            const storeInfoId = storeInfo[0].id;
-
-            let groupBySql;
-            let formatLabel;
-
-            // Determine grouping based on period
-            if (period === 'monthly') {
-                groupBySql = sql`DATE_TRUNC('month', ${ordersTable.createdAt})`;
-                formatLabel = sql`TO_CHAR(DATE_TRUNC('month', ${ordersTable.createdAt}), 'YYYY-MM')`;
-            } else if (period === 'weekly') {
-                groupBySql = sql`DATE_TRUNC('week', ${ordersTable.createdAt})`;
-                formatLabel = sql`TO_CHAR(DATE_TRUNC('week', ${ordersTable.createdAt}), 'YYYY-IW')`;
-            } else {
-                // daily (default)
-                groupBySql = sql`DATE_TRUNC('day', ${ordersTable.createdAt})`;
-                formatLabel = sql`TO_CHAR(DATE_TRUNC('day', ${ordersTable.createdAt}), 'YYYY-MM-DD')`;
-            }
-
-            const report = await db.select({
-                period: formatLabel,
-                totalSales: sql`SUM(${ordersTable.total})`,
-                totalRevenue: sql`SUM(${orderItemsTable.finalPrice})`,
-                totalCost: sql`SUM(${orderItemsTable.quantity} * ${orderItemsTable.unitCost})`,
-                totalDiscount: sql`SUM(${ordersTable.discountAmount})`,
-                totalTax: sql`SUM(${ordersTable.taxAmount})`,
-                totalServiceCharge: sql`SUM(${ordersTable.serviceCharge})`,
-                orderCount: sql`COUNT(DISTINCT ${ordersTable.id})`,
-                itemCount: sql`COUNT(${orderItemsTable.id})`,
-                averageOrderValue: sql`AVG(${ordersTable.total})`,
-                profit: sql`SUM((${orderItemsTable.finalPrice}) - (${orderItemsTable.quantity} * ${orderItemsTable.unitCost}))`
-            })
-                .from(ordersTable)
-                .leftJoin(orderItemsTable, eq(ordersTable.id, orderItemsTable.orderId))
-                .where(and(
-                    eq(ordersTable.storeInfoId, storeInfoId),
-                    eq(ordersTable.status, 'completed')
-                ))
-                .groupBy(groupBySql)
-                .orderBy(groupBySql);
-
-            // Format the response with calculated fields
-            const formattedReport = report.map(row => ({
-                period: row.period,
-                totalSales: Number(row.totalSales || 0),
-                totalRevenue: Number(row.totalRevenue || 0),
-                totalCost: Number(row.totalCost || 0),
-                totalDiscount: Number(row.totalDiscount || 0),
-                totalTax: Number(row.totalTax || 0),
-                totalServiceCharge: Number(row.totalServiceCharge || 0),
-                profit: Number(row.profit || 0),
-                profitMargin: Number(row.totalRevenue) > 0 
-                    ? ((Number(row.profit || 0) / Number(row.totalRevenue)) * 100).toFixed(2)
-                    : 0,
-                orderCount: Number(row.orderCount),
-                itemCount: Number(row.itemCount),
-                averageOrderValue: Number(row.averageOrderValue || 0),
-                averageItemPrice: Number(row.itemCount) > 0
-                    ? (Number(row.totalRevenue || 0) / Number(row.itemCount)).toFixed(2)
-                    : 0
-            }));
-
-            res.status(200).json(formattedReport);
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ message: 'Error fetching sales report' });
-        }
-    }
-
+    
+    
 
     static async getBestSellers(req: Request, res: Response) {
         try {
@@ -468,7 +349,7 @@ export default class OrdersController {
                 return res.status(401).send('Unauthorized');
             }
 
-            const { limit = 10, period = 'all' } = req.query;
+            const { period = 'month', limit = 10 } = req.query;
             const limitNum = parseInt(limit as string) || 10;
 
             // Get storeInfoId for the authenticated user
@@ -517,7 +398,6 @@ export default class OrdersController {
             })
                 .from(orderItemsTable)
                 .leftJoin(ordersTable, eq(orderItemsTable.orderId, ordersTable.id))
-                .leftJoin(productsTable, eq(orderItemsTable.productId, productsTable.id))
                 .where(whereCondition)
                 .groupBy(orderItemsTable.productId, orderItemsTable.productName)
                 .orderBy(sql`SUM(${orderItemsTable.quantity}) DESC`)
@@ -627,7 +507,6 @@ export default class OrdersController {
             })
                 .from(orderItemsTable)
                 .leftJoin(ordersTable, eq(orderItemsTable.orderId, ordersTable.id))
-                .leftJoin(productsTable, eq(orderItemsTable.productId, productsTable.id))
                 .where(and(
                     eq(ordersTable.storeInfoId, storeInfoId),
                     eq(ordersTable.status, 'completed'),
