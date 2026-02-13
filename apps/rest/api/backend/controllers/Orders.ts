@@ -330,25 +330,7 @@ export default class OrdersController {
                     }
                 }
 
-                // Record promotion usage if applied
-                // usageCount increment happens HERE in createOrder
-                if (promotionId && discountAmount > 0) {
-                    await tx.insert(promotionUsageTable).values({
-                        promotionId,
-                        customerId: customer?.id || null,
-                        orderId,
-                        discountAmount: parseFloat(discountAmount.toString()),
-                        usedAt: new Date()
-                    });
-
-                    // Increment promotion usage count
-                    await tx.update(promotionsTable)
-                        .set({ 
-                            usageCount: sql`${promotionsTable.usageCount} + 1`,
-                            updatedAt: new Date()
-                        })
-                        .where(eq(promotionsTable.id, promotionId));
-                }
+                
 
                 return newOrder[0];
             });
