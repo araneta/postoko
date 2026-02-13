@@ -1,8 +1,14 @@
 Phase 4: Revenue Optimization (Weeks 13-16)
 8. Promotions & Discounts
-Percentage and fixed amount discounts
+Percentage [done]
+and fixed amount discounts [done]
 Buy-one-get-one offers
 Time-based promotions (happy hour)
+
+todo: update dolar symbol ($) to use currency code from settings [done]
+usageCount should be increased when saving order [working]
+
+
 [working]
 show error when validate code like {"error":"No eligible items for this promotion"}
 Why important: Increases average transaction value

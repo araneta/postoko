@@ -91,7 +91,7 @@ export default function POSScreen() {
 
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const discountAmount = appliedDiscount?.discountAmount || 0;
-  const discountValue = appliedDiscount?.promotion.discountValue || 0;
+  const discountValue = appliedDiscount?.promotion?.discountValue || 0;
   const finalTotal = total - discountAmount;
 
   const showAlert = (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
@@ -129,8 +129,11 @@ export default function POSScreen() {
 
   const handlePaymentComplete = async (paymentDetails: PaymentDetails[]) => {
     try {
+      console.log("promotion", appliedDiscount);
+      let discountCode = appliedDiscount?.discountCode;
+      
       // Pass customer and employee to createOrder if selected
-      const order = await createOrder(paymentDetails, finalTotal, total, selectedCustomer || undefined, discountAmount, discountValue);
+      const order = await createOrder(paymentDetails, finalTotal, total, discountAmount, discountValue, discountCode, selectedCustomer || undefined);
 
       // Log the authenticated employee
       if (authenticatedEmployee) {

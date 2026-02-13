@@ -184,6 +184,7 @@ export default class OrdersController {
 
             // Validate discount code if provided
             let promotionId = null;
+            console.log('discountCode',discountCode);
             if (discountCode && discountAmount > 0) {
                 const [discountCodeData] = await db.select({
                     code: discountCodesTable.code,
@@ -237,7 +238,7 @@ export default class OrdersController {
 
                 promotionId = promotion.id;
             }
-
+			console.log('promotionId',promotionId);
             // Execute all operations in a transaction
             const result = await db.transaction(async (tx) => {
                 // Create order
@@ -303,7 +304,7 @@ export default class OrdersController {
                     await tx.insert(promotionUsageTable).values({
                         promotionId,
                         customerId: customer?.id || null,
-                        orderId: id,
+                        orderId: orderId,
                         discountAmount: discountAmount
                     });
 
@@ -327,6 +328,26 @@ export default class OrdersController {
                             })
                             .where(eq(productsTable.id, item.id));
                     }
+                }
+
+                // Record promotion usage if applied
+                // usageCount increment happens HERE in createOrder
+                if (promotionId && discountAmount > 0) {
+                    await tx.insert(promotionUsageTable).values({
+                        promotionId,
+                        customerId: customer?.id || null,
+                        orderId,
+                        discountAmount: parseFloat(discountAmount.toString()),
+                        usedAt: new Date()
+                    });
+
+                    // Increment promotion usage count
+                    await tx.update(promotionsTable)
+                        .set({ 
+                            usageCount: sql`${promotionsTable.usageCount} + 1`,
+                            updatedAt: new Date()
+                        })
+                        .where(eq(promotionsTable.id, promotionId));
                 }
 
                 return newOrder[0];

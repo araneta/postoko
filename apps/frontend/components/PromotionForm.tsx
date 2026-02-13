@@ -14,6 +14,7 @@ import { Promotion, PromotionType } from '../types';
 import { createPromotion, updatePromotion } from '../lib/api';
 import { PromotionTemplates } from '../lib/discountCalculator';
 import CustomAlert from './CustomAlert';
+import useStore from '../store/useStore';
 
 interface PromotionFormProps {
   storeId: number;
@@ -67,6 +68,8 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
     title: '',
     message: '',
   });
+  const {settings} = useStore();
+  const currencyCode = settings.currency.code;
 
   const handleSubmit = async () => {
     if (!formData.name.trim() || !formData.description.trim()) {
@@ -298,13 +301,13 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
           {(formData.type === 'percentage' || formData.type === 'fixed_amount' || formData.type === 'time_based') && (
             <>
               <Text style={styles.label}>
-                Discount Value ({formData.type === 'percentage' ? '%' : '$'}) *
+                Discount Value ({formData.type === 'percentage' ? '%' : currencyCode}) *
               </Text>
               <TextInput
                 style={styles.input}
                 value={formData.discountValue}
                 onChangeText={(text) => setFormData({ ...formData, discountValue: text })}
-                placeholder={formData.type === 'percentage' ? '20' : '10.00'}
+                placeholder={formData.type === 'percentage' ? '' : ''}
                 keyboardType="numeric"
               />
             </>
@@ -360,13 +363,13 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
               {formData.getDiscountType !== 'free' && (
                 <>
                   <Text style={styles.label}>
-                    Get Discount Value ({formData.getDiscountType === 'percentage' ? '%' : '$'})
+                    Get Discount Value ({formData.getDiscountType === 'percentage' ? '%' : currencyCode})
                   </Text>
                   <TextInput
                     style={styles.input}
                     value={formData.getDiscountValue}
                     onChangeText={(text) => setFormData({ ...formData, getDiscountValue: text })}
-                    placeholder={formData.getDiscountType === 'percentage' ? '50' : '5.00'}
+                    placeholder={formData.getDiscountType === 'percentage' ? '' : ''}
                     keyboardType="numeric"
                   />
                 </>
@@ -421,23 +424,23 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
             </>
           )}
 
-          <Text style={styles.label}>Minimum Purchase ($)</Text>
+          <Text style={styles.label}>Minimum Purchase ({currencyCode})</Text>
           <TextInput
             style={styles.input}
             value={formData.minimumPurchase}
             onChangeText={(text) => setFormData({ ...formData, minimumPurchase: text })}
-            placeholder="50.00"
+            placeholder=""
             keyboardType="numeric"
           />
 
           {formData.type === 'percentage' && (
             <>
-              <Text style={styles.label}>Maximum Discount ($)</Text>
+              <Text style={styles.label}>Maximum Discount ({currencyCode})</Text>
               <TextInput
                 style={styles.input}
                 value={formData.maximumDiscount}
                 onChangeText={(text) => setFormData({ ...formData, maximumDiscount: text })}
-                placeholder="100.00"
+                placeholder=""
                 keyboardType="numeric"
               />
             </>
@@ -461,7 +464,7 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
             style={styles.input}
             value={formData.usageLimit}
             onChangeText={(text) => setFormData({ ...formData, usageLimit: text })}
-            placeholder="100"
+            placeholder=""
             keyboardType="numeric"
           />
 
@@ -470,7 +473,7 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
             style={styles.input}
             value={formData.customerUsageLimit}
             onChangeText={(text) => setFormData({ ...formData, customerUsageLimit: text })}
-            placeholder="1"
+            placeholder=""
             keyboardType="numeric"
           />
         </View>

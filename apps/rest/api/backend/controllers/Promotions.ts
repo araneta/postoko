@@ -8,21 +8,21 @@ import { v4 as uuidv4 } from 'uuid';
 export class PromotionsController {
   // Create a new promotion
   static async createPromotion(req: Request, res: Response) {
-	  const auth = getAuth(req);
-        if (!auth.userId) {
-            return res.status(401).send('Unauthorized');
-        }
-	   
+    const auth = getAuth(req);
+    if (!auth.userId) {
+      return res.status(401).send('Unauthorized');
+    }
+
     try {
-		const storeInfo = await db.select()
-			.from(storeInfoTable)
-			.where(eq(storeInfoTable.userId, auth.userId));
-		if (storeInfo.length === 0) {
-			return res.status(200).json([]);
-		}
-		const storeInfoId = storeInfo[0].id;
-		
-      const {        
+      const storeInfo = await db.select()
+        .from(storeInfoTable)
+        .where(eq(storeInfoTable.userId, auth.userId));
+      if (storeInfo.length === 0) {
+        return res.status(400).json({ error: 'Store information not found' });
+      }
+      const storeInfoId = storeInfo[0].id;
+
+      const {
         name,
         description,
         type,
@@ -33,6 +33,7 @@ export class PromotionsController {
         endDate,
         usageLimit,
         customerUsageLimit,
+        isActive = true,
         applicableToCategories,
         applicableToProducts,
         discountCodes,
@@ -48,26 +49,26 @@ export class PromotionsController {
         activeTimeEnd,
         specificDates
       } = req.body;
-	console.log('createPromotion');
+      console.log('createPromotion');
       // Validate required fields
       const requiredFields = {
-		  name,
-		  type,
-		  discountValue,
-		  startDate,
-		  endDate,
-		};
+        name,
+        type,
+        discountValue,
+        startDate,
+        endDate,
+      };
 
-		const missingFields = Object.entries(requiredFields)
-		  .filter(([_, value]) => value === undefined || value === null || value === '')
-		  .map(([key]) => key);
+      const missingFields = Object.entries(requiredFields)
+        .filter(([_, value]) => value === undefined || value === null || value === '')
+        .map(([key]) => key);
 
-		if (missingFields.length > 0) {
-		  return res.status(400).json({
-			error: `Missing required field(s): ${missingFields.join(', ')}`,
-			missingFields,
-		  });
-		}
+      if (missingFields.length > 0) {
+        return res.status(400).json({
+          error: `Missing required field(s): ${missingFields.join(', ')}`,
+          missingFields,
+        });
+      }
 
       // Validate promotion type
       if (!['percentage', 'fixed_amount', 'buy_x_get_y', 'time_based'].includes(type)) {
@@ -95,7 +96,6 @@ export class PromotionsController {
 
       // Validate time-based fields
       if (type === 'time_based') {
-        const { timeBasedType, activeTimeStart, activeTimeEnd } = req.body;
         if (!timeBasedType || !activeTimeStart || !activeTimeEnd) {
           return res.status(400).json({ error: 'Time-based promotions require timeBasedType, activeTimeStart, and activeTimeEnd' });
         }
@@ -111,29 +111,32 @@ export class PromotionsController {
         id: promotionId,
         storeInfoId: parseInt(storeInfoId),
         name,
-        description,
-        type,
-        discountValue: discountValue.toString(),
-        minimumPurchase: minimumPurchase?.toString() || '0.00',
-        maximumDiscount: maximumDiscount?.toString(),
+        description: description || null,
+        type: type as any,
+        discountValue: parseFloat(discountValue.toString()),
+        minimumPurchase: minimumPurchase ? parseFloat(minimumPurchase.toString()) : parseFloat('0.00'),
+        maximumDiscount: maximumDiscount ? parseFloat(maximumDiscount.toString()) : null,
         startDate: new Date(startDate),
         endDate: new Date(endDate),
-        usageLimit,
+        usageLimit: usageLimit || null,
+        usageCount: 0,
         customerUsageLimit: customerUsageLimit || 1,
+        isActive,
         applicableToCategories: applicableToCategories ? JSON.stringify(applicableToCategories) : null,
-        applicableToProducts: applicableToProducts ? JSON.stringify(applicableToProducts) : null,
-        // BOGO fields
+        applicableToProducts: applicableToProducts ? JSON.stringify(applicableToProducts) : null,        // BOGO fields
         buyQuantity: type === 'buy_x_get_y' ? buyQuantity : null,
         getQuantity: type === 'buy_x_get_y' ? getQuantity : null,
-        getDiscountType: type === 'buy_x_get_y' ? getDiscountType : null,
-        getDiscountValue: type === 'buy_x_get_y' && getDiscountValue ? getDiscountValue.toString() : null,
+        getDiscountType: type === 'buy_x_get_y' ? (getDiscountType as any) : null,
+        getDiscountValue: type === 'buy_x_get_y' && getDiscountValue ? parseFloat(getDiscountValue.toString()) : null,
         // Time-based fields
-        timeBasedType: type === 'time_based' ? timeBasedType : null,
+        timeBasedType: type === 'time_based' ? (timeBasedType as any) : null,
         activeDays: type === 'time_based' && activeDays ? JSON.stringify(activeDays) : null,
         activeTimeStart: type === 'time_based' ? activeTimeStart : null,
         activeTimeEnd: type === 'time_based' ? activeTimeEnd : null,
         specificDates: type === 'time_based' && specificDates ? JSON.stringify(specificDates) : null,
-        updatedAt: new Date()
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        deletedAt: null
       }).returning();
 
       // Create discount codes if provided
@@ -141,7 +144,9 @@ export class PromotionsController {
         const codeInserts = discountCodes.map((code: string) => ({
           id: uuidv4(),
           promotionId,
-          code: code.toUpperCase()
+          code: code.toUpperCase(),
+          isActive: true,
+          createdAt: new Date()
         }));
 
         await db.insert(discountCodesTable).values(codeInserts);
@@ -156,20 +161,20 @@ export class PromotionsController {
 
   // Get all promotions for a store
   static async getPromotions(req: Request, res: Response) {
-	  const auth = getAuth(req);
-        if (!auth.userId) {
-            return res.status(401).send('Unauthorized');
-        }
-        
+    const auth = getAuth(req);
+    if (!auth.userId) {
+      return res.status(401).send('Unauthorized');
+    }
+
     try {
       const storeInfo = await db.select()
-			.from(storeInfoTable)
-			.where(eq(storeInfoTable.userId, auth.userId));
-		if (storeInfo.length === 0) {
-			return res.status(200).json([]);
-		}
-		const storeInfoId = storeInfo[0].id;
-		
+        .from(storeInfoTable)
+        .where(eq(storeInfoTable.userId, auth.userId));
+      if (storeInfo.length === 0) {
+        return res.status(200).json([]);
+      }
+      const storeInfoId = storeInfo[0].id;
+
       const { active } = req.query;
 
       let query = db.select().from(promotionsTable)
@@ -196,12 +201,14 @@ export class PromotionsController {
         promotions.map(async (promotion) => {
           const codes = await db.select().from(discountCodesTable)
             .where(eq(discountCodesTable.promotionId, promotion.id));
-          
+
           return {
             ...promotion,
             discountCodes: codes,
             applicableToCategories: promotion.applicableToCategories ? JSON.parse(promotion.applicableToCategories) : [],
-            applicableToProducts: promotion.applicableToProducts ? JSON.parse(promotion.applicableToProducts) : []
+            applicableToProducts: promotion.applicableToProducts ? JSON.parse(promotion.applicableToProducts) : [],
+            activeDays: promotion.activeDays ? JSON.parse(promotion.activeDays) : [],
+            specificDates: promotion.specificDates ? JSON.parse(promotion.specificDates) : [],
           };
         })
       );
@@ -215,25 +222,25 @@ export class PromotionsController {
 
   // Get promotion by ID
   static async getPromotionById(req: Request, res: Response) {
-	  const auth = getAuth(req);
-        if (!auth.userId) {
-            return res.status(401).send('Unauthorized');
-        }
+    const auth = getAuth(req);
+    if (!auth.userId) {
+      return res.status(401).send('Unauthorized');
+    }
     try {
-		const storeInfo = await db.select()
-			.from(storeInfoTable)
-			.where(eq(storeInfoTable.userId, auth.userId));
-		if (storeInfo.length === 0) {
-			return res.status(200).json([]);
-		}
-		const storeInfoId = storeInfo[0].id;
-		
+      const storeInfo = await db.select()
+        .from(storeInfoTable)
+        .where(eq(storeInfoTable.userId, auth.userId));
+      if (storeInfo.length === 0) {
+        return res.status(400).json({ error: 'Store information not found' });
+      }
+      const storeInfoId = storeInfo[0].id;
+
       const { id } = req.params;
 
       const [promotion] = await db.select().from(promotionsTable)
         .where(and(
           eq(promotionsTable.id, id),
-          isNull(promotionsTable.deletedAt),          
+          isNull(promotionsTable.deletedAt),
           eq(promotionsTable.storeInfoId, parseInt(storeInfoId)),
         ));
 
@@ -249,7 +256,9 @@ export class PromotionsController {
         ...promotion,
         discountCodes: codes,
         applicableToCategories: promotion.applicableToCategories ? JSON.parse(promotion.applicableToCategories) : [],
-        applicableToProducts: promotion.applicableToProducts ? JSON.parse(promotion.applicableToProducts) : []
+        applicableToProducts: promotion.applicableToProducts ? JSON.parse(promotion.applicableToProducts) : [],
+        activeDays: promotion.activeDays ? JSON.parse(promotion.activeDays) : [],
+        specificDates: promotion.specificDates ? JSON.parse(promotion.specificDates) : [],
       };
 
       res.json(promotionWithCodes);
@@ -261,24 +270,26 @@ export class PromotionsController {
 
   // Validate and apply discount code
   static async validateDiscountCode(req: Request, res: Response) {
-	  const auth = getAuth(req);
-        if (!auth.userId) {
-            return res.status(401).send('Unauthorized');
-        }
+    const auth = getAuth(req);
+    if (!auth.userId) {
+      return res.status(401).send('Unauthorized');
+    }
     try {
-		const storeInfo = await db.select()
-			.from(storeInfoTable)
-			.where(eq(storeInfoTable.userId, auth.userId));
-		if (storeInfo.length === 0) {
-			return res.status(200).json([]);
-		}
-		const storeInfoId = storeInfo[0].id;
-      const { code, customerId, orderItems } = req.body;
-	
+      const storeInfo = await db.select()
+        .from(storeInfoTable)
+        .where(eq(storeInfoTable.userId, auth.userId));
+      if (storeInfo.length === 0) {
+        return res.status(400).json({ error: 'Store information not found' });
+      }
+      const storeInfoId = storeInfo[0].id;
+
+      const { code, customerId, orderItems, cartTotal } = req.body;
+
+      // Validate required fields
       if (!code) {
         return res.status(400).json({ error: 'Missing required fields: code' });
       }
-      if (!storeInfoId ) {
+      if (!storeInfoId) {
         return res.status(400).json({ error: 'Missing required fields: storeInfoId' });
       }
       if (!orderItems) {
@@ -290,15 +301,15 @@ export class PromotionsController {
         code: discountCodesTable.code,
         promotion: promotionsTable
       })
-      .from(discountCodesTable)
-      .innerJoin(promotionsTable, eq(discountCodesTable.promotionId, promotionsTable.id))
-      .where(and(
-        eq(discountCodesTable.code, code.toUpperCase()),
-        eq(discountCodesTable.isActive, true),
-        eq(promotionsTable.storeInfoId, parseInt(storeInfoId)),
-        eq(promotionsTable.isActive, true),
-        isNull(promotionsTable.deletedAt)
-      ));
+        .from(discountCodesTable)
+        .innerJoin(promotionsTable, eq(discountCodesTable.promotionId, promotionsTable.id))
+        .where(and(
+          eq(discountCodesTable.code, code.toUpperCase()),
+          eq(discountCodesTable.isActive, true),
+          eq(promotionsTable.storeInfoId, parseInt(storeInfoId)),
+          eq(promotionsTable.isActive, true),
+          isNull(promotionsTable.deletedAt)
+        ));
 
       if (!discountCode) {
         return res.status(404).json({ error: 'Invalid discount code' });
@@ -345,7 +356,7 @@ export class PromotionsController {
       if (discountResult.discountAmount === 0) {
         return res.status(400).json({ error: 'No eligible items for this promotion' });
       }
-
+      
       res.json({
         valid: true,
         promotion: {
@@ -355,6 +366,7 @@ export class PromotionsController {
           discountValue: promotion.discountValue
         },
         discountAmount: discountResult.discountAmount,
+        discountCode: code,
         eligibleItems: discountResult.eligibleItems
       });
     } catch (error) {
@@ -376,8 +388,8 @@ export class PromotionsController {
         price: productsTable.price,
         categoryId: productsTable.categoryId
       })
-      .from(productsTable)
-      .where(eq(productsTable.id, item.productId));
+        .from(productsTable)
+        .where(eq(productsTable.id, item.productId));
 
       if (product) {
         const itemTotal = parseFloat(product.price) * item.quantity;
@@ -415,7 +427,7 @@ export class PromotionsController {
     if (promotion.type === 'percentage') {
       const eligibleSubtotal = eligibleItems.reduce((sum, item) => sum + item.itemTotal, 0);
       discountAmount = (eligibleSubtotal * parseFloat(promotion.discountValue)) / 100;
-      
+
       // Apply maximum discount cap if set
       if (promotion.maximumDiscount) {
         discountAmount = Math.min(discountAmount, parseFloat(promotion.maximumDiscount));
@@ -435,7 +447,7 @@ export class PromotionsController {
         // Treat as fixed amount
         discountAmount = Math.min(parseFloat(promotion.discountValue), eligibleSubtotal);
       }
-      
+
       if (promotion.maximumDiscount) {
         discountAmount = Math.min(discountAmount, parseFloat(promotion.maximumDiscount));
       }
@@ -455,7 +467,7 @@ export class PromotionsController {
     const getDiscountValue = parseFloat(promotion.getDiscountValue || 0);
 
     // Sort items by price (descending) to apply discount to cheaper items first
-    const sortedItems = [...eligibleItems].sort((a, b) => 
+    const sortedItems = [...eligibleItems].sort((a, b) =>
       parseFloat(b.product.price) - parseFloat(a.product.price)
     );
 
@@ -465,16 +477,16 @@ export class PromotionsController {
     for (const item of sortedItems) {
       const itemQuantity = item.quantity;
       const itemPrice = parseFloat(item.product.price);
-      
+
       // Add to buy quantity
       remainingBuyQuantity += itemQuantity;
-      
+
       // Calculate how many complete BOGO sets we can make
       const bogoSets = Math.floor(remainingBuyQuantity / (buyQuantity + getQuantity));
-      
+
       if (bogoSets > 0) {
         const freeItems = bogoSets * getQuantity;
-        
+
         if (getDiscountType === 'free') {
           totalDiscount += freeItems * itemPrice;
         } else if (getDiscountType === 'percentage') {
@@ -482,7 +494,7 @@ export class PromotionsController {
         } else if (getDiscountType === 'fixed_amount') {
           totalDiscount += freeItems * Math.min(getDiscountValue, itemPrice);
         }
-        
+
         // Update remaining quantity
         remainingBuyQuantity -= bogoSets * (buyQuantity + getQuantity);
       }
@@ -496,13 +508,13 @@ export class PromotionsController {
     const timeBasedType = promotion.timeBasedType;
     const activeTimeStart = promotion.activeTimeStart;
     const activeTimeEnd = promotion.activeTimeEnd;
-    
+
     // Check time of day
     const currentTimeStr = currentTime.toTimeString().substring(0, 8); // HH:MM:SS
     if (currentTimeStr < activeTimeStart || currentTimeStr > activeTimeEnd) {
       return false;
     }
-    
+
     if (timeBasedType === 'daily') {
       // Active every day within the time range
       return true;
@@ -517,47 +529,49 @@ export class PromotionsController {
       const currentDateStr = currentTime.toISOString().split('T')[0]; // YYYY-MM-DD
       return specificDates.includes(currentDateStr);
     }
-    
+
     return false;
   }
 
   // Update promotion
   static async updatePromotion(req: Request, res: Response) {
-	  const auth = getAuth(req);
-        if (!auth.userId) {
-            return res.status(401).send('Unauthorized');
-        }
+    const auth = getAuth(req);
+    if (!auth.userId) {
+      return res.status(401).send('Unauthorized');
+    }
     try {
-		const storeInfo = await db.select()
-			.from(storeInfoTable)
-			.where(eq(storeInfoTable.userId, auth.userId));
-		if (storeInfo.length === 0) {
-			return res.status(200).json([]);
-		}
-		const storeInfoId = storeInfo[0].id;
+      const storeInfo = await db.select()
+        .from(storeInfoTable)
+        .where(eq(storeInfoTable.userId, auth.userId));
+      if (storeInfo.length === 0) {
+        return res.status(400).json({ error: 'Store information not found' });
+      }
+      const storeInfoId = storeInfo[0].id;
       const { id } = req.params;
       const { discountCodes, ...restBody } = req.body;
 
-      
-	  const updateData: any = {
-		...restBody,
-		storeInfoId,
-		updatedAt: new Date(),
-	};
-	// ❗ Convert date fields properly
-    if (updateData.startDate) {
-      updateData.startDate = new Date(updateData.startDate);
-    }
 
-    if (updateData.endDate) {
-      updateData.endDate = new Date(updateData.endDate);
-    }
+      const updateData: any = {
+        ...restBody,
+        storeInfoId,
+        updatedAt: new Date(),
+      };
+      // ❗ Convert date fields properly
+      if (updateData.startDate) {
+        updateData.startDate = new Date(updateData.startDate);
+      }
 
-	
+      if (updateData.endDate) {
+        updateData.endDate = new Date(updateData.endDate);
+      }
+
+
       // Remove fields that shouldn't be updated directly
       delete updateData.id;
       delete updateData.createdAt;
       delete updateData.usageCount;
+      delete updateData.storeInfoId;
+      delete updateData.deletedAt;
 
       const [updatedPromotion] = await db.update(promotionsTable)
         .set(updateData)
@@ -571,22 +585,22 @@ export class PromotionsController {
       if (!updatedPromotion) {
         return res.status(404).json({ error: 'Promotion not found' });
       }
-		if (discountCodes) {
-		  // Delete old codes
-		  await db.delete(discountCodesTable)
-			.where(eq(discountCodesTable.promotionId, id));
+      if (discountCodes) {
+        // Delete old codes
+        await db.delete(discountCodesTable)
+          .where(eq(discountCodesTable.promotionId, id));
 
-		  // Insert new codes
-		  if (discountCodes.length > 0) {
-			const codeInserts = discountCodes.map((code: string) => ({
-			  id: uuidv4(),
-			  promotionId: id,
-			  code: code.toUpperCase()
-			}));
+        // Insert new codes
+        if (discountCodes.length > 0) {
+          const codeInserts = discountCodes.map((code: string) => ({
+            id: uuidv4(),
+            promotionId: id,
+            code: code.toUpperCase()
+          }));
 
-			await db.insert(discountCodesTable).values(codeInserts);
-		  }
-		}
+          await db.insert(discountCodesTable).values(codeInserts);
+        }
+      }
       res.json({ promotion: updatedPromotion, message: 'Promotion updated successfully' });
     } catch (error) {
       console.error('Error updating promotion:', error);
@@ -596,18 +610,18 @@ export class PromotionsController {
 
   // Delete promotion (soft delete)
   static async deletePromotion(req: Request, res: Response) {
-	  const auth = getAuth(req);
-        if (!auth.userId) {
-            return res.status(401).send('Unauthorized');
-        }
+    const auth = getAuth(req);
+    if (!auth.userId) {
+      return res.status(401).send('Unauthorized');
+    }
     try {
-		const storeInfo = await db.select()
-			.from(storeInfoTable)
-			.where(eq(storeInfoTable.userId, auth.userId));
-		if (storeInfo.length === 0) {
-			return res.status(200).json([]);
-		}
-		const storeInfoId = storeInfo[0].id;
+      const storeInfo = await db.select()
+        .from(storeInfoTable)
+        .where(eq(storeInfoTable.userId, auth.userId));
+      if (storeInfo.length === 0) {
+        return res.status(400).json({ error: 'Store information not found' });
+      }
+      const storeInfoId = storeInfo[0].id;
       const { id } = req.params;
 
       const [deletedPromotion] = await db.update(promotionsTable)
@@ -632,18 +646,18 @@ export class PromotionsController {
 
   // Get promotion usage statistics
   static async getPromotionStats(req: Request, res: Response) {
-	  const auth = getAuth(req);
-        if (!auth.userId) {
-            return res.status(401).send('Unauthorized');
-        }
+    const auth = getAuth(req);
+    if (!auth.userId) {
+      return res.status(401).send('Unauthorized');
+    }
     try {
-		const storeInfo = await db.select()
-			.from(storeInfoTable)
-			.where(eq(storeInfoTable.userId, auth.userId));
-		if (storeInfo.length === 0) {
-			return res.status(200).json([]);
-		}
-		const storeInfoId = storeInfo[0].id;
+      const storeInfo = await db.select()
+        .from(storeInfoTable)
+        .where(eq(storeInfoTable.userId, auth.userId));
+      if (storeInfo.length === 0) {
+        return res.status(400).json({ error: 'Store information not found' });
+      }
+      const storeInfoId = storeInfo[0].id;
       const { id } = req.params;
 
       const [promotion] = await db.select().from(promotionsTable)
@@ -663,8 +677,8 @@ export class PromotionsController {
         totalDiscount: sql<number>`sum(${promotionUsageTable.discountAmount})`,
         uniqueCustomers: sql<number>`count(distinct ${promotionUsageTable.customerId})`
       })
-      .from(promotionUsageTable)
-      .where(eq(promotionUsageTable.promotionId, id));
+        .from(promotionUsageTable)
+        .where(eq(promotionUsageTable.promotionId, id));
 
       res.json({
         promotion,

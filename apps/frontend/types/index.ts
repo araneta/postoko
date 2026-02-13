@@ -70,6 +70,9 @@ export interface Order {
   status: 'completed' | 'refunded' | 'pending';
   customer?: Customer; // Added for POS customer selection
   employee?: Employee; // Added for POS employee authentication
+  discountAmount:number;
+  discountValue:number;
+  discountCode?: string;
 }
 
 export interface Currency {
@@ -446,6 +449,7 @@ export interface Promotion {
   // Usage limits
   usageLimit?: number;
   customerUsageLimit?: number;
+  usageCount?:number;
   
   // Validity period
   startDate: string;
@@ -456,7 +460,7 @@ export interface Promotion {
   
   // Status and tracking
   isActive?: boolean;
-  totalUsage?: number;
+
   totalDiscount?: number;
   
   createdAt?: string;
@@ -487,6 +491,7 @@ export interface DiscountValidationResponse {
   }>;
   promotion?: Promotion;
   message?: string;
+  discountCode: string;
 }
 
 export interface PromotionStats {

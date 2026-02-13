@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Promotion } from '../types';
+import useStore from '../store/useStore';
 
 interface PromotionCardProps {
   promotion: Promotion;
@@ -13,6 +14,9 @@ export const PromotionCard: React.FC<PromotionCardProps> = ({
   onEdit,
   onDelete,
 }) => {
+    const {settings} = useStore();
+    const currencyCode = settings.currency.code;
+    
   // Debug log to see the actual promotion data structure
   console.log('PromotionCard received promotion:', {
     name: promotion.name,
@@ -40,7 +44,7 @@ export const PromotionCard: React.FC<PromotionCardProps> = ({
       case 'percentage':
         return `${promotion.discountValue}% OFF`;
       case 'fixed_amount':
-        return `$${promotion.discountValue} OFF`;
+        return `${currencyCode} ${promotion.discountValue} OFF`;
       case 'buy_x_get_y':
         return `Buy ${promotion.buyQuantity} Get ${promotion.getQuantity}`;
       case 'time_based':
@@ -142,7 +146,7 @@ export const PromotionCard: React.FC<PromotionCardProps> = ({
           <View style={styles.detailItem}>
             <Text style={styles.detailLabel}>Usage Limit</Text>
             <Text style={styles.detailValue}>
-              {promotion.totalUsage || 0} / {promotion.usageLimit}
+              {promotion.usageCount || 0} / {promotion.usageLimit}
             </Text>
           </View>
         )}
@@ -150,7 +154,7 @@ export const PromotionCard: React.FC<PromotionCardProps> = ({
 
       {promotion.minimumPurchase && (
         <Text style={styles.minPurchase}>
-          Minimum purchase: ${promotion.minimumPurchase}
+          Minimum purchase: {currencyCode} {promotion.minimumPurchase}
         </Text>
       )}
 

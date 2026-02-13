@@ -11,6 +11,7 @@ import {
 import { CartItem, DiscountValidationRequest, DiscountValidationResponse, Customer } from '../types';
 import { validateDiscountCode } from '../lib/api';
 import CustomAlert from './CustomAlert';
+import useStore from '../store/useStore';
 
 interface DiscountValidatorProps {
   visible: boolean;
@@ -32,6 +33,8 @@ export const DiscountValidator: React.FC<DiscountValidatorProps> = ({
   const [discountCode, setDiscountCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [validationResult, setValidationResult] = useState<DiscountValidationResponse | null>(null);
+  const {settings} = useStore();
+  const currencyCode = settings.currency.code;
 
   const calculateOrderTotal = () => {
     return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
@@ -114,7 +117,7 @@ export const DiscountValidator: React.FC<DiscountValidatorProps> = ({
           <View style={styles.orderSummary}>
             <Text style={styles.sectionTitle}>Order Summary</Text>
             <Text style={styles.orderTotal}>
-              Subtotal: ${calculateOrderTotal().toFixed(2)}
+              Subtotal: {currencyCode} {calculateOrderTotal().toFixed(2)}
             </Text>
             <Text style={styles.itemCount}>
               {cartItems.length} item{cartItems.length !== 1 ? 's' : ''}
@@ -170,10 +173,10 @@ export const DiscountValidator: React.FC<DiscountValidatorProps> = ({
 
                   <View style={styles.discountDetails}>
                     <Text style={styles.discountAmount}>
-                      Discount: -${validationResult.discountAmount.toFixed(2)}
+                      Discount: -{currencyCode} {validationResult.discountAmount.toFixed(2)}
                     </Text>
                     <Text style={styles.newTotal}>
-                      New Total: ${(calculateOrderTotal() - validationResult.discountAmount).toFixed(2)}
+                      New Total: {currencyCode} {(calculateOrderTotal() - validationResult.discountAmount).toFixed(2)}
                     </Text>
                   </View>
 
@@ -182,7 +185,7 @@ export const DiscountValidator: React.FC<DiscountValidatorProps> = ({
                       <Text style={styles.eligibleTitle}>Eligible Items:</Text>
                       {validationResult.eligibleItems.map((item, index) => (
                         <Text key={index} style={styles.eligibleItem}>
-                          • {item.quantity}x items - ${(item.totalDiscount || 0).toFixed(2)} off
+                          • {item.quantity}x items - {currencyCode} {(item.totalDiscount || 0).toFixed(2)} off
                         </Text>
                       ))}
                     </View>
