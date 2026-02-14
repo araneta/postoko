@@ -128,6 +128,7 @@ export const storeInfoTable = pgTable("store_info", {
   email: varchar({ length: 255 }).notNull().unique(),
   website: varchar({ length: 255 }).notNull(),
   taxId: varchar({ length: 50 }).notNull(),
+  timezone: varchar({ length: 50 }),
 });
 
 export const printerSettingsTable = pgTable("printer_settings", {

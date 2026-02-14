@@ -88,6 +88,7 @@ export interface StoreInfo {
   email: string;
   website: string;
   taxId: string;
+  timezone?: string;
 }
 
 export interface Settings {

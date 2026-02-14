@@ -176,13 +176,15 @@ export default class SettingsController {
                 settingsResult = await db.insert(settingsTable).values({
                     currencyCode: currency.code,
                     printerSettingsId: printerSettingsId,
-                    storeInfoId: storeInfoId
+                    storeInfoId: storeInfoId,
+                    timezone: storeInfo.timezone,
                 }).returning();
             } else {
                 settingsResult = await db.update(settingsTable)
                     .set({
                         currencyCode: currency.code,
-                        printerSettingsId: printerSettingsId
+                        printerSettingsId: printerSettingsId,
+                        timezone: storeInfo.timezone,
                     })
                     .where(eq(settingsTable.storeInfoId, storeInfoId))
                     .returning();

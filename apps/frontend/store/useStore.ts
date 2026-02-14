@@ -61,6 +61,7 @@ const defaultStoreInfo = {
   email: '',
   website: '',
   taxId: '',
+  timezone: 'UTC',
 };
 
 const defaultPaymentConfig: PaymentConfig = {

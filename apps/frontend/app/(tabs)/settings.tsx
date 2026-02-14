@@ -10,6 +10,42 @@ import PaymentSettings from '../../components/PaymentSettings';
 import CustomAlert from '../../components/CustomAlert';
 import loyaltyService from '../../lib/loyalty';
 
+// Common timezones list
+const timezones = [
+  { value: 'UTC', label: 'UTC (Coordinated Universal Time)', offset: '+00:00' },
+  { value: 'Pacific/Midway', label: 'Midway Island, Samoa', offset: '-11:00' },
+  { value: 'Pacific/Honolulu', label: 'Hawaii', offset: '-10:00' },
+  { value: 'America/Anchorage', label: 'Alaska', offset: '-09:00' },
+  { value: 'America/Los_Angeles', label: 'Pacific Time (US & Canada)', offset: '-08:00' },
+  { value: 'America/Denver', label: 'Mountain Time (US & Canada)', offset: '-07:00' },
+  { value: 'America/Chicago', label: 'Central Time (US & Canada)', offset: '-06:00' },
+  { value: 'America/New_York', label: 'Eastern Time (US & Canada)', offset: '-05:00' },
+  { value: 'America/Bogota', label: 'Bogota, Lima, Quito', offset: '-05:00' },
+  { value: 'America/Caracas', label: 'Caracas, La Paz', offset: '-04:00' },
+  { value: 'America/Santiago', label: 'Santiago', offset: '-04:00' },
+  { value: 'America/Sao_Paulo', label: 'Brasilia, Sao Paulo', offset: '-03:00' },
+  { value: 'America/Buenos_Aires', label: 'Buenos Aires, Georgetown', offset: '-03:00' },
+  { value: 'Atlantic/South_Georgia', label: 'Mid-Atlantic', offset: '-02:00' },
+  { value: 'Atlantic/Azores', label: 'Azores', offset: '-01:00' },
+  { value: 'Europe/London', label: 'London, Dublin, Lisbon', offset: '+00:00' },
+  { value: 'Europe/Paris', label: 'Paris, Brussels, Copenhagen', offset: '+01:00' },
+  { value: 'Europe/Berlin', label: 'Berlin, Rome, Stockholm', offset: '+01:00' },
+  { value: 'Europe/Athens', label: 'Athens, Helsinki, Tallinn', offset: '+02:00' },
+  { value: 'Europe/Moscow', label: 'Moscow, St. Petersburg', offset: '+03:00' },
+  { value: 'Asia/Dubai', label: 'Abu Dhabi, Muscat', offset: '+04:00' },
+  { value: 'Asia/Karachi', label: 'Islamabad, Karachi', offset: '+05:00' },
+  { value: 'Asia/Kolkata', label: 'Chennai, Kolkata, Mumbai, New Delhi', offset: '+05:30' },
+  { value: 'Asia/Dhaka', label: 'Dhaka', offset: '+06:00' },
+  { value: 'Asia/Bangkok', label: 'Bangkok, Hanoi, Jakarta', offset: '+07:00' },
+  { value: 'Asia/Singapore', label: 'Singapore, Kuala Lumpur', offset: '+08:00' },
+  { value: 'Asia/Manila', label: 'Manila', offset: '+08:00' },
+  { value: 'Asia/Taipei', label: 'Taipei', offset: '+08:00' },
+  { value: 'Asia/Tokyo', label: 'Tokyo, Osaka', offset: '+09:00' },
+  { value: 'Asia/Seoul', label: 'Seoul', offset: '+09:00' },
+  { value: 'Australia/Sydney', label: 'Sydney, Melbourne', offset: '+10:00' },
+  { value: 'Pacific/Auckland', label: 'Auckland, Wellington', offset: '+12:00' },
+];
+
 const currencies: Currency[] = [
   { code: 'USD', symbol: '$', name: 'US Dollar' },
   { code: 'EUR', symbol: '€', name: 'Euro' },
@@ -47,6 +83,8 @@ export default function SettingsScreen() {
   const [showPrinterModal, setShowPrinterModal] = useState(false);
   const [showStoreInfoModal, setShowStoreInfoModal] = useState(false);
   const [showPaymentSettings, setShowPaymentSettings] = useState(false);
+  const [showTimezoneModal, setShowTimezoneModal] = useState(false);
+  const [selectedTimezone, setSelectedTimezone] = useState<string>(settings?.storeInfo?.timezone || 'UTC');
   const [printers, setPrinters] = useState<PrinterDevice[]>([]);
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,6 +95,7 @@ export default function SettingsScreen() {
     email: string;
     website: string;
     taxId: string;
+    timezone: string;
   }> = settings?.storeInfo ?? {};
   const [storeInfo, setStoreInfo] = useState({
     name: storeInfoDefaults.name || '',
@@ -65,6 +104,7 @@ export default function SettingsScreen() {
     email: storeInfoDefaults.email || '',
     website: storeInfoDefaults.website || '',
     taxId: storeInfoDefaults.taxId || '',
+    timezone: storeInfoDefaults.timezone || 'UTC',
   });
   const [showLoyaltyModal, setShowLoyaltyModal] = useState(false);
   const [customAlert, setCustomAlert] = useState<{
@@ -250,6 +290,26 @@ export default function SettingsScreen() {
                   `${settings.payment.paymentMethods.length} method(s) enabled` : 
                   'Not configured'
                 }
+              </Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={24} color="#666" />
+        </Pressable>
+
+        <Pressable 
+          style={styles.settingItem}
+          onPress={() => {
+            setSelectedTimezone(settings?.storeInfo?.timezone || 'UTC');
+            setShowTimezoneModal(true);
+          }}
+        >
+          <View style={styles.settingContent}>
+            <Ionicons name="time" size={24} color="#007AFF" />
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingText}>Timezone</Text>
+              <Text style={styles.settingDetail}>
+                {timezones.find(tz => tz.value === settings?.storeInfo?.timezone)?.label || 
+                 settings?.storeInfo?.timezone || 'UTC'}
               </Text>
             </View>
           </View>
@@ -622,6 +682,22 @@ export default function SettingsScreen() {
                   placeholder="Enter tax ID"
                 />
               </View>
+
+              <View style={styles.formField}>
+                <Text style={styles.label}>Timezone</Text>
+                <Pressable 
+                  style={styles.timezonePicker}
+                  onPress={() => {
+                    setSelectedTimezone(storeInfo.timezone || 'UTC');
+                    setShowStoreInfoModal(false);
+                    setTimeout(() => setShowTimezoneModal(true), 100);
+                  }}>
+                  <Text style={styles.timezoneText}>
+                    {timezones.find(tz => tz.value === storeInfo.timezone)?.label || storeInfo.timezone || 'UTC'}
+                  </Text>
+                  <Ionicons name="chevron-down" size={20} color="#666" />
+                </Pressable>
+              </View>
             </ScrollView>
 
             <View style={styles.modalButtons}>
@@ -647,6 +723,75 @@ export default function SettingsScreen() {
         onRequestClose={() => setShowPaymentSettings(false)}
       >
         <PaymentSettings onClose={() => setShowPaymentSettings(false)} />
+      </Modal>
+
+      {/* Timezone Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={showTimezoneModal}
+        onRequestClose={() => setShowTimezoneModal(false)}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Timezone</Text>
+              <Pressable
+                onPress={() => setShowTimezoneModal(false)}
+                style={styles.closeButton}>
+                <Ionicons name="close" size={24} color="#666" />
+              </Pressable>
+            </View>
+            <FlatList
+              data={timezones}
+              renderItem={({ item }) => (
+                <Pressable
+                  style={[
+                    styles.currencyItem,
+                    item.value === selectedTimezone && styles.selectedItem,
+                  ]}
+                  onPress={() => setSelectedTimezone(item.value)}>
+                  <View style={styles.currencyItemContent}>
+                    <Text style={styles.timezoneOffset}>{item.offset}</Text>
+                    <View style={styles.currencyDetails}>
+                      <Text style={styles.currencyName}>{item.label}</Text>
+                      <Text style={styles.currencyCode}>{item.value}</Text>
+                    </View>
+                  </View>
+                  {item.value === selectedTimezone && (
+                    <Ionicons name="checkmark" size={24} color="#007AFF" />
+                  )}
+                </Pressable>
+              )}
+              keyExtractor={(item) => item.value}
+            />
+            <View style={styles.modalButtons}>
+              <Pressable
+                style={[styles.button, styles.cancelButton]}
+                onPress={() => setShowTimezoneModal(false)}>
+                <Text style={styles.buttonText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.button, styles.saveButton]}
+                onPress={async () => {
+                  const newStoreInfo = {
+                    ...settings?.storeInfo,
+                    name: settings?.storeInfo?.name || '',
+                    address: settings?.storeInfo?.address || '',
+                    phone: settings?.storeInfo?.phone || '',
+                    email: settings?.storeInfo?.email || '',
+                    website: settings?.storeInfo?.website || '',
+                    taxId: settings?.storeInfo?.taxId || '',
+                    timezone: selectedTimezone,
+                  };
+                  await updateStoreInfo(newStoreInfo);
+                  setStoreInfo(prev => ({ ...prev, timezone: selectedTimezone }));
+                  setShowTimezoneModal(false);
+                }}>
+                <Text style={[styles.buttonText, styles.saveButtonText]}>Save</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
       </Modal>
 
       {/* Custom Alert */}
@@ -904,5 +1049,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 12,
+  },
+  timezoneOffset: {
+    fontSize: 16,
+    fontWeight: '600',
+    width: 60,
+    color: '#007AFF',
+  },
+  timezonePicker: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 6,
+    padding: 10,
+  },
+  timezoneText: {
+    fontSize: 16,
+    flex: 1,
   },
 });
