@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, Switch, Modal, FlatList, ActivityIndicator, TextInput, ScrollView, Alert, Button } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Switch, Modal, FlatList, ActivityIndicator, TextInput, ScrollView, Button } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Redirect, useRouter } from 'expo-router';
 import useStore from '../../store/useStore';
@@ -7,6 +7,7 @@ import { Currency, PrinterDevice } from '../../types';
 import { scanPrinters } from '../../utils/printer';
 import { Platform } from 'react-native';
 import PaymentSettings from '../../components/PaymentSettings';
+import CustomAlert from '../../components/CustomAlert';
 import loyaltyService from '../../lib/loyalty';
 
 const currencies: Currency[] = [
@@ -66,6 +67,35 @@ export default function SettingsScreen() {
     taxId: storeInfoDefaults.taxId || '',
   });
   const [showLoyaltyModal, setShowLoyaltyModal] = useState(false);
+  const [customAlert, setCustomAlert] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'warning' | 'info';
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'info',
+  });
+
+  const showAlert = (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
+    setCustomAlert({
+      visible: true,
+      title,
+      message,
+      type,
+    });
+  };
+
+  const hideAlert = () => {
+    setCustomAlert({
+      visible: false,
+      title: '',
+      message: '',
+      type: 'info',
+    });
+  };
 
   const fetchLoyaltySettings = async () => {
     setLoyaltyLoading(true);
@@ -93,9 +123,9 @@ export default function SettingsScreen() {
     setLoyaltySaving(true);
     try {
       await loyaltyService.updateLoyaltySettings(loyaltySettings);
-      Alert.alert('Success', 'Loyalty settings updated!');
+      showAlert('Success', 'Loyalty settings updated!', 'success');
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'Failed to update loyalty settings');
+      showAlert('Error', e.message || 'Failed to update loyalty settings', 'error');
     }
     setLoyaltySaving(false);
   };
@@ -133,6 +163,19 @@ export default function SettingsScreen() {
   };
 
   const handleSaveStoreInfo = () => {
+    // Validate required fields
+    const missingFields: string[] = [];
+    if (!storeInfo.name?.trim()) missingFields.push('Store Name');
+    if (!storeInfo.address?.trim()) missingFields.push('Address');
+    if (!storeInfo.phone?.trim()) missingFields.push('Phone');
+    if (!storeInfo.email?.trim()) missingFields.push('Email');
+
+    if (missingFields.length > 0) {
+      const message = `Please fill in the following required fields:\n${missingFields.join('\n')}`;
+      showAlert('Missing Required Fields', message, 'warning');
+      return;
+    }
+
     updateStoreInfo(storeInfo);
     setShowStoreInfoModal(false);
   };
@@ -605,6 +648,15 @@ export default function SettingsScreen() {
       >
         <PaymentSettings onClose={() => setShowPaymentSettings(false)} />
       </Modal>
+
+      {/* Custom Alert */}
+      <CustomAlert
+        visible={customAlert.visible}
+        title={customAlert.title}
+        message={customAlert.message}
+        type={customAlert.type}
+        onClose={hideAlert}
+      />
     </ScrollView>
   );
 }
