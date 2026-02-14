@@ -460,6 +460,8 @@ export class PromotionsController {
   }
 
   // Calculate BOGO discount
+  //OLD BUGGY
+  /*
   static calculateBOGODiscount(promotion: any, eligibleItems: any[]) {
     const buyQuantity = promotion.buyQuantity;
     const getQuantity = promotion.getQuantity;
@@ -501,7 +503,63 @@ export class PromotionsController {
     }
 
     return totalDiscount;
-  }
+  }*/
+  static calculateBOGODiscount(promotion: any, eligibleItems: any[]) {
+	  const buyQuantity = Number(promotion.buyQuantity);
+	  const getQuantity = Number(promotion.getQuantity);
+	  const getDiscountType = promotion.getDiscountType;
+	  const getDiscountValue = Number(promotion.getDiscountValue || 0);
+
+	  if (!buyQuantity || !getQuantity) {
+		return 0;
+	  }
+
+	  // 1️⃣ Expand all eligible items into individual units
+	  const unitPrices: number[] = [];
+
+	  for (const item of eligibleItems) {
+		const price = parseFloat(item.product.price);
+		for (let i = 0; i < item.quantity; i++) {
+		  unitPrices.push(price);
+		}
+	  }
+
+	  const totalUnits = unitPrices.length;
+	  const groupSize = buyQuantity + getQuantity;
+
+	  if (totalUnits < groupSize) {
+		return 0;
+	  }
+
+	  // 2️⃣ Calculate how many full BOGO sets we have
+	  const totalSets = Math.floor(totalUnits / groupSize);
+	  const totalFreeItems = totalSets * getQuantity;
+
+	  if (totalFreeItems <= 0) {
+		return 0;
+	  }
+
+	  // 3️⃣ Sort ascending so cheapest items are discounted
+	  unitPrices.sort((a, b) => a - b);
+
+	  let totalDiscount = 0;
+
+	  // 4️⃣ Apply discount to cheapest units
+	  for (let i = 0; i < totalFreeItems; i++) {
+		const price = unitPrices[i];
+
+		if (getDiscountType === 'free') {
+		  totalDiscount += price;
+		} else if (getDiscountType === 'percentage') {
+		  totalDiscount += price * (getDiscountValue / 100);
+		} else if (getDiscountType === 'fixed_amount') {
+		  totalDiscount += Math.min(getDiscountValue, price);
+		}
+	  }
+
+	  return Math.round(totalDiscount * 100) / 100;
+	}
+
 
   // Check if time-based promotion is currently active
   static isTimeBasedPromotionActive(promotion: any, currentTime: Date) {

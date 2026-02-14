@@ -6,11 +6,11 @@ Buy-one-get-one offers
 Time-based promotions (happy hour)
 
 todo: update dolar symbol ($) to use currency code from settings [done]
-usageCount should be increased when saving order [working]
-
+usageCount should be increased when saving order [done]
+delete promotion buggy
 
 [working]
-show error when validate code like {"error":"No eligible items for this promotion"}
+show error when validate code like {"error":"No eligible items for this promotion"}, Alert. change to custome alert
 Why important: Increases average transaction value
 9. Cloud Sync & Backup
 Real-time data synchronization

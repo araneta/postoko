@@ -1,0 +1,86 @@
+i want to test the promotion algorithm, Buy Quantity: 2, Get Quantity: 1 here is the sample order items:
+Nestle Pure Life Water 2pcs subtotal Rp 1600
+Getuk 1pcs subtotal Rp 2000
+total 3600
+Discount: -IDR 800
+New Total: IDR 2800
+ 
+is this correct? 
+ 
+
+No, that result is not correct based on your current BOGO algorithm.
+
+Let’s simulate using your logic:
+
+Promotion
+
+Buy Quantity = 2
+
+Get Quantity = 1
+
+Type assumed = free (since discount is 800)
+
+Order Items
+
+Nestle Pure Life Water
+
+2 pcs
+
+Subtotal = 1600 → unit price = 800
+
+Getuk
+
+1 pc
+
+Subtotal = 2000 → unit price = 2000
+
+Total quantity = 3 items
+
+BOGO rule = buy 2 get 1 free
+So you need 3 eligible items to get 1 free.
+
+That part is correct.
+
+But here's the important part:
+
+Your algorithm sorts items by price descending, then calculates discount based on the item being processed.
+
+Sorted by price (desc):
+
+Getuk (2000)
+
+Water (800)
+
+Now, because of how remainingBuyQuantity and bogoSets are calculated inside the loop, the free item will not necessarily be the cheapest one.
+
+In a correct BOGO (Buy 2 Get 1 Free), the cheapest eligible item should be free.
+
+So:
+
+Cheapest item = Water (800)
+
+Correct discount should be:
+
+Discount = 800
+New total = 3600 - 800 = 2800
+
+Final Answer
+
+✔ If:
+
+Both products are eligible
+
+BOGO is "buy any 2 get 1 free"
+
+System gives cheapest item free
+
+Then:
+
+Discount: 800
+New Total: 2800
+
+
+✅ That result is correct conceptually for B2G1 free
+⚠ But your current implementation may not always behave correctly because of how it calculates inside the loop.
+
+If you want, I can simulate exactly how your current function behaves step-by-step.

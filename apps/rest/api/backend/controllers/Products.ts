@@ -2,7 +2,8 @@ import { Request, Response } from 'express';
 import {  getAuth } from '@clerk/express';
 import { db } from '../db/index.js';
 import { productsTable, storeInfoTable, categoriesTable } from '../db/schema.js';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
+
 
 export default class ProductsController {
     static async getProducts(req: Request, res: Response) {
@@ -73,7 +74,23 @@ export default class ProductsController {
             }
 
             const storeInfoId = storeInfo[0].id;
+			// Check if product with the same name already exists in this store
+            const existingProduct = await db.select()
+                .from(productsTable)
+                .where(and(
+                    eq(productsTable.storeInfoId, storeInfoId),
+                    eq(productsTable.name, name.trim())
+                ));
 
+            if (existingProduct.length > 0) {
+                return res.status(409).json({ 
+                    message: 'Product with this name already exists in your store',
+                    details: {
+                        existingProductId: existingProduct[0].id,
+                        existingProductName: existingProduct[0].name
+                    }
+                });
+            }
             // Create the product
             const newProduct = await db.insert(productsTable).values({
                 id: id,
@@ -112,6 +129,48 @@ export default class ProductsController {
         }
 
         try {
+			// Get storeInfoId for the authenticated user
+            const storeInfo = await db.select()
+                .from(storeInfoTable)
+                .where(eq(storeInfoTable.userId, auth.userId));
+
+            if (storeInfo.length === 0) {
+                return res.status(400).json({ message: 'Store information not found' });
+            }
+
+            const storeInfoId = storeInfo[0].id;
+
+            // Verify product exists and belongs to user's store
+            const product = await db.select()
+                .from(productsTable)
+                .where(eq(productsTable.id, productId));
+
+            if (product.length === 0) {
+                return res.status(404).json({ message: 'Product not found' });
+            }
+
+            if (product[0].storeInfoId !== storeInfoId) {
+                return res.status(403).json({ message: 'Unauthorized: Product does not belong to your store' });
+            }
+
+            // Check if another product with the same name exists in this store (excluding current product)
+            const existingProduct = await db.select()
+                .from(productsTable)
+                .where(and(
+                    eq(productsTable.storeInfoId, storeInfoId),
+                    eq(productsTable.name, name.trim())
+                ));
+
+            if (existingProduct.length > 0 && existingProduct[0].id !== productId) {
+                return res.status(409).json({ 
+                    message: 'Product with this name already exists in your store',
+                    details: {
+                        existingProductId: existingProduct[0].id,
+                        existingProductName: existingProduct[0].name
+                    }
+                });
+            }
+            
             // Update the product
             const updatedProduct = await db.update(productsTable)
                 .set({
@@ -139,4 +198,50 @@ export default class ProductsController {
             res.status(500).json({ message: 'Error updating product' });
         }
     }
+    
+    static async deleteProduct(req: Request, res: Response) {
+        const auth = getAuth(req);
+
+        if (!auth.userId) {
+            return res.status(401).send('Unauthorized');
+        }
+
+        const productId = req.params.id;
+
+        try {
+            // Get storeInfoId for the authenticated user
+            const storeInfo = await db.select()
+                .from(storeInfoTable)
+                .where(eq(storeInfoTable.userId, auth.userId));
+
+            if (storeInfo.length === 0) {
+                return res.status(400).json({ message: 'Store information not found' });
+            }
+
+            const storeInfoId = storeInfo[0].id;
+
+            // Verify product belongs to the user's store
+            const product = await db.select()
+                .from(productsTable)
+                .where(eq(productsTable.id, productId));
+
+            if (product.length === 0) {
+                return res.status(404).json({ message: 'Product not found' });
+            }
+
+            if (product[0].storeInfoId !== storeInfoId) {
+                return res.status(403).json({ message: 'Unauthorized: Product does not belong to your store' });
+            }
+
+            // Delete the product
+            await db.delete(productsTable)
+                .where(eq(productsTable.id, productId));
+
+            res.status(200).json({ message: 'Product deleted successfully' });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ message: 'Error deleting product' });
+        }
+    }
+
 }

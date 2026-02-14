@@ -7,7 +7,6 @@ import {
   TextInput,
   Pressable,
   Modal,
-  Alert,
   Image,
   ActivityIndicator,
 } from 'react-native';
@@ -17,6 +16,7 @@ import BarcodeScanner from '../../components/BarcodeScanner';
 import CategoryPicker from '../../components/CategoryPicker';
 import SupplierPicker from '../../components/SupplierPicker';
 import CategoryFilter from '../../components/CategoryFilter';
+import CustomAlert from '../../components/CustomAlert';
 import useStore from '../../store/useStore';
 import { Product } from '../../types';
 import { pickImage, takePhoto, uploadImageToImageKit, checkFileSize } from '../../lib/imageUpload';
@@ -53,6 +53,17 @@ export default function ProductsScreen() {
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>();
   const [searchQuery, setSearchQuery] = useState('');
+  const [customAlert, setCustomAlert] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'warning' | 'info';
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'info',
+  });
 
   // Redirect to dashboard if no employee is logged in
   if (!authenticatedEmployee) {
@@ -63,6 +74,23 @@ export default function ProductsScreen() {
   // Filter products based on selected category and search query
   const filteredProducts = filterProducts(products, searchQuery, selectedCategoryId);
 
+  const showAlert = (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
+    setCustomAlert({
+      visible: true,
+      title,
+      message,
+      type,
+    });
+  };
+
+  const hideAlert = () => {
+    setCustomAlert({
+      visible: false,
+      title: '',
+      message: '',
+      type: 'info',
+    });
+  };
 
   const handleSave = async () => {
     const product: Product = {
@@ -95,9 +123,11 @@ export default function ProductsScreen() {
       setModalVisible(false);
       setEditingProduct(null);
       setFormData(initialFormData);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to save product:', error);
-      Alert.alert('Error', 'Failed to save product. Please try again.');
+      var errmsg = JSON.parse(error?.message);
+      const errorMessage = errmsg?.message || 'Failed to save product. Please try again.';
+      showAlert('Error', errorMessage, 'error');
     }
   };
 
@@ -471,6 +501,15 @@ export default function ProductsScreen() {
           onBarcodeScanned={handleBarcodeScanned}
         />
       </Modal>
+
+      {/* Custom Alert */}
+      <CustomAlert
+        visible={customAlert.visible}
+        title={customAlert.title}
+        message={customAlert.message}
+        type={customAlert.type}
+        onClose={hideAlert}
+      />
     </View>
   );
 }
