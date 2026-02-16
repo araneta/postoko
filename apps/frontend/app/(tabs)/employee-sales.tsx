@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Modal, ScrollView, Alert } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Modal, ScrollView } from 'react-native';
 import { Redirect, router } from 'expo-router';
 import { getEmployeesSales, getEmployeesPerformance, getEmployeeSalesDetail } from '../../lib/api';
+import CustomAlert from '../../components/CustomAlert';
+
 import { EmployeeSales, EmployeePerformance, EmployeeSalesDetail } from '../../types';
 import { Ionicons } from '@expo/vector-icons';
 import useStore from '../../store/useStore';
 import SalesChart from '../components/SalesChart';
 import SalesSummary from '../components/SalesSummary';
+import {getEmployees} from '../../lib/api';
 
 type PeriodType = 'week' | 'month' | 'year';
 
@@ -22,6 +25,15 @@ const EmployeeSalesScreen = () => {
     const [employeeDetails, setEmployeeDetails] = useState<{ employee: EmployeeSales; sales: EmployeeSalesDetail[] } | null>(null);
     const [detailLoading, setDetailLoading] = useState(false);
     const [showCharts, setShowCharts] = useState(false);
+    const [customAlert, setCustomAlert] = useState({
+        visible: false,
+        title: '',
+        message: '',
+        type: 'success' as 'success' | 'error' | 'warning' | 'info',
+        showCancel: false,
+        onConfirm: undefined as (() => Promise<void> | void) | undefined,
+        });
+
 
     useEffect(() => {
         if (authenticatedEmployee) {
@@ -33,6 +45,28 @@ const EmployeeSalesScreen = () => {
     if (!authenticatedEmployee) {
         return <Redirect href="/(tabs)/dashboard" />;
     }
+    const hideAlert = () => {
+        setCustomAlert(prev => ({ ...prev, visible: false }));
+        };
+
+        const showAlert = (
+        title: string,
+        message: string,
+        type: 'success' | 'error' | 'warning' | 'info' = 'info',
+        options?: {
+            showCancel?: boolean;
+            onConfirm?: () => Promise<void> | void;
+        }
+        ) => {
+        setCustomAlert({
+            visible: true,
+            title,
+            message,
+            type,
+            showCancel: options?.showCancel ?? false,
+            onConfirm: options?.onConfirm,
+        });
+        };
 
     const fetchData = async () => {
         setLoading(true);
@@ -90,7 +124,12 @@ const EmployeeSalesScreen = () => {
             console.error('Failed to fetch employee sales data', error);
             setSalesData([]);
             setPerformanceData([]);
-            Alert.alert('Error', 'Failed to load sales data. Please check your connection and try again.');
+            showAlert(
+            'Error',
+            'Failed to load sales data. Please check your connection and try again.',
+            'error'
+            );
+
         }
         setLoading(false);
     };
@@ -99,7 +138,7 @@ const EmployeeSalesScreen = () => {
         console.log('🔄 Starting fetchAndAggregateEmployeeSales...');
         try {
             // Get all employees first
-            const { getEmployees } = await import('../../lib/api');
+            
             const employees = await getEmployees();
             console.log('Fetched employees:', employees);
             console.log('First employee structure:', employees[0]);
@@ -208,7 +247,12 @@ const EmployeeSalesScreen = () => {
         } catch (error) {
             console.error('Failed to fetch employee details', error);
             setEmployeeDetails(null);
-            Alert.alert('Error', 'Failed to load employee details. Please try again.');
+            showAlert(
+                'Error',
+                'Failed to load employee details. Please try again.',
+                'error'
+                );
+
         }
         setDetailLoading(false);
     };
@@ -452,6 +496,16 @@ const EmployeeSalesScreen = () => {
                     </View>
                 </View>
             </Modal>
+            <CustomAlert
+                visible={customAlert.visible}
+                title={customAlert.title}
+                message={customAlert.message}
+                type={customAlert.type}
+                showCancel={customAlert.showCancel}
+                onConfirm={customAlert.onConfirm}
+                onClose={hideAlert}
+                />
+
         </View>
     );
 };
