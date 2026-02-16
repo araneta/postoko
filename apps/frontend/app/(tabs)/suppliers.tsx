@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Modal, TextInput, Alert, Pressable, ScrollView } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Modal, TextInput,  Pressable, ScrollView } from 'react-native';
 import { Redirect } from 'expo-router';
 import { getSuppliers, addSupplier, updateSupplier, deleteSupplier } from '../../lib/api';
+import CustomAlert from '../../components/CustomAlert';
+
 import { Supplier } from '../../types';
 import { Ionicons } from '@expo/vector-icons';
 import { v4 as uuidv4 } from 'uuid';
@@ -32,11 +34,18 @@ const SuppliersScreen = () => {
   const [showFormModal, setShowFormModal] = useState(false);
   const [formData, setFormData] = useState(initialFormData);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [supplierToDelete, setSupplierToDelete] = useState<Supplier | null>(null);
+  
   const [formError, setFormError] = useState('');
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
+  const [customAlert, setCustomAlert] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'success' as 'success' | 'error' | 'warning' | 'info',
+    showCancel: false,
+    onConfirm: undefined as (() => Promise<void> | void) | undefined,
+  });
 
   useEffect(() => {
     const fetchSuppliers = async () => {
@@ -54,7 +63,12 @@ const SuppliersScreen = () => {
       } catch (error) {
         console.error('Failed to fetch suppliers - detailed error:', error);
         // Show user-friendly error
-        Alert.alert('Error', 'Failed to load suppliers. Please check if the API server is running on port 3000.');
+        showAlert(
+          'Error',
+          'Failed to load suppliers. Please check if the API server is running on port 3000.',
+          'error'
+        );
+
       }
       setLoading(false);
     };
@@ -70,6 +84,28 @@ const SuppliersScreen = () => {
     console.log('No authenticated employee, redirecting to dashboard');
     return <Redirect href="/(tabs)/dashboard" />;
   }
+  const hideAlert = () => {
+    setCustomAlert(prev => ({ ...prev, visible: false }));
+  };
+
+  const showAlert = (
+    title: string,
+    message: string,
+    type: 'success' | 'error' | 'warning' | 'info' = 'info',
+    options?: {
+      showCancel?: boolean;
+      onConfirm?: () => Promise<void> | void;
+    }
+  ) => {
+    setCustomAlert({
+      visible: true,
+      title,
+      message,
+      type,
+      showCancel: options?.showCancel ?? false,
+      onConfirm: options?.onConfirm,
+    });
+  };
 
   const handleSelectSupplier = (supplier: Supplier) => {
     setSelectedSupplier(supplier);
@@ -110,22 +146,29 @@ const SuppliersScreen = () => {
   };
 
   const handleDeletePress = (supplier: Supplier) => {
-    setSupplierToDelete(supplier);
-    setShowDeleteModal(true);
+    showAlert(
+      'Delete Supplier',
+      `Are you sure you want to delete "${supplier.name}"? This action cannot be undone.`,
+      'warning',
+      {
+        showCancel: true,
+        onConfirm: async () => {
+          try {
+            await deleteSupplier(supplier.id);
+
+            setSuppliers(prev =>
+              prev.filter(s => s.id !== supplier.id)
+            );
+
+            showAlert('Success', 'Supplier deleted successfully.', 'success');
+          } catch (error) {
+            showAlert('Error', 'Failed to delete supplier.', 'error');
+          }
+        },
+      }
+    );
   };
 
-  const handleConfirmDelete = async () => {
-    if (supplierToDelete) {
-      try {
-        await deleteSupplier(supplierToDelete.id);
-        setSuppliers(suppliers.filter(s => s.id !== supplierToDelete.id));
-        setShowDeleteModal(false);
-        setSupplierToDelete(null);
-      } catch (error) {
-        Alert.alert('Error', 'Failed to delete supplier.');
-      }
-    }
-  };
 
   const handleFormSubmit = async () => {
     if (!formData.name || !formData.email) {
@@ -595,29 +638,16 @@ const SuppliersScreen = () => {
         </ScrollView>
       </Modal>
 
-      {/* Delete Confirmation Modal */}
-      <Modal visible={showDeleteModal} animationType="fade" transparent onRequestClose={() => setShowDeleteModal(false)}>
-        <View style={styles.deleteModalOverlay}>
-          <View style={styles.deleteModalContent}>
-            <Text style={styles.deleteModalTitle}>Delete Supplier</Text>
-            <Text style={styles.deleteModalText}>
-              Are you sure you want to delete "{supplierToDelete?.name}"? This action cannot be undone.
-            </Text>
-            <View style={styles.modalButtons}>
-              <Pressable
-                style={[styles.button, styles.cancelButton]}
-                onPress={() => setShowDeleteModal(false)}>
-                <Text style={styles.buttonText}>Cancel</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.button, styles.deleteButton]}
-                onPress={handleConfirmDelete}>
-                <Text style={[styles.buttonText, styles.deleteButtonText]}>Delete</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      <CustomAlert
+      visible={customAlert.visible}
+      title={customAlert.title}
+      message={customAlert.message}
+      type={customAlert.type}
+      showCancel={customAlert.showCancel}
+      onConfirm={customAlert.onConfirm}
+      onClose={hideAlert}
+    />
+
     </View>
   );
 };
