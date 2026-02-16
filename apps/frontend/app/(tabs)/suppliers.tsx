@@ -23,8 +23,8 @@ const initialFormData = {
   notes: '',
 };
 
-const SuppliersScreen = () => {
-  const { authenticatedEmployee, products } = useStore();
+const SuppliersScreen = () => {  
+  const { authenticatedEmployee, products, settings } = useStore();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
@@ -420,7 +420,7 @@ const SuppliersScreen = () => {
                   <View key={product.id} style={styles.productItem}>
                     <Text style={styles.productName}>{product.name}</Text>
                     <Text style={styles.productPrice}>
-                      ${typeof product.cost === 'number' ? product.cost.toFixed(2) : (parseFloat(product.cost) || 0).toFixed(2)}
+                      {settings?.currency?.symbol} {typeof product.cost === 'number' ? product.cost.toFixed(2) : (parseFloat(product.cost) || 0).toFixed(2)}
                     </Text>
                   </View>
                 ))}

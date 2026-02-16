@@ -3,7 +3,7 @@ Phase 4: Revenue Optimization (Weeks 13-16)
 Percentage [done]
 and fixed amount discounts [done]
 Buy-one-get-one offers [done]
-Time-based promotions (happy hour)
+Time-based promotions (happy hour) [done]
 
 todo: update dolar symbol ($) to use currency code from settings [done]
 usageCount should be increased when saving order [done]
