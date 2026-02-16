@@ -335,7 +335,11 @@ export default function AnalyticsScreen() {
           <View>
             {report.map((row, idx) => (
               <View key={row.period} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 2 }}>
-                <Text style={{ flex: 1 }}>{row.period}</Text>
+                <Text style={{ flex: 1 }}>{new Date(row.period).toLocaleString(undefined, {
+  year: 'numeric',
+  month: 'short',
+  day: 'numeric',  
+})}</Text>
                 <Text style={{ flex: 1, textAlign: 'right' }}>{formatPrice(Number(row.totalSales))}</Text>
                 <Text style={{ flex: 1, textAlign: 'right' }}>{row.orderCount} orders</Text>
               </View>

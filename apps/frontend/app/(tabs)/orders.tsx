@@ -128,7 +128,7 @@ export default function OrdersScreen() {
       <FlatList
         data={orders}
         renderItem={({ item }) => {
-          const { date, time } = formatDateTime(item.date);
+          const { date, time } = formatDateTime(item.createdAt);
           return (
             <View style={styles.orderCard}>
               <View style={styles.orderHeader}>

@@ -278,7 +278,14 @@ const EmployeeSalesScreen = () => {
     const renderDetailSale = ({ item }: { item: any }) => (
         <View style={styles.detailItem}>
             <View style={styles.detailHeader}>
-                <Text style={styles.detailDate}>{new Date(item.date).toLocaleDateString()}</Text>
+                <Text style={styles.detailDate}>{new Date(item.date).toLocaleString(undefined, {
+  year: 'numeric',
+  month: 'short',
+  day: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit'
+})}</Text>
                 <Text style={styles.detailTotal}>{formatCurrency(item.total)}</Text>
             </View>
             <Text style={styles.detailOrderId}>Order: {item.orderId}</Text>
