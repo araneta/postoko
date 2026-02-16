@@ -593,7 +593,7 @@ export default class OrdersController {
 				`;
 
             const peakHours = await db.select({
-                hour: hourExpression.as('hour'),
+                hour: sql<number>`EXTRACT(HOUR FROM ${ordersTable.createdAt} AT TIME ZONE ${sql.raw(`'${timezone}'`)})::int`,
 				orderCount: sql<number>`COUNT(*)`,
 				totalSales: sql<number>`SUM(${ordersTable.total})`,
 				averageOrderValue: sql<number>`AVG(${ordersTable.total})`
@@ -604,9 +604,9 @@ export default class OrdersController {
                     //eq(ordersTable.status, 'completed'),
                     //gte(ordersTable.createdAt, startDate)
                 ))
-                .groupBy(sql`hour`)
-                .orderBy(sql`hour`);
-
+                .groupBy(hourExpression)
+                .orderBy(hourExpression);
+			console.log("PeakHours raw result:", peakHours);
             // Fill in missing hours with zero values
             const hourData = Array.from({ length: 24 }, (_, i) => {
                 const existingHour = peakHours.find(h => h.hour === i);
