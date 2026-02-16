@@ -143,7 +143,7 @@ export default function AnalyticsScreen() {
             <Text style={{ fontSize: 16, fontWeight: '500', marginTop: 8 }}>Top Products:</Text>
             {analytics.topProducts && analytics.topProducts.length > 0 ? (
               analytics.topProducts.map((prod: any, idx: number) => (
-                <Text key={prod.productId} style={{ marginLeft: 8 }}>{idx + 1} {prod.productId} (Sold: {prod.quantitySold})</Text>
+                <Text key={prod.productId} style={{ marginLeft: 8 }}>{idx + 1} {prod.productName} (Sold: {prod.quantitySold})</Text>
               ))
             ) : (
               <Text style={{ marginLeft: 8 }}>No data</Text>

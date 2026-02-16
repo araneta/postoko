@@ -369,12 +369,13 @@ export default class OrdersController {
             // Top 5 products by quantity sold
             const topProducts = await db.select({
                 productId: orderItemsTable.productId,
+                productName: orderItemsTable.productName,
                 quantitySold: sql`SUM(${orderItemsTable.quantity})`
             })
                 .from(orderItemsTable)
                 .leftJoin(ordersTable, eq(orderItemsTable.orderId, ordersTable.id))
                 .where(and(eq(ordersTable.storeInfoId, storeInfoId), eq(ordersTable.status, 'completed')))
-                .groupBy(orderItemsTable.productId)
+                .groupBy(orderItemsTable.productId, orderItemsTable.productName)
                 .orderBy(sql`SUM(${orderItemsTable.quantity}) DESC`)
                 .limit(5);
             res.status(200).json({ totalSales, orderCount, topProducts });
@@ -444,26 +445,29 @@ export default class OrdersController {
 
 
             const report = await db.select({
-                period: formatLabel,
-                totalSales: sql`SUM(${ordersTable.total})`,
-                totalRevenue: sql`SUM(${orderItemsTable.finalPrice})`,
-                totalCost: sql`SUM(${orderItemsTable.quantity} * ${orderItemsTable.unitCost})`,
-                totalDiscount: sql`SUM(${ordersTable.discountAmount})`,
-                totalTax: sql`SUM(${ordersTable.taxAmount})`,
-                totalServiceCharge: sql`SUM(${ordersTable.serviceCharge})`,
-                orderCount: sql`COUNT(DISTINCT ${ordersTable.id})`,
-                itemCount: sql`COUNT(${orderItemsTable.id})`,
-                averageOrderValue: sql`AVG(${ordersTable.total})`,
-                profit: sql`SUM((${orderItemsTable.finalPrice}) - (${orderItemsTable.quantity} * ${orderItemsTable.unitCost}))`
-            })
-                .from(ordersTable)
-                .leftJoin(orderItemsTable, eq(ordersTable.id, orderItemsTable.orderId))
-                .where(and(
-                    eq(ordersTable.storeInfoId, storeInfoId),
-                    eq(ordersTable.status, 'completed')
-                ))
-                .groupBy(groupBySql)
-                .orderBy(groupBySql);
+				period: formatLabel,
+				totalSales: sql`COALESCE(SUM(${ordersTable.total}), 0)`,
+				totalRevenue: sql`COALESCE(SUM(${orderItemsTable.finalPrice}), 0)`,
+				totalCost: sql`COALESCE(SUM(${orderItemsTable.quantity} * ${orderItemsTable.unitCost}), 0)`,
+				totalDiscount: sql`COALESCE(SUM(${ordersTable.discountAmount}), 0)`,
+				totalTax: sql`COALESCE(SUM(${ordersTable.taxAmount}), 0)`,
+				totalServiceCharge: sql`COALESCE(SUM(${ordersTable.serviceCharge}), 0)`,
+				orderCount: sql`COUNT(DISTINCT ${ordersTable.id})`,
+				itemCount: sql`COUNT(${orderItemsTable.id})`,
+				averageOrderValue: sql`COALESCE(AVG(${ordersTable.total}), 0)`,
+				profit: sql`COALESCE(
+					SUM(${orderItemsTable.finalPrice} - (${orderItemsTable.quantity} * ${orderItemsTable.unitCost})),
+					0
+				)`
+			})
+			.from(ordersTable)
+			.leftJoin(orderItemsTable, eq(ordersTable.id, orderItemsTable.orderId))
+			.where(and(
+				eq(ordersTable.storeInfoId, storeInfoId),
+				eq(ordersTable.status, 'completed')
+			))
+			.groupBy(sql`1`)
+			.orderBy(sql`1`);
 
             // Format the response with calculated fields
             const formattedReport = report.map(row => ({
@@ -580,24 +584,28 @@ export default class OrdersController {
                 return res.status(200).json([]);
             }
             const storeInfoId = storeInfo[0].id;
-
+			const timezone = storeInfo[0].timezone;
+			
             const startDate = new Date();
             startDate.setDate(startDate.getDate() - daysNum);
+			const hourExpression = sql<number>`
+				  EXTRACT(HOUR FROM ${ordersTable.createdAt} AT TIME ZONE ${sql.raw(`'${timezone}'`)})
+				`;
 
             const peakHours = await db.select({
-                hour: sql`EXTRACT(HOUR FROM ${ordersTable.createdAt} AT TIME ZONE ${storeInfo[0].timezone})`,
-                orderCount: sql`COUNT(*)`,
-                totalSales: sql`SUM(${ordersTable.total})`,
-                averageOrderValue: sql`AVG(${ordersTable.total})`
+                hour: hourExpression.as('hour'),
+				orderCount: sql<number>`COUNT(*)`,
+				totalSales: sql<number>`SUM(${ordersTable.total})`,
+				averageOrderValue: sql<number>`AVG(${ordersTable.total})`
             })
                 .from(ordersTable)
                 .where(and(
                     eq(ordersTable.storeInfoId, storeInfoId),
-                    eq(ordersTable.status, 'completed'),
-                    gte(ordersTable.createdAt, startDate)
+                    //eq(ordersTable.status, 'completed'),
+                    //gte(ordersTable.createdAt, startDate)
                 ))
-                .groupBy(sql`EXTRACT(HOUR FROM ${ordersTable.createdAt} AT TIME ZONE ${storeInfo[0].timezone})`)
-                .orderBy(sql`EXTRACT(HOUR FROM ${ordersTable.createdAt} AT TIME ZONE ${storeInfo[0].timezone})`);
+                .groupBy(sql`hour`)
+                .orderBy(sql`hour`);
 
             // Fill in missing hours with zero values
             const hourData = Array.from({ length: 24 }, (_, i) => {
