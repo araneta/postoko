@@ -99,7 +99,7 @@ const EmployeesScreen = () => {
       setEmployeeToDelete(null);
       fetchEmployees();
     } catch (error) {
-      //Alert.alert('Error', 'Failed to delete employee');
+    
       const ret = JSON.parse((error as Error).message);
       setFormError('Failed to delete employee'+": "+ret.message);
     }

@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Button, Modal, TextInput, Alert, Pressable, ScrollView } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Button, Modal, TextInput,  Pressable, ScrollView } from 'react-native';
 import { Redirect } from 'expo-router';
 import { getCustomers, addCustomer, updateCustomer, getCustomerPurchases, deleteCustomer } from '../../lib/api';
+import CustomAlert from '../../components/CustomAlert';
+
 import loyaltyService from '../../lib/loyalty';
 import { Customer, CustomerPurchase } from '../../types';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,8 +29,7 @@ const CustomersScreen = () => {
   const [showFormModal, setShowFormModal] = useState(false);
   const [formData, setFormData] = useState(initialFormData);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
+  
   const [formError, setFormError] = useState('');
   const [loyaltyPoints, setLoyaltyPoints] = useState<any>(null);
   const [loyaltyTransactions, setLoyaltyTransactions] = useState<any[]>([]);
@@ -37,6 +38,14 @@ const CustomersScreen = () => {
   const [redeemInput, setRedeemInput] = useState('');
   const [redeemLoading, setRedeemLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [customAlert, setCustomAlert] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'success' as 'success' | 'error' | 'warning' | 'info',
+    showCancel: false,
+    onConfirm: undefined as (() => Promise<void> | void) | undefined,
+  });
 
   // Replace with your actual auth token logic
   const getToken = async () => {
@@ -77,6 +86,29 @@ const CustomersScreen = () => {
       console.error('Failed to fetch customers', error);
     }
     setLoading(false);
+  };
+
+  const hideAlert = () => {
+    setCustomAlert(prev => ({ ...prev, visible: false }));
+  };
+
+  const showAlert = (
+    title: string,
+    message: string,
+    type: 'success' | 'error' | 'warning' | 'info' = 'info',
+    options?: {
+      showCancel?: boolean;
+      onConfirm?: () => Promise<void> | void;
+    }
+  ) => {
+    setCustomAlert({
+      visible: true,
+      title,
+      message,
+      type,
+      showCancel: options?.showCancel ?? false,
+      onConfirm: options?.onConfirm,
+    });
   };
 
   const handleSelectCustomer = async (customer: Customer) => {
@@ -135,23 +167,28 @@ const CustomersScreen = () => {
   };
 
   const handleDeletePress = (customer: Customer) => {
-    setCustomerToDelete(customer);
-    setShowDeleteModal(true);
+    showAlert(
+      'Delete Customer',
+      `Are you sure you want to delete "${customer.name}"? This action cannot be undone.`,
+      'warning',
+      {
+        showCancel: true,
+        onConfirm: async () => {
+          try {
+            await deleteCustomer(customer.id);
+            setCustomers(prev =>
+              prev.filter(c => c.id !== customer.id)
+            );
+            await fetchCustomers();
+            showAlert('Success', 'Customer deleted successfully.', 'success');
+          } catch (error) {
+            showAlert('Error', 'Failed to delete customer.', 'error');
+          }
+        },
+      }
+    );
   };
 
-  const handleConfirmDelete = async () => {
-    if (customerToDelete) {
-      try {
-        await deleteCustomer(customerToDelete.id);
-        setCustomers(customers.filter(c => c.id !== customerToDelete.id));
-        setShowDeleteModal(false);
-        setCustomerToDelete(null);
-        fetchCustomers(); // Refresh list from backend
-      } catch (error) {
-        Alert.alert('Error', 'Failed to delete customer.');
-      }
-    }
-  };
 
   const handleFormSubmit = async () => {
     if (!formData.name || !formData.email) {
@@ -337,7 +374,8 @@ const CustomersScreen = () => {
                     setRedeemLoading(true);
                     try {
                       await loyaltyService.redeemPoints({ customerId: selectedCustomer!.id, pointsToRedeem: parseInt(redeemInput) });
-                      Alert.alert('Success', 'Points redeemed!');
+                      showAlert('Success', 'Points redeemed!', 'success');
+
                       setShowRedeemModal(false);
                       setRedeemInput('');
                       // Refresh loyalty info
@@ -346,7 +384,12 @@ const CustomersScreen = () => {
                       const txs = await loyaltyService.getCustomerTransactions(selectedCustomer!.id);
                       setLoyaltyTransactions(Array.isArray(txs) ? txs : []);
                     } catch (e: any) {
-                      Alert.alert('Error', e.message || 'Failed to redeem points');
+                      showAlert(
+                        'Error',
+                        e.message || 'Failed to redeem points',
+                        'error'
+                      );
+
                     }
                     setRedeemLoading(false);
                   }}
@@ -406,18 +449,16 @@ const CustomersScreen = () => {
           </View>
         </View>
       </Modal>
-      {/* Delete Confirmation Modal */}
-      <Modal visible={showDeleteModal} animationType="fade" transparent onRequestClose={() => setShowDeleteModal(false)}>
-        <View style={styles.deleteModalOverlay}>
-          <View style={styles.deleteModalContent}>
-            <Text style={{ fontSize: 18, marginBottom: 16 }}>Delete this customer?</Text>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Button title="Cancel" onPress={() => setShowDeleteModal(false)} />&nbsp; &nbsp;
-              <Button title="Delete" color="#FF3B30" onPress={handleConfirmDelete} />
-            </View>
-          </View>
-        </View>
-      </Modal>
+      <CustomAlert
+        visible={customAlert.visible}
+        title={customAlert.title}
+        message={customAlert.message}
+        type={customAlert.type}
+        showCancel={customAlert.showCancel}
+        onConfirm={customAlert.onConfirm}
+        onClose={hideAlert}
+      />
+
     </View>
   );
 };
