@@ -153,6 +153,7 @@ const EmployeePinLogin: React.FC<EmployeePinLoginProps> = ({
                   keyboardType="numeric"
                   secureTextEntry
                   autoFocus
+                  maxLength={4}
                   onSubmitEditing={handlePinSubmit}
                 />
 

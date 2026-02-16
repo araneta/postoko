@@ -8,7 +8,7 @@ export const usersTable = pgTable("users", {
   id: varchar({ length: 255 }).primaryKey(),
   name: varchar({ length: 255 }).notNull(),
   email: varchar({ length: 255 }).notNull().unique(),
-  lastLogin: timestamp(),
+  lastLogin: timestamp({ withTimezone: true }),
   lastIp: varchar({ length: 50 }),
 });
 
@@ -17,7 +17,7 @@ export const categoriesTable = pgTable("categories", {
   storeInfoId: integer().notNull().references(() => storeInfoTable.id),
   name: varchar({ length: 255 }).notNull(),
   description: text(),
-  createdAt: timestamp().notNull().defaultNow(),
+  createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 },(table)=>({
    storeIndex: index("categories_store_idx").on(table.storeInfoId),
 }));
@@ -78,7 +78,7 @@ Always freeze it at checkout. */
   customerId: varchar({ length: 36 }).references(() => customersTable.id),
 
   employeeId: varchar({ length: 36 }).references(() => employeesTable.id),
-  createdAt: timestamp().notNull().defaultNow(),
+  createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 
 },(table) => ({
   storeIndex: index("orders_store_idx").on(table.storeInfoId),
@@ -166,8 +166,8 @@ export const customersTable = pgTable("customers", {
   email: varchar({ length: 255 }).notNull(),
   phone: varchar({ length: 50 }),
   address: varchar({ length: 255 }),
-  createdAt: timestamp().notNull().defaultNow(),
-  deletedAt: timestamp(), // Soft delete field
+  createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  deletedAt: timestamp({ withTimezone: true }), // Soft delete field
 },
   (table) => ({
     uniqueEmailPerStore: unique().on(table.storeInfoId, table.email),
@@ -178,7 +178,7 @@ export const customerPurchasesTable = pgTable("customer_purchases", {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
   customerId: varchar({ length: 36 }).notNull().references(() => customersTable.id),
   orderId: varchar({ length: 36 }).notNull().references(() => ordersTable.id),
-  purchaseDate: timestamp().notNull().defaultNow(),
+  purchaseDate: timestamp({ withTimezone: true }).notNull().defaultNow(),
 });*/
 
 export const customerLoyaltyPointsTable = pgTable("customer_loyalty_points", {
@@ -187,7 +187,7 @@ export const customerLoyaltyPointsTable = pgTable("customer_loyalty_points", {
   points: integer().notNull().default(0),
   totalEarned: integer().notNull().default(0),
   totalRedeemed: integer().notNull().default(0),
-  lastUpdated: timestamp().notNull().defaultNow(),
+  lastUpdated: timestamp({ withTimezone: true }).notNull().defaultNow(),
 });
 
 export const loyaltyTransactionsTable = pgTable("loyalty_transactions", {
@@ -197,7 +197,7 @@ export const loyaltyTransactionsTable = pgTable("loyalty_transactions", {
   type: varchar({ length: 20 }).notNull(), // 'earned' | 'redeemed' | 'expired' | 'adjusted'
   points: integer().notNull(),
   description: text(),
-  transactionDate: timestamp().notNull().defaultNow(),
+  transactionDate: timestamp({ withTimezone: true }).notNull().defaultNow(),
 }, (table)=>({
   customerIndex: index("loyalty_tx_customer_idx").on(table.customerId),
 
@@ -229,8 +229,8 @@ export const employeesTable = pgTable("employees", {
   email: varchar({ length: 255 }).notNull(),
   password: varchar({ length: 255 }).notNull(), // hashed password
   roleId: integer().notNull().references(() => rolesTable.id),
-  createdAt: timestamp().notNull().defaultNow(),
-  deletedAt: timestamp(), // Soft delete
+  createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  deletedAt: timestamp({ withTimezone: true }), // Soft delete
 },
   (table) => ({
     uniqueEmailPerStore: unique().on(table.storeInfoId, table.email),
@@ -259,9 +259,9 @@ export const suppliersTable = pgTable("suppliers", {
   isActive: boolean().notNull().default(true),
   
 
-  createdAt: timestamp().notNull().defaultNow(),
-  updatedAt: timestamp().notNull().defaultNow(),
-  deletedAt: timestamp(), // Soft delete field
+  createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  deletedAt: timestamp({ withTimezone: true }), // Soft delete field
 },(table)=>({
   storeIndex: index("suppliers_store_idx").on(table.storeInfoId),
 
@@ -288,8 +288,8 @@ export const promotionsTable = pgTable("promotions", {
   discountValue: numeric({ precision: 10, scale: 2 }).notNull(), // Percentage (0-100) or fixed amount
   minimumPurchase: numeric({ precision: 10, scale: 2 }).default('0.00'), // Minimum order amount
   maximumDiscount: numeric({ precision: 10, scale: 2 }), // Maximum discount cap for percentage discounts
-  startDate: timestamp().notNull(),
-  endDate: timestamp().notNull(),
+  startDate: timestamp({ withTimezone: true }).notNull(),
+  endDate: timestamp({ withTimezone: true }).notNull(),
   usageLimit: integer(), // Total usage limit (null = unlimited)
   usageCount: integer().notNull().default(0), // Current usage count
   customerUsageLimit: integer().default(1), // Per-customer usage limit
@@ -313,9 +313,9 @@ export const promotionsTable = pgTable("promotions", {
 
   specificDates: text(), // JSON array of specific dates for 'specific_dates' type
   
-  createdAt: timestamp().notNull().defaultNow(),
-  updatedAt: timestamp().notNull().defaultNow(),
-  deletedAt: timestamp(), // Soft delete
+  createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  deletedAt: timestamp({ withTimezone: true }), // Soft delete
 },(table) => ({
   storeIndex: index("promotions_store_idx").on(table.storeInfoId),  
 }));
@@ -326,7 +326,7 @@ export const promotionUsageTable = pgTable("promotion_usage", {
   customerId: varchar({ length: 36 }).references(() => customersTable.id),
   orderId: varchar({ length: 36 }).notNull().references(() => ordersTable.id),
   discountAmount: numeric({ precision: 10, scale: 2 }).notNull(),
-  usedAt: timestamp().notNull().defaultNow(),
+  usedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 }, (table)=>({
   promotionIndex: index("promotion_usage_promo_idx").on(table.promotionId),
   customerIndex: index("promotion_usage_customer_idx").on(table.customerId),
@@ -339,7 +339,7 @@ export const discountCodesTable = pgTable("discount_codes", {
   promotionId: varchar({ length: 36 }).notNull().references(() => promotionsTable.id),
   code: varchar({ length: 50 }).notNull(),
   isActive: boolean().notNull().default(true),
-  createdAt: timestamp().notNull().defaultNow(),
+  createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 },(table) => ({
   uniqueCodePerPromotion: unique().on(table.promotionId, table.code),
 }));

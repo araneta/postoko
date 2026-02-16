@@ -1,4 +1,6 @@
 import { Request, Response } from 'express';
+import { toZonedTime } from 'date-fns-tz';
+
 import { getAuth } from '@clerk/express';
 import { db } from '../db/index.js';
 import { storeInfoTable, promotionsTable, discountCodesTable, promotionUsageTable, ordersTable, orderItemsTable, productsTable, categoriesTable } from '../db/schema.js';
@@ -105,7 +107,7 @@ export class PromotionsController {
       }
 
       const promotionId = uuidv4();
-
+      //const storeTime = toZonedTime(new Date(), storeInfo[0].timezone);
       // Create promotion
       const [promotion] = await db.insert(promotionsTable).values({
         id: promotionId,
@@ -184,12 +186,14 @@ export class PromotionsController {
         ));
 
       if (active === 'true') {
-        const now = new Date();
+        const storeTimezone = storeInfo[0].timezone;
+        const nowUtc = new Date();
+        const storeNow = toZonedTime(nowUtc, storeTimezone);
         query = query.where(and(
           eq(promotionsTable.storeInfoId, parseInt(storeInfoId)),
           eq(promotionsTable.isActive, true),
-          lte(promotionsTable.startDate, now),
-          gte(promotionsTable.endDate, now),
+          lte(promotionsTable.startDate, storeNow),
+          gte(promotionsTable.endDate, storeNow),
           isNull(promotionsTable.deletedAt)
         ));
       }
@@ -316,16 +320,18 @@ export class PromotionsController {
       }
 
       const promotion = discountCode.promotion;
-      const now = new Date();
+      
+      const storeTime = toZonedTime(new Date(), storeInfo[0].timezone);
 
       // Check if promotion is within date range
-      if (now < promotion.startDate || now > promotion.endDate) {
+      //if (now < promotion.startDate || now > promotion.endDate) {
+      if (storeTime < promotion.startDate || storeTime > promotion.endDate) {
         return res.status(400).json({ error: 'Promotion is not currently active' });
       }
 
       // Check time-based promotion constraints
       if (promotion.type === 'time_based') {
-        const isTimeValid = PromotionsController.isTimeBasedPromotionActive(promotion, now);
+        const isTimeValid = PromotionsController.isTimeBasedPromotionActive(promotion, storeTime);
         if (!isTimeValid) {
           return res.status(400).json({ error: 'Promotion is not active at this time' });
         }
@@ -584,7 +590,12 @@ export class PromotionsController {
     } else if (timeBasedType === 'specific_dates') {
       // Check if current date is in specificDates
       const specificDates = promotion.specificDates ? JSON.parse(promotion.specificDates) : [];
-      const currentDateStr = currentTime.toISOString().split('T')[0]; // YYYY-MM-DD
+      //const currentDateStr = currentTime.toISOString().split('T')[0]; // YYYY-MM-DD
+      const year = currentTime.getFullYear();
+      const month = String(currentTime.getMonth() + 1).padStart(2, '0');
+      const day = String(currentTime.getDate()).padStart(2, '0');
+
+      const currentDateStr = `${year}-${month}-${day}`;
       return specificDates.includes(currentDateStr);
     }
 

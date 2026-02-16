@@ -1,3 +1,5 @@
+import { toZonedTime } from 'date-fns-tz';
+
 import { db } from '../db/index.js';
 import { ordersTable, orderItemsTable, storeInfoTable, productsTable, customersTable, 
      employeesTable, promotionsTable, promotionUsageTable, discountCodesTable } from '../db/schema.js';
@@ -207,8 +209,10 @@ export default class OrdersController {
                 const promotion = discountCodeData.promotion;
 
                 // Validate promotion dates
-                const now = new Date();
-                if (new Date(promotion.startDate) > now || new Date(promotion.endDate) < now) {
+                const storeTimezone = storeInfo[0].timezone;
+                const storeNow = toZonedTime(new Date(), storeTimezone);
+
+                if (promotion.startDate > storeNow || promotion.endDate < storeNow) {
                     return res.status(400).json({ message: 'Discount code is not valid for the current date' });
                 }
 
@@ -397,21 +401,47 @@ export default class OrdersController {
 
             const storeInfoId = storeInfo[0].id;
 
+            const timezone = storeInfo[0].timezone;
+
             let groupBySql;
             let formatLabel;
 
-            // Determine grouping based on period
             if (period === 'monthly') {
-                groupBySql = sql`DATE_TRUNC('month', ${ordersTable.createdAt})`;
-                formatLabel = sql`TO_CHAR(DATE_TRUNC('month', ${ordersTable.createdAt}), 'YYYY-MM')`;
+                groupBySql = sql`
+                    DATE_TRUNC('month', ${ordersTable.createdAt} AT TIME ZONE ${timezone})
+                `;
+
+                formatLabel = sql`
+                    TO_CHAR(
+                        DATE_TRUNC('month', ${ordersTable.createdAt} AT TIME ZONE ${timezone}),
+                        'YYYY-MM'
+                    )
+                `;
             } else if (period === 'weekly') {
-                groupBySql = sql`DATE_TRUNC('week', ${ordersTable.createdAt})`;
-                formatLabel = sql`TO_CHAR(DATE_TRUNC('week', ${ordersTable.createdAt}), 'YYYY-IW')`;
+                groupBySql = sql`
+                    DATE_TRUNC('week', ${ordersTable.createdAt} AT TIME ZONE ${timezone})
+                `;
+
+                formatLabel = sql`
+                    TO_CHAR(
+                        DATE_TRUNC('week', ${ordersTable.createdAt} AT TIME ZONE ${timezone}),
+                        'IYYY-IW'
+                    )
+                `;
             } else {
-                // daily (default)
-                groupBySql = sql`DATE_TRUNC('day', ${ordersTable.createdAt})`;
-                formatLabel = sql`TO_CHAR(DATE_TRUNC('day', ${ordersTable.createdAt}), 'YYYY-MM-DD')`;
+                // daily
+                groupBySql = sql`
+                    DATE_TRUNC('day', ${ordersTable.createdAt} AT TIME ZONE ${timezone})
+                `;
+
+                formatLabel = sql`
+                    TO_CHAR(
+                        DATE_TRUNC('day', ${ordersTable.createdAt} AT TIME ZONE ${timezone}),
+                        'YYYY-MM-DD'
+                    )
+                `;
             }
+
 
             const report = await db.select({
                 period: formatLabel,
@@ -488,7 +518,8 @@ export default class OrdersController {
 
             // Add date filtering if period is specified
             if (period !== 'all') {
-                const now = new Date();
+                const storeTimezone = storeInfo[0].timezone;
+                const now = toZonedTime(new Date(), storeTimezone);
                 let startDate: Date;
                 
                 switch (period) {
@@ -554,7 +585,7 @@ export default class OrdersController {
             startDate.setDate(startDate.getDate() - daysNum);
 
             const peakHours = await db.select({
-                hour: sql`EXTRACT(HOUR FROM ${ordersTable.createdAt})`,
+                hour: sql`EXTRACT(HOUR FROM ${ordersTable.createdAt} AT TIME ZONE ${storeInfo[0].timezone})`,
                 orderCount: sql`COUNT(*)`,
                 totalSales: sql`SUM(${ordersTable.total})`,
                 averageOrderValue: sql`AVG(${ordersTable.total})`
@@ -565,8 +596,8 @@ export default class OrdersController {
                     eq(ordersTable.status, 'completed'),
                     gte(ordersTable.createdAt, startDate)
                 ))
-                .groupBy(sql`EXTRACT(HOUR FROM ${ordersTable.createdAt})`)
-                .orderBy(sql`EXTRACT(HOUR FROM ${ordersTable.createdAt})`);
+                .groupBy(sql`EXTRACT(HOUR FROM ${ordersTable.createdAt} AT TIME ZONE ${storeInfo[0].timezone})`)
+                .orderBy(sql`EXTRACT(HOUR FROM ${ordersTable.createdAt} AT TIME ZONE ${storeInfo[0].timezone})`);
 
             // Fill in missing hours with zero values
             const hourData = Array.from({ length: 24 }, (_, i) => {
@@ -603,7 +634,8 @@ export default class OrdersController {
             const storeInfoId = storeInfo[0].id;
 
             // Calculate date range based on period
-            const now = new Date();
+            const storeTimezone = storeInfo[0].timezone;
+            const now = toZonedTime(new Date(), storeTimezone);
             let startDate: Date;
             
             switch (period) {

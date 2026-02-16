@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  Alert,
   Modal,
 } from 'react-native';
 import { CartItem, DiscountValidationRequest, DiscountValidationResponse, Customer } from '../types';
@@ -33,8 +32,35 @@ export const DiscountValidator: React.FC<DiscountValidatorProps> = ({
   const [discountCode, setDiscountCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [validationResult, setValidationResult] = useState<DiscountValidationResponse | null>(null);
+  const [customAlert, setCustomAlert] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'warning' | 'info';
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'info',
+  });
   const {settings} = useStore();
   const currencyCode = settings.currency.code;
+
+  const showAlert = (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
+    setCustomAlert({
+      visible: true,
+      title,
+      message,
+      type,
+    });
+  };
+
+  const hideAlert = () => {
+    setCustomAlert({
+      ...customAlert,
+      visible: false,
+    });
+  };
 
   const calculateOrderTotal = () => {
     return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
@@ -42,7 +68,7 @@ export const DiscountValidator: React.FC<DiscountValidatorProps> = ({
 
   const handleValidateCode = async () => {
     if (!discountCode.trim()) {
-      Alert.alert('Error', 'Please enter a discount code');
+      showAlert('Error', 'Please enter a discount code', 'error');
       return;
     }
 
@@ -78,11 +104,12 @@ export const DiscountValidator: React.FC<DiscountValidatorProps> = ({
       setValidationResult(result);
 
       if (!result.valid) {
-        Alert.alert('Invalid Code', result.message || 'This discount code is not valid');
+        showAlert('Invalid Code', result.message || 'This discount code is not valid', 'error');
       }
-    } catch (error) {
+    } catch (error:any) {
       console.error('Failed to validate discount code:', error);
-      Alert.alert('Error', 'Failed to validate discount code');
+      let errorMsg = JSON.parse(error.message);
+      showAlert('Error', errorMsg.error || 'Failed to validate discount code', 'error');
     } finally {
       setLoading(false);
     }
@@ -227,6 +254,14 @@ export const DiscountValidator: React.FC<DiscountValidatorProps> = ({
             </View>
           </View>
         </View>
+
+        <CustomAlert
+          visible={customAlert.visible}
+          title={customAlert.title}
+          message={customAlert.message}
+          type={customAlert.type}
+          onClose={hideAlert}
+        />
       </View>
     </Modal>
   );

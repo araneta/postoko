@@ -20,24 +20,8 @@
 		"bcryptjs": "^3.0.2",
 		"body-parser": "^1.20.2",
 		"cors": "^2.8.5",
-		"dotenv": "^16.5.0",
-		"drizzle-orm": "^0.44.2",
-		"express": "^4.19.2",
-		"jsonwebtoken": "^9.0.2",
-		"multer": "^1.4.5-lts.2",
-		"pg": "^8.16.2",
-		"serverless-http": "^3.2.0",
-		"stripe": "^18.3.0",
-		"uuid": "^11.1.0"
-	},
-	"dependencies": {
-		"@clerk/express": "^1.7.0",
-		"@paypal/checkout-server-sdk": "^1.0.3",
-		"@vercel/postgres": "^0.10.0",
-		"bcrypt": "^6.0.0",
-		"bcryptjs": "^3.0.2",
-		"body-parser": "^1.20.2",
-		"cors": "^2.8.5",
+		"date-fns": "^4.1.0",
+		"date-fns-tz": "^3.2.0",
 		"dotenv": "^16.5.0",
 		"drizzle-orm": "^0.44.2",
 		"express": "^4.19.2",
@@ -68,14 +52,14 @@
 		"typescript": "^5.8.3"
 	},
 	"compilerOptions": {
-    "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "outDir": "dist",
-    "rootDir": "api",
-    "esModuleInterop": true,
-    "strict": true,
-    "skipLibCheck": true
-  },
+		"target": "ES2022",
+		"module": "NodeNext",
+		"moduleResolution": "NodeNext",
+		"outDir": "dist",
+		"rootDir": "api",
+		"esModuleInterop": true,
+		"strict": true,
+		"skipLibCheck": true
+	},
 	"type": "module"
 }

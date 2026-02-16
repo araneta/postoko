@@ -1,3 +1,5 @@
+import { toZonedTime, fromZonedTime } from 'date-fns-tz';
+
 import { Request, Response } from 'express';
 import { getAuth } from '@clerk/express';
 import { db } from '../db/index.js';
@@ -5,7 +7,30 @@ import { employeesTable, rolesTable, storeInfoTable, ordersTable, orderItemsTabl
 import { eq, and, sql, desc, gte } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
+function getUtcStartDate(period: string, timezone: string): Date {
+    const storeNow = toZonedTime(new Date(), timezone);
 
+    let storeStartDate: Date;
+
+    switch (period) {
+        case 'week':
+            storeStartDate = new Date(storeNow.getTime() - 7 * 24 * 60 * 60 * 1000);
+            break;
+        case 'month':
+            storeStartDate = new Date(storeNow.getFullYear(), storeNow.getMonth(), 1);
+            break;
+        case 'year':
+            storeStartDate = new Date(storeNow.getFullYear(), 0, 1);
+            break;
+        case 'today':
+            storeStartDate = new Date(storeNow.getFullYear(), storeNow.getMonth(), storeNow.getDate());
+            break;
+        default:
+            storeStartDate = new Date(storeNow.getFullYear(), storeNow.getMonth(), 1);
+    }
+
+    return fromZonedTime(storeStartDate, timezone);
+}
 // Helper: Check if user has required role
 async function hasRole(userId: string, requiredRoles: string[]): Promise<boolean> {
     console.log('Checking roles for userId:', userId, 'against requiredRoles:', requiredRoles);
@@ -347,6 +372,9 @@ export default class EmployeesController {
             res.status(500).json({ message: 'Error validating PIN' });
         }
     }
+    
+
+    
 
     // Sales tracking methods
     static async getEmployeeSales(req: Request, res: Response) {
@@ -373,32 +401,12 @@ export default class EmployeesController {
             if (!(await hasRole(auth.userId, ['admin', 'manager']))) {
                 return res.status(403).json({ message: 'Forbidden' });
             }
-
-            // Calculate date range
-            const now = new Date();
-            let startDate: Date;
-
-            switch (period) {
-                case 'week':
-                    startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-                    break;
-                case 'month':
-                    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-                    break;
-                case 'year':
-                    startDate = new Date(now.getFullYear(), 0, 1);
-                    break;
-                case 'today':
-                    startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                    break;
-                default:
-                    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-            }
-
+            const timezone = storeInfo[0].timezone;
+            const utcStartDate = getUtcStartDate(period as string, timezone);
             let whereCondition = and(
                 eq(ordersTable.storeInfoId, storeInfoId),
                 eq(ordersTable.status, 'completed'),
-                gte(sql`${ordersTable.date}::timestamp`, startDate.toISOString())
+                gte(ordersTable.createdAt, utcStartDate)
             );
 
             // Filter by specific employee if provided
@@ -460,31 +468,13 @@ export default class EmployeesController {
             }
 
             // Calculate date range
-            const now = new Date();
-            let startDate: Date;
-
-            switch (period) {
-                case 'week':
-                    startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-                    break;
-                case 'month':
-                    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-                    break;
-                case 'year':
-                    startDate = new Date(now.getFullYear(), 0, 1);
-                    break;
-                case 'today':
-                    startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                    break;
-                default:
-                    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-            }
-
+            const timezone = storeInfo[0].timezone;
+            const utcStartDate = getUtcStartDate(period as string, timezone);
             // Get detailed sales for specific employee
             const salesDetails = await db.select({
                 orderId: ordersTable.id,
                 total: ordersTable.total,
-                date: ordersTable.date,
+                date: ordersTable.createdAt,
                 paymentMethod: ordersTable.paymentMethod,
                 itemCount: sql`COUNT(${orderItemsTable.productId})`,
                 profit: sql`SUM(${orderItemsTable.quantity} * (${orderItemsTable.unitPrice} - ${orderItemsTable.unitCost}))`
@@ -495,10 +485,10 @@ export default class EmployeesController {
                     eq(ordersTable.storeInfoId, storeInfoId),
                     eq(ordersTable.employeeId, employeeId),
                     eq(ordersTable.status, 'completed'),
-                    gte(sql`${ordersTable.date}::timestamp`, startDate.toISOString())
+                    gte(ordersTable.createdAt, utcStartDate)
                 ))
-                .groupBy(ordersTable.id, ordersTable.total, ordersTable.date, ordersTable.paymentMethod)
-                .orderBy(desc(ordersTable.date))
+                .groupBy(ordersTable.id, ordersTable.total, ordersTable.createdAt, ordersTable.paymentMethod)
+                .orderBy(desc(ordersTable.createdAt))
                 .limit(parseInt(limit as string) || 50);
 
             // Get employee info
@@ -556,22 +546,8 @@ export default class EmployeesController {
             }
 
             // Calculate date range
-            const now = new Date();
-            let startDate: Date;
-
-            switch (period) {
-                case 'week':
-                    startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-                    break;
-                case 'month':
-                    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-                    break;
-                case 'year':
-                    startDate = new Date(now.getFullYear(), 0, 1);
-                    break;
-                default:
-                    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-            }
+            const timezone = storeInfo[0].timezone;
+            const utcStartDate = getUtcStartDate(period as string, timezone);
 
             // Get performance comparison data
             const performanceData = await db.select({
@@ -599,7 +575,8 @@ export default class EmployeesController {
                 .leftJoin(ordersTable, and(
                     eq(employeesTable.id, ordersTable.employeeId),
                     eq(ordersTable.status, 'completed'),
-                    gte(sql`${ordersTable.date}::timestamp`, startDate.toISOString())
+                    gte(ordersTable.createdAt, utcStartDate)
+
                 ))
                 .where(and(
                     eq(employeesTable.storeInfoId, storeInfoId),
