@@ -5,8 +5,7 @@ import {
   StyleSheet,
   FlatList,
   TextInput,
-  Pressable,
-  Alert,
+  Pressable,  
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Redirect } from 'expo-router';
@@ -16,6 +15,7 @@ import useStore from '../../store/useStore';
 import { Category } from '../../types';
 import { filterCategories } from '../../utils/searchUtils';
 import { apiClient } from '../../lib/api';
+import CustomAlert from '../../components/CustomAlert';
 
 export default function CategoriesScreen() {
   const {
@@ -31,6 +31,14 @@ export default function CategoriesScreen() {
   const [showForm, setShowForm] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [customAlert, setCustomAlert] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'success' as 'success' | 'error' | 'warning' | 'info',
+    showCancel: false,
+    onConfirm: undefined as (() => Promise<void> | void) | undefined,
+  });
 
   // Initialize store when component mounts
   useEffect(() => {
@@ -57,11 +65,36 @@ export default function CategoriesScreen() {
     console.log('No authenticated employee, redirecting to dashboard');
     return <Redirect href="/(tabs)/dashboard" />;
   }
-
+  
   // Filter categories based on search query
   const filteredCategories = filterCategories(categories, searchQuery);
 
 
+  const hideAlert = () => {
+  setCustomAlert(prev => ({
+    ...prev,
+    visible: false,
+  }));
+};
+
+const showAlert = (
+    title: string,
+    message: string,
+    type: 'success' | 'error' | 'warning' | 'info' = 'info',
+    options?: {
+      showCancel?: boolean;
+      onConfirm?: () => Promise<void> | void;
+    }
+  ) => {
+    setCustomAlert({
+      visible: true,
+      title,
+      message,
+      type,
+      showCancel: options?.showCancel ?? false,
+      onConfirm: options?.onConfirm,
+    });
+  };
 
   const handleAddCategory = () => {
     setEditingCategory(null);
@@ -74,28 +107,27 @@ export default function CategoriesScreen() {
   };
 
   const handleDeleteCategory = (category: Category) => {
-    Alert.alert(
-      'Delete Category',
-      `Are you sure you want to delete "${category.name}"? This action cannot be undone.`,
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteCategory(category.id.toString());
-            } catch (error) {
-              Alert.alert('Error', 'Failed to delete category. Please try again.');
-            }
-          },
-        },
-      ]
-    );
-  };
+  showAlert(
+    'Delete Category',
+    `Are you sure you want to delete "${category.name}"? This action cannot be undone.`,
+    'warning',
+    {
+      showCancel: true,
+      onConfirm: async () => {
+        try {
+          await deleteCategory(category.id.toString());
+        } catch (error) {
+          showAlert(
+            'Error',
+            'Failed to delete category. Please try again.',
+            'error'
+          );
+        }
+      },
+    }
+  );
+};
+
 
   const handleSaveCategory = async (category: Category) => {
     try {
@@ -107,7 +139,7 @@ export default function CategoriesScreen() {
       setShowForm(false);
       setEditingCategory(null);
     } catch (error) {
-      Alert.alert('Error', 'Failed to save category. Please try again.');
+      showAlert('Error', 'Failed to save category. Please try again.', 'error');
     }
   };
 
@@ -203,6 +235,16 @@ export default function CategoriesScreen() {
         onSave={handleSaveCategory}
         onCancel={handleCancelForm}
       />
+      <CustomAlert
+      visible={customAlert.visible}
+      title={customAlert.title}
+      message={customAlert.message}
+      type={customAlert.type}
+      showCancel={customAlert.showCancel}
+      onConfirm={customAlert.onConfirm}
+      onClose={hideAlert}
+    />
+
     </View>
   );
 }
