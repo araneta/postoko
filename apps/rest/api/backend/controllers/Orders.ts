@@ -601,8 +601,8 @@ export default class OrdersController {
                 .from(ordersTable)
                 .where(and(
                     eq(ordersTable.storeInfoId, storeInfoId),
-                    //eq(ordersTable.status, 'completed'),
-                    //gte(ordersTable.createdAt, startDate)
+                    eq(ordersTable.status, 'completed'),
+                    gte(ordersTable.createdAt, startDate)
                 ))
                 .groupBy(hourExpression)
                 .orderBy(hourExpression);

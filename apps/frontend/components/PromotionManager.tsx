@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, Pressable } from 'react-native';
 import { Promotion } from '../types';
 import { getPromotions, deletePromotion } from '../lib/api';
 import { PromotionForm } from './PromotionForm';
 import { PromotionCard } from './PromotionCard';
+import CustomAlert from './CustomAlert';
 
 interface PromotionManagerProps {
   storeId: number;
@@ -14,6 +15,67 @@ export const PromotionManager: React.FC<PromotionManagerProps> = ({ storeId }) =
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingPromotion, setEditingPromotion] = useState<Promotion | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [promotionToDelete, setPromotionToDelete] = useState<Promotion | null>(null);
+  const [customAlert, setCustomAlert] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'warning' | 'info';
+    onClose: () => void;
+    onConfirm: () => Promise<void> | void;
+    showCancel?: boolean;
+    confirmText?: string;
+    cancelText?: string;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'info',
+    onClose: () => {},
+    onConfirm: () => {},  
+    showCancel: false,
+    confirmText: 'Confirm',
+    cancelText: 'Cancel',
+  });
+
+  const showAlert = (
+  title: string,
+  message: string,
+  type: 'success' | 'error' | 'warning' | 'info' = 'info',
+  options?: {
+    showCancel?: boolean;
+    onConfirm?: () => Promise<void> | void;
+    confirmText?: string;
+    cancelText?: string;
+  }
+) => {
+  setCustomAlert({
+    visible: true,
+    title,
+    message,
+    type,
+    onClose: hideAlert,
+    onConfirm: options?.onConfirm ?? (() => {}),
+    showCancel: options?.showCancel ?? false,
+    confirmText: options?.confirmText ?? 'Confirm',
+    cancelText: options?.cancelText ?? 'Cancel',
+  });
+};
+
+  const hideAlert = () => {
+    setCustomAlert({
+      visible: false,
+      title: '',
+      message: '',
+      type: 'info', 
+      onClose: () => {},
+      onConfirm: () => Promise.resolve(), 
+      showCancel: false,
+      confirmText: 'Confirm',
+      cancelText: 'Cancel',
+    });
+  };
 
   useEffect(() => {
     loadPromotions();
@@ -26,34 +88,37 @@ export const PromotionManager: React.FC<PromotionManagerProps> = ({ storeId }) =
       setPromotions(data);
     } catch (error) {
       console.error('Failed to load promotions:', error);
-      Alert.alert('Error', 'Failed to load promotions');
+      showAlert('Error', 'Failed to load promotions');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDeletePromotion = async (promotionId: string) => {
-    Alert.alert(
+  const handleDeletePromotion = (promotionId: string) => {
+    showAlert(
       'Delete Promotion',
       'Are you sure you want to delete this promotion?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deletePromotion(promotionId);
-              await loadPromotions();
-            } catch (error) {
-              console.error('Failed to delete promotion:', error);
-              Alert.alert('Error', 'Failed to delete promotion');
-            }
+      'warning',
+      {
+        showCancel: true,
+        onConfirm: async () => {
+          try {
+            console.log('Deleting promotion with ID:', promotionId);
+            await deletePromotion(promotionId);
+            await loadPromotions();
+            hideAlert();
+            showAlert('Success', 'Promotion deleted successfully', 'success');
+          } catch (error) {
+            console.error('Failed to delete promotion:', error);
+            hideAlert();
+            showAlert('Error', 'Failed to delete promotion', 'error');
           }
-        }
-      ]
+        },
+      }
     );
   };
+
+
 
   const handleEditPromotion = (promotion: Promotion) => {
     setEditingPromotion(promotion);
@@ -115,6 +180,15 @@ export const PromotionManager: React.FC<PromotionManagerProps> = ({ storeId }) =
           ))
         )}
       </ScrollView>
+      <CustomAlert
+              visible={customAlert.visible}
+              title={customAlert.title}
+              message={customAlert.message}
+              type={customAlert.type}
+              showCancel={customAlert.showCancel}
+              onConfirm={customAlert.onConfirm}
+              onClose={hideAlert}
+            />
     </View>
   );
 };

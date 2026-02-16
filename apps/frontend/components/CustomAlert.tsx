@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,8 @@ import {
   Modal,
   Pressable,
   Dimensions,
+  ActivityIndicator,
+
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -15,6 +17,12 @@ interface CustomAlertProps {
   message: string;
   type?: 'success' | 'error' | 'warning' | 'info';
   onClose: () => void;
+
+   // NEW
+  onConfirm?: () => Promise<void> | void;
+  showCancel?: boolean;
+  confirmText?: string;
+  cancelText?: string;
 }
 
 const { width } = Dimensions.get('window');
@@ -25,7 +33,13 @@ export default function CustomAlert({
   message,
   type = 'info',
   onClose,
+  onConfirm,
+  showCancel = false,
+  confirmText = 'Confirm',
+  cancelText = 'Cancel',
 }: CustomAlertProps) {
+  const [loading, setLoading] = useState(false);
+  
   const getIcon = () => {
     switch (type) {
       case 'success':
@@ -52,8 +66,27 @@ export default function CustomAlert({
     }
   };
 
+   const getConfirmColor = () => {
+    if (type === 'error') return '#FF3B30'; // destructive
+    if (type === 'warning') return '#FF9500';
+    return '#007AFF';
+  };
+
+  const handleConfirm = async () => {
+    if (!onConfirm) return;
+
+    try {
+      setLoading(true);
+      await onConfirm();
+    } finally {
+      setLoading(false);
+      onClose(); // ✅ Automatically close after confirm
+    }
+  };
+
   const icon = getIcon();
   const backgroundColor = getBackgroundColor();
+  const confirmColor = getConfirmColor();
 
   return (
     <Modal
@@ -72,9 +105,39 @@ export default function CustomAlert({
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.message}>{message}</Text>
           
-          <Pressable style={styles.button} onPress={onClose}>
-            <Text style={styles.buttonText}>OK</Text>
-          </Pressable>
+          <View style={styles.buttonRow}>
+            {showCancel && (
+              <Pressable
+                style={[styles.button, styles.cancelButton]}
+                onPress={onClose}
+                disabled={loading}
+              >
+                <Text style={styles.cancelText}>{cancelText}</Text>
+              </Pressable>
+            )}
+
+            {onConfirm ? (
+              <Pressable
+                style={[
+                  styles.button,
+                  { backgroundColor: confirmColor },
+                  loading && { opacity: 0.7 },
+                ]}
+                onPress={handleConfirm}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.buttonText}>{confirmText}</Text>
+                )}
+              </Pressable>
+            ) : (
+              <Pressable style={styles.button} onPress={onClose}>
+                <Text style={styles.buttonText}>OK</Text>
+              </Pressable>
+            )}
+          </View>
         </View>
       </View>
     </Modal>
@@ -131,6 +194,19 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  cancelButton: {
+    backgroundColor: '#E0E0E0',
+  },
+ 
+  cancelText: {
+    color: '#333',
     fontSize: 16,
     fontWeight: '600',
   },
