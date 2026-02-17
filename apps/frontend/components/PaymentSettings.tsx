@@ -6,7 +6,7 @@ import {
   TextInput,
   Pressable,
   ScrollView,
-  Alert,
+  
   Switch,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker'; // 👈 add picker
@@ -33,6 +33,18 @@ export default function PaymentSettings({ onClose }: PaymentSettingsProps) {
     settings.payment?.paymentMethods || ['cash']
   );
   const [isSaving, setIsSaving] = useState(false);
+  const [customAlert, setCustomAlert] = useState<{
+      visible: boolean;
+      title: string;
+      message: string;
+      type: 'success' | 'error' | 'warning' | 'info';
+    }>({
+      visible: false,
+      title: '',
+      message: '',
+      type: 'info',
+    });
+
 
   const paymentMethodOptions = [
     { id: 'cash', name: 'Cash', icon: 'cash-outline', color: '#34C759' },
@@ -40,19 +52,38 @@ export default function PaymentSettings({ onClose }: PaymentSettingsProps) {
     { id: 'digital_wallet', name: 'Digital Wallets', icon: 'phone-portrait-outline', color: '#FF9500' },
   ];
 
+  const showAlert = (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
+    setCustomAlert({
+      visible: true,
+      title,
+      message,
+      type,
+    });
+  };
+
+  const hideAlert = () => {
+    setCustomAlert({
+      visible: false,
+      title: '',
+      message: '',
+      type: 'info',
+    });
+  };
+
   const handleSave = async () => {
     if (isEnabled && !publishableKey.trim()) {
-      Alert.alert('Missing Key', 'Please enter your Stripe Publishable Key to enable payments.');
+      showAlert('Missing Key', 'Please enter your Stripe Publishable Key to enable payments.', 'error');
+      
       return;
     }
 
     if (isEnabled && !secretKey.trim()) {
-      Alert.alert('Missing Key', 'Please enter your Stripe Secret Key to enable payments.');
+      showAlert('Missing Key', 'Please enter your Stripe Secret Key to enable payments.', 'error');
       return;
     }
 
     if (selectedMethods.length === 0) {
-      Alert.alert('No Payment Methods', 'Please select at least one payment method.');
+      showAlert('No Payment Methods', 'Please select at least one payment method.', 'error');
       return;
     }
 
@@ -69,11 +100,11 @@ export default function PaymentSettings({ onClose }: PaymentSettingsProps) {
       };
 
       await updatePaymentConfig(paymentConfig);
-      Alert.alert('Success', 'Payment settings saved successfully!');
+      showAlert('Success', 'Payment settings saved successfully!', 'success');
       onClose();
     } catch (error) {
       console.error('Failed to save payment settings:', error);
-      Alert.alert('Error', 'Failed to save payment settings. Please try again.');
+      showAlert('Error', 'Failed to save payment settings. Please try again.', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -83,7 +114,7 @@ export default function PaymentSettings({ onClose }: PaymentSettingsProps) {
     setSelectedMethods(prev => {
       if (prev.includes(method)) {
         if (method === 'cash' && prev.length === 1) {
-          Alert.alert('Cannot Remove', 'At least one payment method must be selected.');
+          showAlert('Cannot Remove', 'At least one payment method must be selected.', 'error');
           return prev;
         }
         return prev.filter(m => m !== method);

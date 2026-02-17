@@ -72,7 +72,11 @@ export default function ProductsScreen() {
   }
 
   // Filter products based on selected category and search query
-  const filteredProducts = filterProducts(products, searchQuery, selectedCategoryId);
+  //const filteredProducts = filterProducts(products, searchQuery, selectedCategoryId);
+  const filteredProducts = React.useMemo(() => {
+      return filterProducts(products, searchQuery, selectedCategoryId);
+    }, [products, searchQuery, selectedCategoryId]);
+
 
   const showAlert = (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
     setCustomAlert({
@@ -93,6 +97,11 @@ export default function ProductsScreen() {
   };
 
   const handleSave = async () => {
+    if (!formData.name || !formData.price || !formData.stock) {
+      showAlert('Validation Error', 'Please fill all required fields.', 'warning');
+      return;
+    }
+
     const product: Product = {
       id: editingProduct?.id || Date.now().toString(),
       name: formData.name,
@@ -110,6 +119,10 @@ export default function ProductsScreen() {
       barcode: formData.barcode || undefined,
       minStock: formData.minStock ? parseInt(formData.minStock) : undefined,
     };
+    if (isNaN(product.price) || isNaN(product.stock)) {
+      showAlert('Validation Error', 'Price and stock must be valid numbers.', 'warning');
+      return;
+    }
 
     try {
       if (editingProduct) {
@@ -125,8 +138,14 @@ export default function ProductsScreen() {
       setFormData(initialFormData);
     } catch (error: any) {
       console.error('Failed to save product:', error);
-      var errmsg = JSON.parse(error?.message);
-      const errorMessage = errmsg?.message || 'Failed to save product. Please try again.';
+      let errorMessage = 'Failed to save product. Please try again.';
+
+      try {
+        const parsed = JSON.parse(error?.message);
+        errorMessage = parsed?.message || errorMessage;
+      } catch {
+        errorMessage = error?.message || errorMessage;
+      }
       showAlert('Error', errorMessage, 'error');
     }
   };
@@ -177,63 +196,58 @@ export default function ProductsScreen() {
   const handleImagePicker = async (useCamera: boolean = false) => {
     // Clear any previous errors
     setUploadError(null);
+    try {
+      const imageUri = useCamera ? await takePhoto() : await pickImage();
 
-    const imageUri = useCamera ? await takePhoto() : await pickImage();
+      if (imageUri) {
+        // Check file size first
+        const sizeError = await checkFileSize(imageUri);
+        if (sizeError) {
+          setUploadError(sizeError);
+          return;
+        }
 
-    if (imageUri) {
-      // Check file size first
-      const sizeError = await checkFileSize(imageUri);
-      if (sizeError) {
-        setUploadError(sizeError);
-        return;
+        setIsUploading(true);
+
+        // Generate a unique filename
+        const fileName = `product_${Date.now()}.jpg`;
+
+        // Upload to ImageKit
+        const uploadResult = await uploadImageToImageKit(imageUri, fileName);
+
+        // Update form data with the uploaded image URL if upload was successful
+        setFormData(prev => ({ ...prev, image: uploadResult.url }));  
+        
       }
-
-      setIsUploading(true);
-
-      // Generate a unique filename
-      const fileName = `product_${Date.now()}.jpg`;
-
-      // Upload to ImageKit
-      const uploadResult = await uploadImageToImageKit(imageUri, fileName);
-
-      // Update form data with the uploaded image URL if upload was successful
-      if (uploadResult) {
-        setFormData({ ...formData, image: uploadResult.url });
-      } else {
-        // Set error message if upload failed
-        setUploadError('Failed to upload image. Please check your connection and try again.');
-      }
-
+    } catch (error: any) {
+      showAlert('Error', error.message, 'error');
+    } finally {
       setIsUploading(false);
     }
+
+
   };
 
   const removeImage = () => {
-    setFormData({ ...formData, image: '' });
+    
+    setFormData(prev => ({ ...prev, image: '' }));  
     setUploadError(null);
   };
 
   const handleBarcodeScanned = (barcode: string) => {
-    setFormData({ ...formData, barcode });
+    setFormData(prev => ({ ...prev, barcode }));
+
     setShowBarcodeScanner(false);
   };
 
   const handleCategoryChange = (categoryId: string, categoryName: string) => {
     console.log('Category changed:', { categoryId, categoryName });
-    setFormData({
-      ...formData,
-      categoryId,
-      categoryName,
-      category: categoryName // For backward compatibility
-    });
+    setFormData(prev => ({ ...prev, categoryId, categoryName, category: categoryName }));
+    
   };
 
   const handleSupplierChange = (supplierId: string, supplierName: string) => {
-    setFormData({
-      ...formData,
-      supplierId,
-      supplierName
-    });
+    setFormData(prev => ({ ...prev, supplierId, supplierName }));
   };
 
   return (
@@ -366,14 +380,19 @@ export default function ProductsScreen() {
               style={styles.input}
               placeholder="Product Name"
               value={formData.name}
-              onChangeText={(text) => setFormData({ ...formData, name: text })}
+              onChangeText={(text) =>
+                setFormData(prev => ({ ...prev, name: text }))
+              }
+
             />
 
             <TextInput
               style={styles.input}
               placeholder="Price"
               value={formData.price}
-              onChangeText={(text) => setFormData({ ...formData, price: text })}
+              onChangeText={(text) =>
+                setFormData(prev => ({ ...prev, price: text }))
+              }
               keyboardType="decimal-pad"
             />
 
@@ -381,7 +400,9 @@ export default function ProductsScreen() {
               style={styles.input}
               placeholder="Cost"
               value={formData.cost}
-              onChangeText={(text) => setFormData({ ...formData, cost: text })}
+              onChangeText={(text) =>
+                setFormData(prev => ({ ...prev, cost: text }))
+              }
               keyboardType="decimal-pad"
             />
 
@@ -389,7 +410,9 @@ export default function ProductsScreen() {
               style={styles.input}
               placeholder="Stock"
               value={formData.stock}
-              onChangeText={(text) => setFormData({ ...formData, stock: text })}
+              onChangeText={(text) =>
+                setFormData(prev => ({ ...prev, stock: text }))
+              }
               keyboardType="number-pad"
             />
 
@@ -397,7 +420,9 @@ export default function ProductsScreen() {
               style={styles.input}
               placeholder="Low Stock Threshold (optional)"
               value={formData.minStock}
-              onChangeText={(text) => setFormData({ ...formData, minStock: text })}
+              onChangeText={(text) =>
+              setFormData(prev => ({ ...prev, minStock: text }))
+              }
               keyboardType="number-pad"
             />
 
@@ -413,7 +438,9 @@ export default function ProductsScreen() {
                 style={[styles.input, styles.barcodeInput]}
                 placeholder="Barcode (optional)"
                 value={formData.barcode}
-                onChangeText={(text) => setFormData({ ...formData, barcode: text })}
+                onChangeText={(text) =>
+                  setFormData(prev => ({ ...prev, barcode: text }))
+                }
               />
               <Pressable
                 style={styles.scanBarcodeButton}
@@ -431,7 +458,7 @@ export default function ProductsScreen() {
               style={[styles.input, styles.textArea]}
               placeholder="Description"
               value={formData.description}
-              onChangeText={(text) => setFormData({ ...formData, description: text })}
+              onChangeText={(text) => setFormData(prev => ({ ...prev, description: text }))}
               multiline
             />
 
@@ -446,7 +473,8 @@ export default function ProductsScreen() {
                 <Text style={styles.buttonText}>Cancel</Text>
               </Pressable>
               <Pressable
-                style={[styles.button, styles.saveButton]}
+                style={[styles.button, styles.saveButton, isUploading && { opacity: 0.6 }]}
+
                 onPress={handleSave}>
                 <Text style={[styles.buttonText, styles.saveButtonText]}>
                   {editingProduct ? 'Update' : 'Save'}

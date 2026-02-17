@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { BarCodeScanner } from 'expo-barcode-scanner';
 import { Ionicons } from '@expo/vector-icons';
 import useStore from '../store/useStore';
+import CustomAlert from './CustomAlert';
 
 interface BarcodeScannerProps {
   onClose: () => void;
@@ -11,15 +12,25 @@ interface BarcodeScannerProps {
   onBarcodeScanned?: (barcode: string) => void;
 }
 
-export default function BarcodeScanner({ 
-  onClose, 
-  onProductScanned, 
+export default function BarcodeScanner({
+  onClose,
+  onProductScanned,
   rawBarcodeMode = false,
-  onBarcodeScanned 
+  onBarcodeScanned
 }: BarcodeScannerProps) {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [scanned, setScanned] = useState(false);
   const { products } = useStore();
+  const [customAlert, setCustomAlert] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'success' as 'success' | 'error' | 'warning' | 'info',
+    showCancel: false,
+    onConfirm: undefined as (() => Promise<void> | void) | undefined,
+    confirmText: 'Confirm',
+    cancelText: 'Cancel',
+  });
 
   useEffect(() => {
     const getBarCodeScannerPermissions = async () => {
@@ -29,32 +40,41 @@ export default function BarcodeScanner({
 
     getBarCodeScannerPermissions();
   }, []);
+  const hideAlert = () => {
+    setCustomAlert(prev => ({ ...prev, visible: false }));
+  };
+
 
   const handleBarCodeScanned = ({ type, data }: { type: string; data: string }) => {
     setScanned(true);
-    
+
     if (rawBarcodeMode && onBarcodeScanned) {
       // In raw barcode mode, just return the barcode data
       onBarcodeScanned(data);
       onClose();
       return;
     }
-    
+
     // Find product by barcode
     const product = products.find(p => p.barcode === data);
-    
+
     if (product) {
       onProductScanned(product);
       onClose();
     } else {
-      Alert.alert(
-        'Product Not Found',
-        `No product found with barcode: ${data}`,
-        [
-          { text: 'Scan Again', onPress: () => setScanned(false) },
-          { text: 'Cancel', onPress: onClose }
-        ]
-      );
+      setCustomAlert({
+        visible: true,
+        title: 'Product Not Found',
+        message: `No product found with barcode: ${data}`,
+        type: 'warning',
+        showCancel: true,
+        confirmText: 'Scan Again',
+        cancelText: 'Cancel',
+        onConfirm: () => {
+          setScanned(false);
+        },
+      });
+
     }
   };
 
@@ -87,7 +107,7 @@ export default function BarcodeScanner({
           <Ionicons name="close" size={24} color="white" />
         </Pressable>
       </View>
-      
+
       <View style={styles.scannerContainer}>
         <BarCodeScanner
           onBarCodeScanned={scanned ? undefined : handleBarCodeScanned}
@@ -97,23 +117,35 @@ export default function BarcodeScanner({
           <View style={styles.scanFrame} />
         </View>
       </View>
-      
+
       <View style={styles.footer}>
         <Text style={styles.instructions}>
-          {rawBarcodeMode 
+          {rawBarcodeMode
             ? 'Position the barcode within the frame to capture the barcode number'
             : 'Position the barcode within the frame to scan and add product to cart'
           }
         </Text>
         {scanned && (
-          <Pressable 
-            style={styles.scanAgainButton} 
+          <Pressable
+            style={styles.scanAgainButton}
             onPress={() => setScanned(false)}
           >
             <Text style={styles.scanAgainText}>Scan Again</Text>
           </Pressable>
         )}
       </View>
+
+      <CustomAlert
+        visible={customAlert.visible}
+        title={customAlert.title}
+        message={customAlert.message}
+        type={customAlert.type}
+        showCancel={customAlert.showCancel}
+        onConfirm={customAlert.onConfirm}
+        confirmText={customAlert.confirmText}
+        cancelText={customAlert.cancelText}
+        onClose={hideAlert}
+      />
     </View>
   );
 }

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, Modal, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Pressable, Modal, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Supplier, SupplierOrder, SupplierOrderItem, Product } from '../types';
 
@@ -33,9 +33,38 @@ export default function SupplierOrders({
   const [editingOrder, setEditingOrder] = useState<SupplierOrder | null>(null);
   const [orderData, setOrderData] = useState(initialOrderData);
   const [selectedProducts, setSelectedProducts] = useState<{ [key: string]: number }>({});
-
+  const [customAlert, setCustomAlert] = useState<{
+        visible: boolean;
+        title: string;
+        message: string;
+        type: 'success' | 'error' | 'warning' | 'info';
+      }>({
+        visible: false,
+        title: '',
+        message: '',
+        type: 'info',
+      });
+  
   const supplierProducts = products.filter(product => product.supplierId === supplier.id);
   const supplierOrders = orders.filter(order => order.supplierId === supplier.id);
+
+  const showAlert = (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
+    setCustomAlert({
+      visible: true,
+      title,
+      message,
+      type,
+    });
+  };
+
+  const hideAlert = () => {
+    setCustomAlert({
+      visible: false,
+      title: '',
+      message: '',
+      type: 'info',
+    });
+  };
 
   const handleCreateOrder = () => {
     setEditingOrder(null);
@@ -65,7 +94,7 @@ export default function SupplierOrders({
   const handleSaveOrder = () => {
     // Validate required fields
     if (!orderData.orderDate) {
-      Alert.alert('Error', 'Order date is required');
+      showAlert('Error', 'Order date is required', 'error');
       return;
     }
 
@@ -86,7 +115,7 @@ export default function SupplierOrders({
       });
 
     if (items.length === 0) {
-      Alert.alert('Error', 'Please select at least one product');
+      showAlert('Error', 'Please select at least one product', 'error');
       return;
     }
 

@@ -1,5 +1,4 @@
 import * as ImagePicker from 'expo-image-picker';
-import { Alert } from 'react-native';
 
 // ImageKit configuration
 const IMAGEKIT_CONFIG = {
@@ -39,8 +38,8 @@ export const pickImage = async (): Promise<string | null> => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     
     if (permissionResult.granted === false) {
-      Alert.alert('Permission Required', 'Permission to access camera roll is required!');
-      return null;
+      throw new Error('Permission to access camera roll is required.');
+
     }
 
     // Launch image picker
@@ -56,10 +55,11 @@ export const pickImage = async (): Promise<string | null> => {
     }
 
     return null;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error picking image:', error);
-    Alert.alert('Error', 'Failed to pick image. Please try again.');
-    return null;
+    throw error instanceof Error
+      ? error
+      : new Error('Failed to pick image. Please try again.');
   }
 };
 
@@ -69,8 +69,8 @@ export const takePhoto = async (): Promise<string | null> => {
     const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
     
     if (permissionResult.granted === false) {
-      Alert.alert('Permission Required', 'Permission to access camera is required!');
-      return null;
+      throw new Error('Permission to access camera is required.');
+
     }
 
     // Launch camera
@@ -85,15 +85,16 @@ export const takePhoto = async (): Promise<string | null> => {
     }
 
     return null;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error taking photo:', error);
-    Alert.alert('Error', 'Failed to take photo. Please try again.');
-    return null;
+    throw error instanceof Error
+      ? error
+      : new Error('Failed to take photo. Please try again.');
   }
 };
 
 // Method 1: Using ImageKit with server-side authentication (recommended for production)
-export const uploadImageToImageKit = async (imageUri: string, fileName: string): Promise<ImageUploadResult | null> => {
+export const uploadImageToImageKit = async (imageUri: string, fileName: string): Promise<ImageUploadResult> => {
   try {
     // Convert image URI to blob
     const response = await fetch(imageUri);
@@ -102,7 +103,7 @@ export const uploadImageToImageKit = async (imageUri: string, fileName: string):
     // Check file size
     if (blob.size > MAX_FILE_SIZE) {
       const fileSizeKB = Math.round(blob.size / 1024);
-      return null; // Return null to indicate failure, error message will be handled by caller
+      throw new Error('Image exceeds 750 KB limit.');
     }
 
     // Get authentication from your server
@@ -114,7 +115,9 @@ export const uploadImageToImageKit = async (imageUri: string, fileName: string):
     });
     
     const auth = await authResponse.json();
-
+    if (!auth?.signature || !auth?.expire || !auth?.token) {
+      throw new Error('Invalid authentication response.');
+    }
     // Create form data
     const formData = new FormData();
     formData.append('file', blob, fileName);
@@ -133,7 +136,7 @@ export const uploadImageToImageKit = async (imageUri: string, fileName: string):
 
     if (!uploadResponse.ok) {
       const errorData = await uploadResponse.json();
-      return null; // Return null to indicate failure, error message will be handled by caller
+      throw new Error(errorData?.message || 'Upload failed.');
     }
 
     const result = await uploadResponse.json();
@@ -143,22 +146,23 @@ export const uploadImageToImageKit = async (imageUri: string, fileName: string):
       fileId: result.fileId,
       fileName: result.name,
     };
-  } catch (error) {
-    console.error('Error uploading image:', error);
-    return null; // Return null to indicate failure, error message will be handled by caller
+  } catch (errorData: any) {
+    console.error('Error uploading image:', errorData);
+    throw new Error(errorData?.message || 'Upload failed.');
+    
   }
 };
 
 // Method 2: Alternative approach - store image locally and use a placeholder URL
 // This is useful for development or when you don't have server-side authentication set up
-export const uploadImageLocally = async (imageUri: string, fileName: string): Promise<ImageUploadResult | null> => {
+export const uploadImageLocally = async (imageUri: string, fileName: string): Promise<ImageUploadResult> => {
   try {
     // Check file size for local uploads too
     const response = await fetch(imageUri);
     const blob = await response.blob();
 
     if (blob.size > MAX_FILE_SIZE) {
-      return null; // Return null to indicate failure, error message will be handled by caller
+      throw new Error('Image exceeds 750 KB limit.');      
     }
 
     // For development purposes, we'll return the local URI
@@ -168,9 +172,11 @@ export const uploadImageLocally = async (imageUri: string, fileName: string): Pr
       fileId: `local_${Date.now()}`,
       fileName: fileName,
     };
-  } catch (error) {
-    console.error('Error uploading image locally:', error);
-    return null; // Return null to indicate failure, error message will be handled by caller
+  } catch (error: any) {
+    console.error('Error picking image:', error);
+    throw error instanceof Error
+      ? error
+      : new Error('Failed to pick image. Please try again.');
   }
 };
 
