@@ -11,7 +11,7 @@ delete promotion buggy [done]
 Why important: Increases average transaction value
 
 todo: 
-8.5 Alert. change to custome alert [working]
+8.5 Alert. change to custome alert [done]
 8.6 tax
 8.7 stock managemt
 8.8. discount per item
