@@ -35,6 +35,9 @@ export const productsTable = pgTable("products", {
   categoryId: integer().notNull().references(() => categoriesTable.id),
   supplierId: varchar({ length: 36 }).references(() => suppliersTable.id),
   barcode: varchar({ length: 255 }),
+  taxRateId: integer().references(() => taxRatesTable.id),
+  isTaxable: boolean().notNull().default(true),
+
 },(table) => ({
   storeIndex: index("products_store_idx").on(table.storeInfoId),  
 }));
@@ -105,7 +108,9 @@ export const orderItemsTable = pgTable("order_items", {
   promotionId: varchar({ length: 36 }).references(() => promotionsTable.id),
 
   finalPrice: numeric({ precision: 10, scale: 2 }).notNull().default('0.00'), // subtotal - discountAmount
-  
+  taxRate: numeric({ precision: 5, scale: 2 }), // freeze %
+  taxAmount: numeric({ precision: 10, scale: 2 }).notNull().default('0.00'),
+
 },(table) => ({
   orderIndex: index("order_items_order_idx").on(table.orderId),
   uniqueProductPerOrder: unique().on(table.orderId, table.productId),
@@ -342,4 +347,34 @@ export const discountCodesTable = pgTable("discount_codes", {
   createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 },(table) => ({
   uniqueCodePerPromotion: unique().on(table.promotionId, table.code),
+}));
+
+export const taxRatesTable = pgTable("tax_rates", {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  storeInfoId: integer().notNull().references(() => storeInfoTable.id),
+  name: varchar({ length: 100 }).notNull(), // VAT, GST, Service Tax
+  rate: numeric({ precision: 5, scale: 2 }).notNull(), // 10.00 = 10%
+  isDefault: boolean().notNull().default(false),
+  isActive: boolean().notNull().default(true),
+  createdAt: timestamp().notNull().defaultNow(),
+}, (table) => ({
+  storeIndex: index("tax_rates_store_idx").on(table.storeInfoId),
+}));
+
+export const inventoryMovementsTable = pgTable("inventory_movements", {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  productId: varchar({ length: 36 }).notNull().references(() => productsTable.id),
+  storeInfoId: integer().notNull().references(() => storeInfoTable.id),
+
+  type: varchar({ length: 20 }).notNull(), 
+  // 'sale' | 'purchase' | 'adjustment' | 'return'
+
+  quantity: integer().notNull(), // negative for sale, positive for purchase
+
+  referenceId: varchar({ length: 36 }), // orderId or supplier purchaseId
+
+  createdAt: timestamp().notNull().defaultNow(),
+}, (table) => ({
+  productIndex: index("inventory_product_idx").on(table.productId),
+  storeIndex: index("inventory_store_idx").on(table.storeInfoId),
 }));
