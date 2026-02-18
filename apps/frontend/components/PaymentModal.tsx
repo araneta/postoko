@@ -22,6 +22,7 @@ interface PaymentModalProps {
   total: number;
   subtotal?: number;
   discountAmount?: number;
+  taxAmount?: number;
   appliedDiscount?: DiscountValidationResponse | null;
   formatPrice: (price: number) => string;
   cart: CartItem[];
@@ -40,6 +41,7 @@ export default function PaymentModal({
   total,
   subtotal,
   discountAmount = 0,
+  taxAmount = 0,
   appliedDiscount,
   formatPrice,
   cart
@@ -569,18 +571,26 @@ export default function PaymentModal({
           </View>
 
           <View style={styles.paymentDetails}>
-            {appliedDiscount && subtotal ? (
+            {(appliedDiscount && subtotal) || taxAmount > 0 ? (
               <View style={styles.paymentBreakdown}>
                 <View style={styles.paymentRow}>
                   <Text style={styles.paymentLabel}>Subtotal:</Text>
-                  <Text style={styles.paymentSubtotal}>{formatPrice(subtotal)}</Text>
+                  <Text style={styles.paymentSubtotal}>{formatPrice(subtotal || 0)}</Text>
                 </View>
-                <View style={styles.discountRow}>
-                  <Text style={styles.discountLabel}>
-                    Discount ({appliedDiscount.promotion?.name}):
-                  </Text>
-                  <Text style={styles.discountAmount}>-{formatPrice(discountAmount)}</Text>
-                </View>
+                {taxAmount > 0 && (
+                  <View style={styles.paymentRow}>
+                    <Text style={styles.paymentLabel}>Tax:</Text>
+                    <Text style={styles.paymentTax}>{formatPrice(taxAmount)}</Text>
+                  </View>
+                )}
+                {appliedDiscount && (
+                  <View style={styles.discountRow}>
+                    <Text style={styles.discountLabel}>
+                      Discount ({appliedDiscount.promotion?.name}):
+                    </Text>
+                    <Text style={styles.discountAmount}>-{formatPrice(discountAmount)}</Text>
+                  </View>
+                )}
                 <View style={styles.totalRow}>
                   <Text style={styles.totalLabel}>Total Amount:</Text>
                   <Text style={styles.paymentAmount}>{formatPrice(total)}</Text>
@@ -738,6 +748,10 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   paymentSubtotal: {
+    fontSize: 16,
+    color: '#666',
+  },
+  paymentTax: {
     fontSize: 16,
     color: '#666',
   },

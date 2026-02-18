@@ -69,8 +69,8 @@ export default function TabLayout() {
     const roleMenus = {
       staff: ['dashboard', 'index', 'products', 'categories', 'alerts'],
       cashier: ['dashboard', 'index', 'orders', 'customers'],
-      manager: ['dashboard', 'index', 'products', 'categories', 'alerts', 'orders', 'analytics', 'customers', 'suppliers', 'employees', 'promotions'],
-      admin: ['dashboard', 'index', 'products', 'categories', 'alerts', 'orders', 'analytics', 'customers', 'suppliers', 'employees', 'promotions', 'settings']
+      manager: ['dashboard', 'index', 'products', 'categories', 'alerts', 'orders', 'analytics', 'customers', 'suppliers', 'employees', 'promotions', 'tax-rates'],
+      admin: ['dashboard', 'index', 'products', 'categories', 'alerts', 'orders', 'analytics', 'customers', 'suppliers', 'employees', 'promotions', 'tax-rates', 'settings']
     };
 
     return roleMenus[roleName as keyof typeof roleMenus] || ['dashboard', 'index'];
@@ -206,6 +206,16 @@ export default function TabLayout() {
             <Ionicons name="pricetag" size={size} color={color} />
           ),
           href: allowedTabs.includes('promotions') ? undefined : null,
+        }}
+      />
+      <Tabs.Screen
+        name="tax-rates"
+        options={{
+          title: 'Tax Rates',
+          tabBarIcon: ({ size, color }) => (
+            <Ionicons name="receipt" size={size} color={color} />
+          ),
+          href: allowedTabs.includes('tax-rates') ? undefined : null,
         }}
       />
       <Tabs.Screen

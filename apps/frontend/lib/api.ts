@@ -7,7 +7,7 @@ if (__DEV__) {
 }
 const BASE_URL = baseurl;
 
-import { User, Product, Order, Settings, Customer, CustomerPurchase, Employee, Role, CartItem, StripeSessionData, StripeSessionDetails, PayPalOrdersCreateRequest, OrdersGetRequest, EmployeePINLoginResponse, EmployeeSales, EmployeePerformance, EmployeeSalesDetail, Category, Supplier, Promotion, DiscountValidationRequest, DiscountValidationResponse, PromotionStats } from '../types';
+import { User, Product, Order, Settings, Customer, CustomerPurchase, Employee, Role, CartItem, StripeSessionData, StripeSessionDetails, PayPalOrdersCreateRequest, OrdersGetRequest, EmployeePINLoginResponse, EmployeeSales, EmployeePerformance, EmployeeSalesDetail, Category, Supplier, Promotion, DiscountValidationRequest, DiscountValidationResponse, PromotionStats, TaxRate } from '../types';
 import { safeToNumber, safeToInteger } from '../utils/formatters';
 import { mockCategoryService } from './mockCategoryService';
 
@@ -413,7 +413,47 @@ class APIClient {
   }
 
   async getPromotionDetail(promotionId: string): Promise<Promotion> {
-    return this.fetchJSON(`${BASE_URL}/promotions/detail/${promotionId}`);
+    return this.fetchJSON<Promotion>(`${BASE_URL}/promotions/detail/${promotionId}`);
+  }
+
+  // Tax Rates
+  async getTaxRates(): Promise<TaxRate[]> {
+    return this.fetchJSON<TaxRate[]>(`${BASE_URL}/tax-rates`);
+  }
+
+  async createTaxRate(taxRate: Omit<TaxRate, 'id' | 'storeInfoId' | 'createdAt' | 'updatedAt'>): Promise<TaxRate> {
+    return this.fetchJSON<TaxRate>(`${BASE_URL}/tax-rates`, {
+      method: 'POST',
+      body: JSON.stringify(taxRate),
+    });
+  }
+
+  async getTaxRateById(id: number): Promise<TaxRate> {
+    return this.fetchJSON<TaxRate>(`${BASE_URL}/tax-rates/${id}`);
+  }
+
+  async updateTaxRate(id: number, taxRate: Partial<TaxRate>): Promise<TaxRate> {
+    return this.fetchJSON<TaxRate>(`${BASE_URL}/tax-rates/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(taxRate),
+    });
+  }
+
+  async deleteTaxRate(id: number): Promise<void> {
+    await this.fetchJSON(`${BASE_URL}/tax-rates/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getDefaultTaxRate(): Promise<TaxRate> {
+    return this.fetchJSON<TaxRate>(`${BASE_URL}/tax-rates/default/get`);
+  }
+
+  async assignTaxRateToProduct(productId: string, taxRateId: number, isTaxable: boolean = true): Promise<void> {
+    await this.fetchJSON(`${BASE_URL}/tax-rates/product/assign`, {
+      method: 'POST',
+      body: JSON.stringify({ productId, taxRateId, isTaxable }),
+    });
   }
 }
 
@@ -493,3 +533,12 @@ export const deletePromotion = (promotionId: string) => apiClient.deletePromotio
 export const validateDiscountCode = (request: DiscountValidationRequest) => apiClient.validateDiscountCode(request);
 export const getPromotionStats = (promotionId: string) => apiClient.getPromotionStats(promotionId);
 export const getPromotionDetail = (promotionId: string) => apiClient.getPromotionDetail(promotionId);
+
+// Tax Rates exports
+export const getTaxRates = () => apiClient.getTaxRates();
+export const createTaxRate = (taxRate: Omit<TaxRate, 'id' | 'storeInfoId' | 'createdAt' | 'updatedAt'>) => apiClient.createTaxRate(taxRate);
+export const getTaxRateById = (id: number) => apiClient.getTaxRateById(id);
+export const updateTaxRate = (id: number, taxRate: Partial<TaxRate>) => apiClient.updateTaxRate(id, taxRate);
+export const deleteTaxRate = (id: number) => apiClient.deleteTaxRate(id);
+export const getDefaultTaxRate = () => apiClient.getDefaultTaxRate();
+export const assignTaxRateToProduct = (productId: string, taxRateId: number, isTaxable: boolean = true) => apiClient.assignTaxRateToProduct(productId, taxRateId, isTaxable);

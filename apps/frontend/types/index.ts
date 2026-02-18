@@ -31,6 +31,8 @@ export interface Product {
   supplier?: string;
   supplierId?: string;
   supplierName?: string;
+  taxRateId?: number;
+  isTaxable?: boolean;
 }
 
 export interface CartItem extends Product {
@@ -318,7 +320,7 @@ export interface PaypalItem {
     currency_code: string;
     value: string;
   };
-  quantity: string;
+  quantity: number;
 }
 
 export interface PaypalLink {
@@ -506,4 +508,15 @@ export interface PromotionStats {
     usageCount: number;
     totalDiscount: number;
   }>;
+}
+
+export interface TaxRate {
+  id: number;
+  storeInfoId: number;
+  name: string;
+  rate: number; // Tax rate percentage (0-100)
+  isDefault: boolean;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }

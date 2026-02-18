@@ -9,6 +9,27 @@ import { eq, desc, and, inArray, sql, isNull, gte, lte } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 
 export default class OrdersController {
+	static calculateTaxAmount(finalPrice: number, taxRate: number): number {
+        return parseFloat((finalPrice * (taxRate / 100)).toFixed(2));
+    }
+     // Helper: Apply item-level discount
+    static calculateItemDiscount(
+        subtotal: number,
+        discountType: string | null,
+        discountValue: number
+    ): number {
+        if (!discountType || discountValue === 0) {
+            return 0;
+        }
+
+        if (discountType === 'percentage') {
+            return parseFloat((subtotal * (discountValue / 100)).toFixed(2));
+        } else if (discountType === 'fixed_amount') {
+            return Math.min(parseFloat(discountValue.toString()), subtotal);
+        }
+
+        return 0;
+    }
     static async getOrders(req: Request, res: Response) {
         try {
             const auth = getAuth(req);
@@ -307,7 +328,7 @@ export default class OrdersController {
                         ? taxRatesMap.get(product!.taxRateId) || 0
                         : 0;
                     
-                    const itemTaxAmount = this.calculateTaxAmount(finalPrice, taxRate);
+                    const itemTaxAmount = OrdersController.calculateTaxAmount(finalPrice, taxRate);
 
                     return {
                         orderId: orderId,

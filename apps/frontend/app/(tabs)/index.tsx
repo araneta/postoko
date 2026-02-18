@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, TextInput, Modal, Platform, ActivityIndicator, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter, Redirect } from 'expo-router';
+import { useRouter, Redirect, useFocusEffect } from 'expo-router';
 import ProductCard from '../../components/ProductCard';
 import BarcodeScanner from '../../components/BarcodeScanner';
 import PaymentModal from '../../components/PaymentModal';
@@ -11,8 +11,8 @@ import CategoryFilter from '../../components/CategoryFilter';
 import { DiscountValidator } from '../../components/DiscountValidator';
 import useStore from '../../store/useStore';
 import { printReceipt } from '../../utils/printer';
-import { PaymentDetails, Employee, DiscountValidationResponse } from '../../types';
-import { getCustomers, getEmployees } from '../../lib/api';
+import { PaymentDetails, Employee, DiscountValidationResponse, TaxRate } from '../../types';
+import { getCustomers, getEmployees, getTaxRates, getDefaultTaxRate } from '../../lib/api';
 import { Customer } from '../../types';
 import loyaltyService from '../../lib/loyalty';
 import { filterProducts, filterCustomers } from '../../utils/searchUtils';
@@ -32,7 +32,10 @@ export default function POSScreen() {
     formatPrice,
     checkLowStockAlerts,
     authenticatedEmployee,
-    setAuthenticatedEmployee
+    setAuthenticatedEmployee,
+    taxRates,
+    defaultTaxRate,
+    refreshTaxRates
   } = useStore();
   console.log('Current authenticated employee in POS screen:', authenticatedEmployee);
 
@@ -77,11 +80,22 @@ export default function POSScreen() {
         setCustomers(customersData);
         console.log('Fetched employees:', employeesData);
         setEmployees(employeesData);
+        // Initialize tax rates in store if not already loaded
+        if (taxRates.length === 0) {
+          refreshTaxRates();
+        }
       } catch (error) {
         console.error('Failed to fetch data', error);
       }
     })();
   }, []);
+
+  // Refresh tax rates when screen comes into focus (after updating tax rates)
+  useFocusEffect(
+    useCallback(() => {
+      refreshTaxRates();
+    }, [refreshTaxRates])
+  );
 
   // Redirect to dashboard if no employee is logged in
   if (!authenticatedEmployee) {
@@ -92,7 +106,11 @@ export default function POSScreen() {
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const discountAmount = appliedDiscount?.discountAmount || 0;
   const discountValue = appliedDiscount?.promotion?.discountValue || 0;
-  const finalTotal = total - discountAmount;
+  
+  // Calculate tax using global approach (simpler and more common)
+  const subtotal = total - discountAmount; // Apply discount first
+  const taxAmount = defaultTaxRate ? subtotal * (defaultTaxRate.rate / 100) : 0;
+  const finalTotal = subtotal + taxAmount;
 
   const showAlert = (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
     setCustomAlert({
@@ -452,8 +470,9 @@ export default function POSScreen() {
           onClose={() => setShowPaymentModal(false)}
           onPaymentComplete={handlePaymentComplete}
           total={finalTotal}
-          subtotal={total}
+          subtotal={subtotal}
           discountAmount={discountAmount}
+          taxAmount={taxAmount}
           appliedDiscount={appliedDiscount}
           formatPrice={formatPrice}
           cart={cart}

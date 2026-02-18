@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { Product, CartItem, Order, Currency, Settings, StoreInfo, PrinterSettings, PaymentDetails, PaymentConfig, StockAlert, Customer, Employee, Category, Supplier } from '../types';
-import { apiClient, configureAPI } from '../lib/api';
+import { Product, CartItem, Order, Currency, Settings, StoreInfo, PrinterSettings, PaymentDetails, PaymentConfig, StockAlert, Customer, Employee, Category, Supplier, TaxRate } from '../types';
+import { apiClient, configureAPI, getTaxRates, getDefaultTaxRate } from '../lib/api';
 import { safeToFixed } from '../utils/formatters';
 import paymentService from '../lib/payment';
 import stockAlertService from '../lib/stockAlerts';
@@ -14,6 +14,8 @@ interface StoreState {
   orders: Order[];
   settings: Settings;
   stockAlerts: StockAlert[];
+  taxRates: TaxRate[];
+  defaultTaxRate: TaxRate | null;
   initializing: boolean;
   authenticatedEmployee: Employee | null;
   employeeAuthTimeout: NodeJS.Timeout | null;
@@ -45,6 +47,7 @@ interface StoreState {
   getUnreadAlertCount: () => number;
   setAuthenticatedEmployee: (employee: Employee | null) => void;
   clearEmployeeAuth: () => void;
+  refreshTaxRates: () => Promise<void>;
   userId?: string;
 }
 
@@ -88,6 +91,8 @@ const useStore = create<StoreState>((set, get) => ({
     payment: defaultPaymentConfig,
   },
   stockAlerts: [],
+  taxRates: [],
+  defaultTaxRate: null,
   initializing: false,
   authenticatedEmployee: null,
   employeeAuthTimeout: null,
@@ -104,12 +109,14 @@ const useStore = create<StoreState>((set, get) => ({
     set({ initializing: true });
     try {
       console.log('Store: fetching data from API...');
-      const [products, categories, orders, settings, suppliers] = await Promise.all([
+      const [products, categories, orders, settings, suppliers, taxRates, defaultTaxRate] = await Promise.all([
         apiClient.getProducts(),
         apiClient.getCategories(),
         apiClient.getOrders(),
         apiClient.getSettings(),
         apiClient.getSuppliers(),
+        apiClient.getTaxRates(),
+        apiClient.getDefaultTaxRate(),
       ]);
       
       console.log('Store: received categories:', categories.length);
@@ -226,7 +233,9 @@ const useStore = create<StoreState>((set, get) => ({
         suppliers,
         orders,
         settings: finalSettings,
-        initializing: false,
+        taxRates,
+        defaultTaxRate,
+        initializing: false
       });
       
       console.log('Store: initialization complete, categories set:', finalCategories.length);
@@ -595,6 +604,18 @@ const useStore = create<StoreState>((set, get) => ({
       clearTimeout(employeeAuthTimeout);
     }
     set({ authenticatedEmployee: null, employeeAuthTimeout: null });
+  },
+
+  refreshTaxRates: async () => {
+    try {
+      const [taxRatesData, defaultTaxRateData] = await Promise.all([
+        getTaxRates(),
+        getDefaultTaxRate(),
+      ]);
+      set({ taxRates: taxRatesData, defaultTaxRate: defaultTaxRateData });
+    } catch (error) {
+      console.error('Failed to refresh tax rates:', error);
+    }
   }
 }));
 
