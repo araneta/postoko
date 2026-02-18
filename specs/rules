@@ -1,0 +1,18 @@
+Order flow must calculate like this:
+
+itemSubtotal = quantity × unitPrice
+
+itemDiscount = computed
+
+itemFinal = itemSubtotal - itemDiscount
+
+itemTax = (if taxable) → apply tax rate on itemFinal
+
+orderSubtotal = SUM(itemSubtotal)
+orderDiscount = SUM(itemDiscount)
+orderTax = SUM(itemTax)
+
+total = orderSubtotal
+        - orderDiscount
+        + orderTax
+        + serviceCharge

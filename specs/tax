@@ -1,0 +1,29 @@
+Let me summarize:
+✅ 8.6 Tax Management - COMPLETE
+
+✅ taxRatesTable - Store tax configurations with rates
+✅ taxRateId on products - Link products to tax rates
+✅ isTaxable flag - Mark products as taxable/non-taxable
+✅ taxRate in order items - Frozen tax % at purchase time
+✅ taxAmount in order items - Tax per line item
+
+✅ 8.7 Stock Management - COMPLETE
+
+✅ stock field on products - Current inventory level
+✅ minStock field - Minimum threshold for alerts
+✅ inventoryMovementsTable - Audit trail of all movements
+✅ Movement types: 'sale', 'purchase', 'adjustment', 'return'
+✅ Full history with timestamps and references
+
+✅ 8.8 Discount Per Item - COMPLETE
+
+✅ Item-level discount fields on orderItemsTable:
+
+discountType - Type of discount
+discountValue - Discount amount/percentage
+discountAmount - Total discount applied
+finalPrice - Subtotal minus discount
+
+
+✅ Still supports order-level discounts
+✅ Supports multiple discount types

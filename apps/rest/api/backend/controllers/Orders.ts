@@ -139,6 +139,8 @@ export default class OrdersController {
                 stock: productsTable.stock,
                 price: productsTable.price,
                 cost: productsTable.cost,
+                taxRateId: productsTable.taxRateId,
+                isTaxable: productsTable.isTaxable,
             })
             .from(productsTable)
             .where(
@@ -147,6 +149,20 @@ export default class OrdersController {
                     inArray(productsTable.id, productIds)
                 )
             );
+
+            // Get tax rates for taxable products
+            const taxRateIds = [...new Set(products.filter(p => p.isTaxable && p.taxRateId).map(p => p.taxRateId))];
+            let taxRatesMap = new Map();
+            
+            if (taxRateIds.length > 0) {
+                const taxRates = await db.select()
+                    .from(taxRatesTable)
+                    .where(inArray(taxRatesTable.id, taxRateIds));
+                
+                taxRates.forEach(tr => {
+                    taxRatesMap.set(tr.id, tr.rate);
+                });
+            }
 
             // Validate stock availability
             const stockValidationErrors = [];
@@ -285,6 +301,14 @@ export default class OrdersController {
                     const itemSubtotal = (item.quantity * parseFloat(item.price));
                     const itemDiscountAmount = item.discountAmount ? parseFloat(item.discountAmount.toString()) : 0;
                     const finalPrice = itemSubtotal - itemDiscountAmount;
+                    
+                    // Calculate tax
+                    const taxRate = product!.isTaxable && product!.taxRateId 
+                        ? taxRatesMap.get(product!.taxRateId) || 0
+                        : 0;
+                    
+                    const itemTaxAmount = this.calculateTaxAmount(finalPrice, taxRate);
+
                     return {
                         orderId: orderId,
                         productId: item.id,
@@ -297,6 +321,8 @@ export default class OrdersController {
                         discountValue: parseFloat(item.discountValue.toString()) || 0,
                         discountAmount: itemDiscountAmount,
                         finalPrice,
+                        taxRate,
+                        taxAmount: itemTaxAmount,
                         promotionId: item.promotionId || null,
                     };
                 });
