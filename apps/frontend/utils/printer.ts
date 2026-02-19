@@ -167,7 +167,25 @@ const webPrinter = {
           <div class="divider"></div>
 
           <div class="total">
-            <div class="item">
+            ${order.subtotal ? `
+              <div class="item">
+                <div>Subtotal:</div>
+                <div>${formatPrice(order.subtotal)}</div>
+              </div>
+            ` : ''}
+            ${order.discountAmount && order.discountAmount > 0 ? `
+              <div class="item">
+                <div>Discount${order.discountCode ? ` (${order.discountCode})` : ''}:</div>
+                <div style="color: #e74c3c;">-${formatPrice(order.discountAmount)}</div>
+              </div>
+            ` : ''}
+            ${order.taxAmount && order.taxAmount > 0 ? `
+              <div class="item">
+                <div>Tax:</div>
+                <div>${formatPrice(order.taxAmount)}</div>
+              </div>
+            ` : ''}
+            <div class="item" style="font-weight: bold; font-size: 1.1em; border-top: 1px solid #000; padding-top: 5px; margin-top: 5px;">
               <div>Total:</div>
               <div>${formatPrice(order.total || 0)}</div>
             </div>

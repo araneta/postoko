@@ -66,6 +66,7 @@ export interface Order {
   items: CartItem[];
   total: number;
   subtotal?: number; // Original total before discounts
+  taxAmount?: number; // Tax amount calculated on order
   date: string;
   paymentMethod: string;
   paymentDetails?: PaymentDetails[];

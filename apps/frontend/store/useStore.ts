@@ -32,7 +32,7 @@ interface StoreState {
   removeFromCart: (productId: string) => void;
   updateCartItemQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
-  createOrder: (paymentDetails: PaymentDetails[], totalAmount: number, subtotalAmount: number, discountAmount: number, discountValue: number, discountCode?:string, customer?: Customer) => Promise<Order | undefined>;
+  createOrder: (paymentDetails: PaymentDetails[], totalAmount: number, subtotalAmount: number, discountAmount: number, discountValue: number, taxAmount: number, discountCode?:string, customer?: Customer) => Promise<Order | undefined>;
   updateCurrency: (currency: Currency) => Promise<void>;
   updatePrinterSettings: (printerSettings: PrinterSettings) => Promise<void>;
   updateStoreInfo: (storeInfo: StoreInfo) => Promise<void>;
@@ -397,7 +397,7 @@ const useStore = create<StoreState>((set, get) => ({
     set({ cart: [] });
   },
 
-  createOrder: async (paymentDetails: PaymentDetails[], totalAmount: number, subtotalAmount: number,discountAmount: number, discountValue: number, discountCode?:string, customer?: Customer, ) => {
+  createOrder: async (paymentDetails: PaymentDetails[], totalAmount: number, subtotalAmount: number, discountAmount: number, discountValue: number, taxAmount: number, discountCode?:string, customer?: Customer, ) => {
     const { cart, products, authenticatedEmployee } = get();
     if (cart.length === 0) return;
 
@@ -416,6 +416,7 @@ const useStore = create<StoreState>((set, get) => ({
       items: [...cart],
       total: totalAmount,
       subtotal: subtotalAmount,
+      taxAmount,
       date: new Date().toISOString(),
       paymentMethod: primaryPaymentMethod,
       paymentDetails,

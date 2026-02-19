@@ -151,7 +151,7 @@ export default function POSScreen() {
       let discountCode = appliedDiscount?.discountCode;
       
       // Pass customer and employee to createOrder if selected
-      const order = await createOrder(paymentDetails, finalTotal, total, discountAmount, discountValue, discountCode, selectedCustomer || undefined);
+      const order = await createOrder(paymentDetails, finalTotal, total, discountAmount, discountValue, taxAmount, discountCode, selectedCustomer || undefined);
 
       // Log the authenticated employee
       if (authenticatedEmployee) {
