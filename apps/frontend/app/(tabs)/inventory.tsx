@@ -304,6 +304,23 @@ export default function InventoryScreen() {
       >
         {activeTab === 'summary' && summary && (
           <View>
+            {/* Header with Refresh Button */}
+            <View style={styles.headerContainer}>
+              <Text style={styles.sectionTitle}>Inventory Summary</Text>
+              <TouchableOpacity 
+                style={styles.headerRefreshButton} 
+                onPress={onRefresh}
+                disabled={refreshing}
+              >
+                <Ionicons 
+                  name="refresh" 
+                  size={20} 
+                  color={refreshing ? "#8E8E93" : "#ffffff"} 
+                  style={{ transform: [{ rotate: refreshing ? '180deg' : '0deg' }] }}
+                />
+              </TouchableOpacity>
+            </View>
+
             {/* Stock Overview Cards */}
             <View style={styles.cardContainer}>
               <View style={styles.card}>
@@ -375,7 +392,22 @@ export default function InventoryScreen() {
 
         {activeTab === 'lowstock' && lowStock && (
           <View>
-            <Text style={styles.sectionTitle}>Low Stock Products</Text>
+            {/* Header with Refresh Button */}
+            <View style={styles.headerContainer}>
+              <Text style={styles.sectionTitle}>Low Stock Products</Text>
+              <TouchableOpacity 
+                style={styles.headerRefreshButton} 
+                onPress={onRefresh}
+                disabled={refreshing}
+              >
+                <Ionicons 
+                  name="refresh" 
+                  size={20} 
+                  color={refreshing ? "#8E8E93" : "#007AFF"} 
+                  style={{ transform: [{ rotate: refreshing ? '180deg' : '0deg' }] }}
+                />
+              </TouchableOpacity>
+            </View>
             {lowStock.products.length === 0 ? (
               <View style={styles.emptyState}>
                 <Ionicons name="checkmark-circle" size={48} color="#34C759" />
@@ -458,7 +490,22 @@ export default function InventoryScreen() {
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.sectionTitle}>Recent Movements</Text>
+            <View style={styles.headerContainer}>
+              <Text style={styles.sectionTitle}>Recent Movements</Text>
+              <TouchableOpacity 
+                style={styles.headerRefreshButton} 
+                onPress={() => loadMovements(movementFilter)}
+                disabled={refreshing}
+              >
+                <Ionicons 
+                  name="refresh" 
+                  size={20} 
+                  color={refreshing ? "#8E8E93" : "#007AFF"} 
+                  style={{ transform: [{ rotate: refreshing ? '180deg' : '0deg' }] }}
+                />
+              </TouchableOpacity>
+            </View>
+
             {!movements || !movements.movements || movements.movements.length === 0 ? (
               <View style={styles.emptyState}>
                 <Ionicons name="list" size={48} color="#8E8E93" />
@@ -832,6 +879,39 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#8E8E93',
     marginBottom: 20,
+  },
+  refreshContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingHorizontal: 16,
+  },
+  refreshButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  refreshButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '500',
+    marginLeft: 8,
+  },
+  headerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingHorizontal: 16,
+  },
+  headerRefreshButton: {
+    backgroundColor: '#007AFF',
+    padding: 8,
+    borderRadius: 8,
   },
   input: {
     borderWidth: 1,
