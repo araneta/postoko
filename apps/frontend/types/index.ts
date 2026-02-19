@@ -37,6 +37,9 @@ export interface Product {
 
 export interface CartItem extends Product {
   quantity: number;
+  discountValue?: number; // Discount percentage or fixed amount per item
+  discountAmount?: number; // Total discount amount for this cart item
+  discountType?: 'percentage' | 'fixed_amount'; // Type of discount
 }
 
 export type PaymentMethod = 'cash' | 'card' | 'digital_wallet' | 'bank_transfer';

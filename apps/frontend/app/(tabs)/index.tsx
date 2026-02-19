@@ -9,9 +9,10 @@ import CustomAlert from '../../components/CustomAlert';
 import EmployeePinLogin from '@/components/EmployeePinLogin';
 import CategoryFilter from '../../components/CategoryFilter';
 import { DiscountValidator } from '../../components/DiscountValidator';
+import { ItemDiscountModal } from '../../components/ItemDiscountModal';
 import useStore from '../../store/useStore';
 import { printReceipt } from '../../utils/printer';
-import { PaymentDetails, Employee, DiscountValidationResponse, TaxRate } from '../../types';
+import { PaymentDetails, Employee, DiscountValidationResponse, TaxRate, CartItem } from '../../types';
 import { getCustomers, getEmployees, getTaxRates, getDefaultTaxRate } from '../../lib/api';
 import { Customer } from '../../types';
 import loyaltyService from '../../lib/loyalty';
@@ -27,6 +28,8 @@ export default function POSScreen() {
     addToCart,
     removeFromCart,
     updateCartItemQuantity,
+    updateCartItemDiscount,
+    removeCartItemDiscount,
     createOrder,
     settings,
     formatPrice,
@@ -65,6 +68,8 @@ export default function POSScreen() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [showDiscountModal, setShowDiscountModal] = useState(false);
   const [appliedDiscount, setAppliedDiscount] = useState<DiscountValidationResponse | null>(null);
+  const [showItemDiscountModal, setShowItemDiscountModal] = useState(false);
+  const [selectedCartItem, setSelectedCartItem] = useState<CartItem | null>(null);
 
   // Check for low stock alerts when component mounts
   useEffect(() => {
@@ -103,12 +108,21 @@ export default function POSScreen() {
     return <Redirect href="/(tabs)/dashboard" />;
   }
 
-  const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const discountAmount = appliedDiscount?.discountAmount || 0;
+  // Calculate totals with per-item discounts
+  const calculateItemSubtotal = (item: CartItem) => {
+    const itemTotal = item.price * item.quantity;
+    const itemDiscount = item.discountAmount || 0;
+    return itemTotal - itemDiscount;
+  };
+
+  const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const totalItemDiscounts = cart.reduce((sum, item) => sum + (item.discountAmount || 0), 0);
+  const orderDiscountAmount = appliedDiscount?.discountAmount || 0;
+  const discountAmount = orderDiscountAmount + totalItemDiscounts;
   const discountValue = appliedDiscount?.promotion?.discountValue || 0;
   
-  // Calculate tax using global approach (simpler and more common)
-  const subtotal = total - discountAmount; // Apply discount first
+  // Calculate subtotal after all discounts
+  const subtotal = total - discountAmount;
   const taxAmount = defaultTaxRate ? subtotal * (defaultTaxRate.rate / 100) : 0;
   const finalTotal = subtotal + taxAmount;
 
@@ -140,6 +154,21 @@ export default function POSScreen() {
     showAlert('Discount Removed', 'Discount has been removed from the order', 'info');
   };
 
+  const handleItemDiscount = (item: CartItem) => {
+    setSelectedCartItem(item);
+    setShowItemDiscountModal(true);
+  };
+
+  const handleUpdateItemDiscount = (itemId: string, discountValue: number, discountType: 'percentage' | 'fixed_amount') => {
+    updateCartItemDiscount(itemId, discountValue, discountType);
+    showAlert('Item Discount Applied', 'Discount has been applied to the item', 'success');
+  };
+
+  const handleRemoveItemDiscount = (itemId: string) => {
+    removeCartItemDiscount(itemId);
+    showAlert('Item Discount Removed', 'Discount has been removed from the item', 'info');
+  };
+
   const handleSelectCustomer = (customer: Customer) => {
     setSelectedCustomer(customer);
     setShowCustomerModal(false);
@@ -151,7 +180,7 @@ export default function POSScreen() {
       let discountCode = appliedDiscount?.discountCode;
       
       // Pass customer and employee to createOrder if selected
-      const order = await createOrder(paymentDetails, finalTotal, total, discountAmount, discountValue, taxAmount, discountCode, selectedCustomer || undefined);
+      const order = await createOrder(paymentDetails, finalTotal, total, orderDiscountAmount, discountValue, taxAmount, discountCode, selectedCustomer || undefined);
 
       // Log the authenticated employee
       if (authenticatedEmployee) {
@@ -382,30 +411,62 @@ export default function POSScreen() {
           )}
           <FlatList
             data={cart}
-            renderItem={({ item }) => (
-              <View style={styles.cartItem}>
-                <Text style={styles.cartItemName}>{item.name}</Text>
-                <View style={styles.quantityContainer}>
-                  <Pressable
-                    onPress={() => updateCartItemQuantity(item.id, Math.max(0, item.quantity - 1))}
-                    style={styles.quantityButton}>
-                    <Ionicons name="remove" size={20} color="#007AFF" />
-                  </Pressable>
-                  <Text style={styles.quantity}>{item.quantity}</Text>
-                  <Pressable
-                    onPress={() => updateCartItemQuantity(item.id, item.quantity + 1)}
-                    style={styles.quantityButton}>
-                    <Ionicons name="add" size={20} color="#007AFF" />
-                  </Pressable>
+            renderItem={({ item }) => {
+              const itemTotal = item.price * item.quantity;
+              const itemDiscount = item.discountAmount || 0;
+              const itemSubtotal = itemTotal - itemDiscount;
+              
+              return (
+                <View style={styles.cartItem}>
+                  <View style={styles.cartItemInfo}>
+                    <Text style={styles.cartItemName}>{item.name}</Text>
+                    {itemDiscount > 0 && (
+                      <View style={styles.itemDiscountInfo}>
+                        <Text style={styles.itemDiscountText}>
+                          {item.discountType === 'percentage' 
+                            ? `${item.discountValue}% off` 
+                            : `-${formatPrice(itemDiscount)}`
+                          }
+                        </Text>
+                      </View>
+                    )}
+                    <Text style={styles.cartItemPrice}>
+                      {formatPrice(itemSubtotal)}
+                      {itemDiscount > 0 && (
+                        <Text style={styles.originalPrice}> {formatPrice(itemTotal)}</Text>
+                      )}
+                    </Text>
+                  </View>
+                  
+                  <View style={styles.cartItemActions}>
+                    <View style={styles.quantityContainer}>
+                      <Pressable
+                        onPress={() => updateCartItemQuantity(item.id, Math.max(0, item.quantity - 1))}
+                        style={styles.quantityButton}>
+                        <Ionicons name="remove" size={20} color="#007AFF" />
+                      </Pressable>
+                      <Text style={styles.quantity}>{item.quantity}</Text>
+                      <Pressable
+                        onPress={() => updateCartItemQuantity(item.id, item.quantity + 1)}
+                        style={styles.quantityButton}>
+                        <Ionicons name="add" size={20} color="#007AFF" />
+                      </Pressable>
+                    </View>
+                    
+                    <View style={styles.cartItemButtons}>
+                      <Pressable 
+                        onPress={() => handleItemDiscount(item)}
+                        style={styles.discountButton}>
+                        <Ionicons name="pricetag-outline" size={18} color="#34C759" />
+                      </Pressable>
+                      <Pressable onPress={() => removeFromCart(item.id)}>
+                        <Ionicons name="trash-outline" size={20} color="#FF3B30" />
+                      </Pressable>
+                    </View>
+                  </View>
                 </View>
-                <Text style={styles.cartItemPrice}>
-                  {formatPrice(item.price * item.quantity)}
-                </Text>
-                <Pressable onPress={() => removeFromCart(item.id)}>
-                  <Ionicons name="trash-outline" size={20} color="#FF3B30" />
-                </Pressable>
-              </View>
-            )}
+              );
+            }}
             keyExtractor={(item) => item.id}
           />
 
@@ -437,20 +498,38 @@ export default function POSScreen() {
           </View>
 
           <View style={styles.totalContainer}>
-            {appliedDiscount && (
-              <>
-                <View style={styles.subtotalRow}>
-                  <Text style={styles.subtotalText}>Subtotal:</Text>
-                  <Text style={styles.subtotalAmount}>{formatPrice(total)}</Text>
-                </View>
-                <View style={styles.discountRow}>
-                  <Text style={styles.discountText}>Discount:</Text>
-                  <Text style={styles.discountAmountText}>-{formatPrice(discountAmount)}</Text>
-                </View>
-              </>
+            {/* Always show original subtotal */}
+            <View style={styles.subtotalRow}>
+              <Text style={styles.subtotalText}>Subtotal:</Text>
+              <Text style={styles.subtotalAmount}>{formatPrice(total)}</Text>
+            </View>
+            
+            {totalItemDiscounts > 0 && (
+              <View style={styles.discountRow}>
+                <Text style={styles.discountText}>Item Discounts:</Text>
+                <Text style={styles.discountAmountText}>-{formatPrice(totalItemDiscounts)}</Text>
+              </View>
             )}
-            <Text style={styles.totalText}>Total:</Text>
-            <Text style={styles.totalAmount}>{formatPrice(finalTotal)}</Text>
+            
+            {/* Show subtotal after item discounts */}
+            {(totalItemDiscounts > 0 || orderDiscountAmount > 0) && (
+              <View style={styles.subtotalRow}>
+                <Text style={styles.subtotalText}>Subtotal after discounts:</Text>
+                <Text style={styles.subtotalAmount}>{formatPrice(subtotal)}</Text>
+              </View>
+            )}
+            
+            {orderDiscountAmount > 0 && (
+              <View style={styles.discountRow}>
+                <Text style={styles.discountText}>Order Discount{appliedDiscount?.discountCode ? ` (${appliedDiscount.discountCode})` : ''}:</Text>
+                <Text style={styles.discountAmountText}>-{formatPrice(orderDiscountAmount)}</Text>
+              </View>
+            )}
+            
+            <View style={styles.totalRow}>
+              <Text style={styles.totalText}>Total:</Text>
+              <Text style={styles.totalAmount}>{formatPrice(finalTotal)}</Text>
+            </View>
           </View>
           <Pressable
             style={[styles.checkoutButton, (cart.length === 0 || !authenticatedEmployee) && styles.disabledButton]}
@@ -551,6 +630,14 @@ export default function POSScreen() {
           cartItems={cart}
           storeId={1} // You may want to get this from settings or store
           customer={selectedCustomer}
+        />
+
+        <ItemDiscountModal
+          visible={showItemDiscountModal}
+          onClose={() => setShowItemDiscountModal(false)}
+          cartItem={selectedCartItem}
+          onUpdateItemDiscount={handleUpdateItemDiscount}
+          onRemoveItemDiscount={handleRemoveItemDiscount}
         />
 
         <EmployeePinLogin
@@ -672,15 +759,51 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   cartItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#e5e5e5',
+    paddingVertical: 12,
+  },
+  cartItemInfo: {
+    flex: 1,
   },
   cartItemName: {
-    flex: 1,
     fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  itemDiscountInfo: {
+    marginBottom: 4,
+  },
+  itemDiscountText: {
+    fontSize: 12,
+    color: '#34C759',
+    fontWeight: '600',
+  },
+  cartItemPrice: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#007AFF',
+    marginBottom: 4,
+  },
+  originalPrice: {
+    fontSize: 14,
+    color: '#888',
+    textDecorationLine: 'line-through',
+    fontWeight: 'normal',
+  },
+  cartItemActions: {
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+    gap: 8,
+  },
+  cartItemButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  discountButton: {
+    padding: 6,
+    borderRadius: 4,
+    backgroundColor: '#f0f9ff',
   },
   quantityContainer: {
     flexDirection: 'row',
@@ -694,17 +817,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginHorizontal: 8,
   },
-  cartItemPrice: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginRight: 16,
-  },
   totalContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: 16,
     paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e5e5',
+  },
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
+    paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: '#e5e5e5',
   },

@@ -34,6 +34,8 @@ interface StoreState {
   addToCart: (product: Product) => void;
   removeFromCart: (productId: string) => void;
   updateCartItemQuantity: (productId: string, quantity: number) => void;
+  updateCartItemDiscount: (productId: string, discountValue: number, discountType: 'percentage' | 'fixed_amount') => void;
+  removeCartItemDiscount: (productId: string) => void;
   clearCart: () => void;
   createOrder: (paymentDetails: PaymentDetails[], totalAmount: number, subtotalAmount: number, discountAmount: number, discountValue: number, taxAmount: number, discountCode?:string, customer?: Customer) => Promise<Order | undefined>;
   updateCurrency: (currency: Currency) => Promise<void>;
@@ -399,6 +401,41 @@ const useStore = create<StoreState>((set, get) => ({
         : state.cart.map(item =>
             item.id === productId ? { ...item, quantity } : item
           )
+    }));
+  },
+
+  updateCartItemDiscount: (productId, discountValue, discountType) => {
+    set(state => ({
+      cart: state.cart.map(item => {
+        if (item.id === productId) {
+          const itemTotal = item.price * item.quantity;
+          let discountAmount = 0;
+          
+          if (discountType === 'percentage') {
+            discountAmount = (itemTotal * discountValue) / 100;
+          } else {
+            discountAmount = Math.min(discountValue, itemTotal);
+          }
+          
+          return {
+            ...item,
+            discountValue,
+            discountType,
+            discountAmount
+          };
+        }
+        return item;
+      })
+    }));
+  },
+
+  removeCartItemDiscount: (productId) => {
+    set(state => ({
+      cart: state.cart.map(item =>
+        item.id === productId 
+          ? { ...item, discountValue: 0, discountAmount: 0, discountType: undefined }
+          : item
+      )
     }));
   },
 

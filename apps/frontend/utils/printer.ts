@@ -153,11 +153,25 @@ const webPrinter = {
               const price = safeToNumber(item.price);
               const quantity = safeToInteger(item.quantity);
               const itemTotal = price * quantity;
+              const itemDiscount = item.discountAmount || 0;
+              const itemSubtotal = itemTotal - itemDiscount;
+              
               return `
                 <div class="item">
                   <div>${item.name}</div>
                   <div class="item-details">
                     ${quantity} x ${formatPrice(price)} = ${formatPrice(itemTotal)}
+                    ${itemDiscount > 0 ? `
+                      <div style="font-size: 0.9em; color: #e74c3c;">
+                        Discount: ${item.discountType === 'percentage' 
+                          ? `${item.discountValue}% off` 
+                          : `-${formatPrice(itemDiscount)}`
+                        }
+                      </div>
+                      <div style="font-weight: bold;">
+                        Subtotal: ${formatPrice(itemSubtotal)}
+                      </div>
+                    ` : ''}
                   </div>
                 </div>
               `;
@@ -173,18 +187,31 @@ const webPrinter = {
                 <div>${formatPrice(order.subtotal)}</div>
               </div>
             ` : ''}
+            
+            <!-- Show item discounts separately if any exist -->
+            ${(order.items || []).some(item => item.discountAmount && item.discountAmount > 0) ? `
+              <div class="item">
+                <div>Item Discounts:</div>
+                <div style="color: #e74c3c;">-${formatPrice(
+                  (order.items || []).reduce((sum, item) => sum + (item.discountAmount || 0), 0)
+                )}</div>
+              </div>
+            ` : ''}
+            
             ${order.discountAmount && order.discountAmount > 0 ? `
               <div class="item">
-                <div>Discount${order.discountCode ? ` (${order.discountCode})` : ''}:</div>
+                <div>Order Discount${order.discountCode ? ` (${order.discountCode})` : ''}:</div>
                 <div style="color: #e74c3c;">-${formatPrice(order.discountAmount)}</div>
               </div>
             ` : ''}
+            
             ${order.taxAmount && order.taxAmount > 0 ? `
               <div class="item">
                 <div>Tax:</div>
                 <div>${formatPrice(order.taxAmount)}</div>
               </div>
             ` : ''}
+            
             <div class="item" style="font-weight: bold; font-size: 1.1em; border-top: 1px solid #000; padding-top: 5px; margin-top: 5px;">
               <div>Total:</div>
               <div>${formatPrice(order.total || 0)}</div>
