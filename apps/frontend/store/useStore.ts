@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { Product, CartItem, Order, Currency, Settings, StoreInfo, PrinterSettings, PaymentDetails, PaymentConfig, StockAlert, Customer, Employee, Category, Supplier, TaxRate } from '../types';
-import { apiClient, configureAPI, getTaxRates, getDefaultTaxRate } from '../lib/api';
+import { Product, CartItem, Order, Currency, Settings, StoreInfo, PrinterSettings, PaymentDetails, PaymentConfig, StockAlert, Customer, Employee, Category, Supplier, TaxRate, InventoryMovement, InventoryMovementsResponse, LowStockResponse, InventorySummary, RecordMovementRequest, AdjustStockRequest } from '../types';
+import { apiClient, configureAPI, getTaxRates, getDefaultTaxRate, getLowStockProducts, recordMovement, adjustStock } from '../lib/api';
 import { safeToFixed } from '../utils/formatters';
 import paymentService from '../lib/payment';
 import stockAlertService from '../lib/stockAlerts';
@@ -16,6 +16,9 @@ interface StoreState {
   stockAlerts: StockAlert[];
   taxRates: TaxRate[];
   defaultTaxRate: TaxRate | null;
+  inventoryMovements: InventoryMovementsResponse | null;
+  lowStockProducts: LowStockResponse | null;
+  inventorySummary: InventorySummary | null;
   initializing: boolean;
   authenticatedEmployee: Employee | null;
   employeeAuthTimeout: NodeJS.Timeout | null;
@@ -48,6 +51,9 @@ interface StoreState {
   setAuthenticatedEmployee: (employee: Employee | null) => void;
   clearEmployeeAuth: () => void;
   refreshTaxRates: () => Promise<void>;
+  recordInventoryMovement: (movement: RecordMovementRequest) => Promise<void>;
+  adjustInventoryStock: (adjustment: AdjustStockRequest) => Promise<void>;
+  refreshInventoryData: () => Promise<void>;
   userId?: string;
 }
 
@@ -93,6 +99,9 @@ const useStore = create<StoreState>((set, get) => ({
   stockAlerts: [],
   taxRates: [],
   defaultTaxRate: null,
+  inventoryMovements: null,
+  lowStockProducts: null,
+  inventorySummary: null,
   initializing: false,
   authenticatedEmployee: null,
   employeeAuthTimeout: null,
@@ -431,6 +440,16 @@ const useStore = create<StoreState>((set, get) => ({
     try {
       await apiClient.addOrder(order);
       
+      // Record inventory movements for each cart item
+      for (const cartItem of cart) {
+        await get().recordInventoryMovement({
+          productId: cartItem.id,
+          type: 'sale',
+          quantity: -cartItem.quantity, // Negative for sales
+          referenceId: order.id,
+        });
+      }
+      
       // Update product stock levels
       const updatedProducts = products.map(product => {
         const cartItem = cart.find(item => item.id === product.id);
@@ -616,6 +635,49 @@ const useStore = create<StoreState>((set, get) => ({
       set({ taxRates: taxRatesData, defaultTaxRate: defaultTaxRateData });
     } catch (error) {
       console.error('Failed to refresh tax rates:', error);
+    }
+  },
+
+  recordInventoryMovement: async (movement: RecordMovementRequest) => {
+    try {
+      await recordMovement(movement);
+      // Refresh inventory data after recording movement
+      await get().refreshInventoryData();
+    } catch (error) {
+      console.error('Failed to record inventory movement:', error);
+      throw error;
+    }
+  },
+
+  adjustInventoryStock: async (adjustment: AdjustStockRequest) => {
+    try {
+      await adjustStock(adjustment);
+      // Refresh inventory data after adjustment
+      await get().refreshInventoryData();
+      // Update product stock in local state
+      const { products } = get();
+      const updatedProducts = products.map(product =>
+        product.id === adjustment.productId
+          ? { ...product, stock: adjustment.newStock }
+          : product
+      );
+      set({ products: updatedProducts });
+    } catch (error) {
+      console.error('Failed to adjust inventory stock:', error);
+      throw error;
+    }
+  },
+
+  refreshInventoryData: async () => {
+    try {
+      const [lowStockData] = await Promise.all([
+        getLowStockProducts(),
+      ]);
+      set({ 
+        lowStockProducts: lowStockData,
+      });
+    } catch (error) {
+      console.error('Failed to refresh inventory data:', error);
     }
   }
 }));

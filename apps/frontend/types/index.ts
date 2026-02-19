@@ -521,3 +521,70 @@ export interface TaxRate {
   createdAt?: string;
   updatedAt?: string;
 }
+
+// Inventory Management Types
+export type InventoryMovementType = 'sale' | 'purchase' | 'adjustment' | 'return';
+
+export interface InventoryMovement {
+  id: string;
+  productId: string;
+  type: InventoryMovementType;
+  quantity: number; // Negative for sales, positive for purchases
+  referenceId?: string; // orderId or purchaseId
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InventoryMovementsResponse {
+  movements: InventoryMovement[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface LowStockProduct {
+  id: string;
+  name: string;
+  currentStock: number;
+  minStock: number;
+  categoryId?: string;
+  categoryName?: string;
+}
+
+export interface LowStockResponse {
+  lowStockCount: number;
+  products: LowStockProduct[];
+}
+
+export interface InventoryStock {
+  totalProducts: number;
+  totalQuantity: number;
+  totalValue: number;
+  lowStockCount: number;
+  outOfStockCount: number;
+}
+
+export interface TodayMovements {
+  sales: number;
+  purchases: number;
+  returns: number;
+  adjustments: number;
+}
+
+export interface InventorySummary {
+  stock: InventoryStock;
+  todayMovements: TodayMovements;
+}
+
+export interface RecordMovementRequest {
+  productId: string;
+  type: InventoryMovementType;
+  quantity: number;
+  referenceId?: string;
+}
+
+export interface AdjustStockRequest {
+  productId: string;
+  newStock: number;
+  reason?: string;
+}

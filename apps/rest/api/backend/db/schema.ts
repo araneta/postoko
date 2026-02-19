@@ -356,7 +356,7 @@ export const taxRatesTable = pgTable("tax_rates", {
   rate: numeric({ precision: 5, scale: 2 }).notNull(), // 10.00 = 10%
   isDefault: boolean().notNull().default(false),
   isActive: boolean().notNull().default(true),
-  createdAt: timestamp().notNull().defaultNow(),
+  createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 }, (table) => ({
   storeIndex: index("tax_rates_store_idx").on(table.storeInfoId),
 }));
@@ -373,7 +373,7 @@ export const inventoryMovementsTable = pgTable("inventory_movements", {
 
   referenceId: varchar({ length: 36 }), // orderId or supplier purchaseId
 
-  createdAt: timestamp().notNull().defaultNow(),
+  createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 }, (table) => ({
   productIndex: index("inventory_product_idx").on(table.productId),
   storeIndex: index("inventory_store_idx").on(table.storeInfoId),

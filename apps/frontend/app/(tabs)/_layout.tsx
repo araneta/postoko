@@ -67,10 +67,10 @@ export default function TabLayout() {
   // Define menu access based on role
   const getAllowedTabs = (roleName?: string) => {
     const roleMenus = {
-      staff: ['dashboard', 'index', 'products', 'categories', 'alerts'],
+      staff: ['dashboard', 'index', 'products', 'categories', 'alerts', 'inventory'],
       cashier: ['dashboard', 'index', 'orders', 'customers'],
-      manager: ['dashboard', 'index', 'products', 'categories', 'alerts', 'orders', 'analytics', 'customers', 'suppliers', 'employees', 'promotions', 'tax-rates'],
-      admin: ['dashboard', 'index', 'products', 'categories', 'alerts', 'orders', 'analytics', 'customers', 'suppliers', 'employees', 'promotions', 'tax-rates', 'settings']
+      manager: ['dashboard', 'index', 'products', 'categories', 'alerts', 'orders', 'analytics', 'customers', 'suppliers', 'employees', 'promotions', 'tax-rates', 'inventory'],
+      admin: ['dashboard', 'index', 'products', 'categories', 'alerts', 'orders', 'analytics', 'customers', 'suppliers', 'employees', 'promotions', 'tax-rates', 'settings', 'inventory']
     };
 
     return roleMenus[roleName as keyof typeof roleMenus] || ['dashboard', 'index'];
@@ -216,6 +216,16 @@ export default function TabLayout() {
             <Ionicons name="receipt" size={size} color={color} />
           ),
           href: allowedTabs.includes('tax-rates') ? undefined : null,
+        }}
+      />
+      <Tabs.Screen
+        name="inventory"
+        options={{
+          title: 'Inventory',
+          tabBarIcon: ({ size, color }) => (
+            <Ionicons name="bar-chart" size={size} color={color} />
+          ),
+          href: allowedTabs.includes('inventory') ? undefined : null,
         }}
       />
       <Tabs.Screen

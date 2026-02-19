@@ -1,8 +1,9 @@
 import { Request, Response } from 'express';
 import { getAuth } from '@clerk/express';
+import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { db } from '../db/index.js';
 import { inventoryMovementsTable, storeInfoTable, productsTable } from '../db/schema.js';
-import { eq, and, desc, sql } from 'drizzle-orm';
+import { eq, and, desc, sql, gte, lte } from 'drizzle-orm';
 
 export default class InventoriesController {
     // Record inventory movement
@@ -319,8 +320,14 @@ export default class InventoriesController {
                 .where(eq(productsTable.storeInfoId, storeInfoId));
 
             // Get movement summary for the day
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
+            // Calculate today's date range in the store's timezone
+            const storeTimezone = storeInfo[0].timezone || 'UTC';
+            const now = toZonedTime(new Date(), storeTimezone);
+            
+            // Create start and end of day in the store's timezone
+            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+            const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
 
             const [movementSummary] = await db.select({
                 totalSales: sql<number>`SUM(CASE WHEN ${inventoryMovementsTable.type} = 'sale' THEN ABS(${inventoryMovementsTable.quantity}) ELSE 0 END)`,
@@ -331,7 +338,8 @@ export default class InventoriesController {
                 .from(inventoryMovementsTable)
                 .where(and(
                     eq(inventoryMovementsTable.storeInfoId, storeInfoId),
-                    sql`DATE(${inventoryMovementsTable.createdAt}) = DATE(${today})`
+                    gte(inventoryMovementsTable.createdAt, todayStart),
+                    lte(inventoryMovementsTable.createdAt, todayEnd)
                 ));
 
             res.status(200).json({

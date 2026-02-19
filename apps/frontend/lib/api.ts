@@ -7,7 +7,7 @@ if (__DEV__) {
 }
 const BASE_URL = baseurl;
 
-import { User, Product, Order, Settings, Customer, CustomerPurchase, Employee, Role, CartItem, StripeSessionData, StripeSessionDetails, PayPalOrdersCreateRequest, OrdersGetRequest, EmployeePINLoginResponse, EmployeeSales, EmployeePerformance, EmployeeSalesDetail, Category, Supplier, Promotion, DiscountValidationRequest, DiscountValidationResponse, PromotionStats, TaxRate } from '../types';
+import { User, Product, Order, Settings, Customer, CustomerPurchase, Employee, Role, CartItem, StripeSessionData, StripeSessionDetails, PayPalOrdersCreateRequest, OrdersGetRequest, EmployeePINLoginResponse, EmployeeSales, EmployeePerformance, EmployeeSalesDetail, Category, Supplier, Promotion, DiscountValidationRequest, DiscountValidationResponse, PromotionStats, TaxRate, InventoryMovement, InventoryMovementsResponse, LowStockResponse, InventorySummary, RecordMovementRequest, AdjustStockRequest } from '../types';
 import { safeToNumber, safeToInteger } from '../utils/formatters';
 import { mockCategoryService } from './mockCategoryService';
 
@@ -455,6 +455,40 @@ class APIClient {
       body: JSON.stringify({ productId, taxRateId, isTaxable }),
     });
   }
+
+  // Inventory Management
+  async recordMovement(movement: RecordMovementRequest): Promise<InventoryMovement> {
+    return this.fetchJSON<InventoryMovement>(`${BASE_URL}/inventory/movements`, {
+      method: 'POST',
+      body: JSON.stringify(movement),
+    });
+  }
+
+  async getMovementsByProduct(productId: string, limit: number = 50, offset: number = 0): Promise<InventoryMovementsResponse> {
+    return this.fetchJSON<InventoryMovementsResponse>(`${BASE_URL}/inventory/movements/product/${productId}?limit=${limit}&offset=${offset}`);
+  }
+
+  async getMovementsByStore(type?: string, limit: number = 100, offset: number = 0): Promise<InventoryMovementsResponse> {
+    const url = type 
+      ? `${BASE_URL}/inventory/movements?type=${type}&limit=${limit}&offset=${offset}`
+      : `${BASE_URL}/inventory/movements?limit=${limit}&offset=${offset}`;
+    return this.fetchJSON<InventoryMovementsResponse>(url);
+  }
+
+  async getLowStockProducts(): Promise<LowStockResponse> {
+    return this.fetchJSON<LowStockResponse>(`${BASE_URL}/inventory/low-stock`);
+  }
+
+  async getStockSummary(): Promise<InventorySummary> {
+    return this.fetchJSON<InventorySummary>(`${BASE_URL}/inventory/summary`);
+  }
+
+  async adjustStock(adjustment: AdjustStockRequest): Promise<void> {
+    await this.fetchJSON(`${BASE_URL}/inventory/adjust`, {
+      method: 'PUT',
+      body: JSON.stringify(adjustment),
+    });
+  }
 }
 
 // Create a singleton instance
@@ -542,3 +576,11 @@ export const updateTaxRate = (id: number, taxRate: Partial<TaxRate>) => apiClien
 export const deleteTaxRate = (id: number) => apiClient.deleteTaxRate(id);
 export const getDefaultTaxRate = () => apiClient.getDefaultTaxRate();
 export const assignTaxRateToProduct = (productId: string, taxRateId: number, isTaxable: boolean = true) => apiClient.assignTaxRateToProduct(productId, taxRateId, isTaxable);
+
+// Inventory Management exports
+export const recordMovement = (movement: RecordMovementRequest) => apiClient.recordMovement(movement);
+export const getMovementsByProduct = (productId: string, limit?: number, offset?: number) => apiClient.getMovementsByProduct(productId, limit, offset);
+export const getMovementsByStore = (type?: string, limit?: number, offset?: number) => apiClient.getMovementsByStore(type, limit, offset);
+export const getLowStockProducts = () => apiClient.getLowStockProducts();
+export const getStockSummary = () => apiClient.getStockSummary();
+export const adjustStock = (adjustment: AdjustStockRequest) => apiClient.adjustStock(adjustment);
