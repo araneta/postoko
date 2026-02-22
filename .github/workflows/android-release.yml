@@ -35,7 +35,7 @@ jobs:
       - name: Build Release
         working-directory: apps/frontend/android
         env:
-          SENTRY_DISABLE_AUTO_UPLOAD: true
+          SENTRY_DISABLE_AUTO_UPLOAD: "true"
           MYAPP_UPLOAD_STORE_PASSWORD: ${{ secrets.MYAPP_UPLOAD_STORE_PASSWORD }}
           MYAPP_UPLOAD_KEY_ALIAS: ${{ secrets.MYAPP_UPLOAD_KEY_ALIAS }}
           MYAPP_UPLOAD_KEY_PASSWORD: ${{ secrets.MYAPP_UPLOAD_KEY_PASSWORD }}
