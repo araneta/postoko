@@ -182,3 +182,7 @@ dependencies {
         implementation jscFlavor
     }
 }
+project.ext.sentryCli = [
+    uploadNativeSymbols: false,
+    uploadSourceMaps: false,
+]
