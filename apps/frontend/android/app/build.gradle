@@ -1,9 +1,11 @@
-project.ext.sentryCli = [
-    uploadNativeSymbols: false,
-    uploadSourceMaps: false,
-    autoUpload: false
-]
-
+// Disable Sentry upload in CI
+if (System.getenv("CI") == "true") {
+    project.ext.sentryCli = [
+        uploadNativeSymbols: false,
+        uploadSourceMaps: false,
+        autoUpload: false
+    ]
+}
 apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
