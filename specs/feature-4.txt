@@ -14,7 +14,7 @@ todo:
 8.5 Alert. change to custome alert [done]
 8.6 tax [done]
 8.7 stock managemt [done]
-8.8. discount per item
+8.8. discount per item [done]
 8.9. bluetoot printer
 
 9. Cloud Sync & Backup
