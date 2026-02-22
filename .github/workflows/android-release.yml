@@ -31,7 +31,10 @@ jobs:
         working-directory: apps/frontend/android/app
         run: |
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > my-release-key.keystore
-
+      
+      - name: Disable Sentry for CI
+        run: rm -f apps/frontend/android/sentry.properties
+        
       - name: Build Release
         working-directory: apps/frontend/android
         env:
