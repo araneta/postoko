@@ -54,7 +54,7 @@ jobs:
         working-directory: apps/frontend/android
         run: |
           export GRADLE_OPTS="-Xmx4g"
-          ./gradlew assembleDebug \
+          ./gradlew assembleRelease \
             -PreactNativeArchitectures=arm64-v8a \
             --no-daemon \
             --max-workers=2
