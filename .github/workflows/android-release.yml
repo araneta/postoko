@@ -27,11 +27,11 @@ jobs:
 
       - uses: android-actions/setup-android@v3
 
-      - name: Decode Keystore
-        working-directory: apps/frontend/android/app
-        run: |
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > my-release-key.keystore
       
+      - name: Decode Keystore
+        run: |
+          echo "${{ secrets.MYAPP_UPLOAD_KEYSTORE_BASE64 }}" | base64 -d > apps/frontend/android/app/my-release-key.keystore
+          
       - name: Disable Sentry for CI
         run: rm -f apps/frontend/android/sentry.properties
         
