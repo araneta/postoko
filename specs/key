@@ -1,0 +1,12 @@
+MYAPP_UPLOAD_KEYSTORE_BASE64
+MYAPP_UPLOAD_STORE_PASSWORD=willamette
+MYAPP_UPLOAD_KEY_ALIAS=keypos
+MYAPP_UPLOAD_KEY_PASSWORD=willamette
+keytool -genkeypair \
+  -v \
+  -storetype PKCS12 \
+  -keystore my-release-key.keystore \
+  -alias keypos \
+  -keyalg RSA \
+  -keysize 2048 \
+  -validity 10000
