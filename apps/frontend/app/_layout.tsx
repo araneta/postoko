@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
+import { Platform, View, ActivityIndicator } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View, ActivityIndicator } from 'react-native';
 import { ClerkProvider, useAuth, useUser } from '@clerk/clerk-expo'
 import { tokenCache } from '@clerk/clerk-expo/token-cache'
 import { configureAPI } from "../lib/api";
@@ -11,6 +11,8 @@ import useStore from '../store/useStore';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as Sentry from '@sentry/react-native';
 import notificationService from '../lib/notifications';
+import ErrorBoundary from '../components/ErrorBoundary';
+import debugLogger from '../utils/debugLogger';
 
 Sentry.init({
   dsn: 'https://512d7a27643ac90973c0cfdfad4e064d@o4509443348365312.ingest.de.sentry.io/4509443351838800',
@@ -36,13 +38,25 @@ function AppContent() {
   const { isLoaded, isSignedIn, getToken } = useAuth();
   const { user } = useUser();
 
+  // Log app initialization
+  useEffect(() => {
+    debugLogger.info('AppContent component mounted');
+    debugLogger.info('Device info:', {
+      platform: typeof Platform !== 'undefined' ? Platform.OS : 'unknown',
+      isDev: __DEV__,
+      timestamp: new Date().toISOString()
+    });
+  }, []);
+
   useEffect(() => {
     // Initialize notifications
     const initializeNotifications = async () => {
       try {
+        debugLogger.info('Initializing push notifications');
         await notificationService.registerForPushNotificationsAsync();
+        debugLogger.info('Push notifications initialized successfully');
       } catch (error) {
-        console.error('Failed to initialize notifications:', error);
+        debugLogger.error('Failed to initialize notifications:', error);
       }
     };
 
@@ -51,28 +65,37 @@ function AppContent() {
 
   useEffect(() => {
     // Only initialize store if user is signed in
-    console.log('isLoaded:', isLoaded, 'isSignedIn:', isSignedIn, 'user:', user);
+    debugLogger.info('Auth state changed:', { isLoaded, isSignedIn, hasUser: !!user });
     if (isLoaded && isSignedIn && user) {
       const initializeWithToken = async () => {
-        //const token = await getToken();
+        debugLogger.info('Initializing store for signed-in user:', user.id);
         
         initializeStore().finally(() => {
           setInitializing(false);
-          window.frameworkReady?.();
+          debugLogger.info('Store initialization completed');
+          // Call framework ready if available (web only)
+          if (typeof window !== 'undefined' && window.frameworkReady) {
+            window.frameworkReady();
+          }
         });
       };
       
       initializeWithToken();
     } else if (isLoaded && !isSignedIn) {
       // User is not signed in, clear store and set initializing to false
+      debugLogger.info('User not signed in, clearing store');
       clearStore();
       setInitializing(false);
-      window.frameworkReady?.();
+      // Call framework ready if available (web only)
+      if (typeof window !== 'undefined' && window.frameworkReady) {
+        window.frameworkReady();
+      }
     }
   }, [isLoaded, isSignedIn, user]);
 
   useEffect(() => {
     if (getToken) {
+      debugLogger.info('Configuring API with authentication token');
       configureAPI(getToken);
     }
   }, [getToken]);
@@ -86,12 +109,14 @@ function AppContent() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(home)" options={{ headerShown: false }} />
-      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="+not-found" options={{ title: 'Oops!' }} />
-    </Stack>
+    <ErrorBoundary>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(home)" options={{ headerShown: false }} />
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="+not-found" options={{ title: 'Oops!' }} />
+      </Stack>
+    </ErrorBoundary>
   );
 }
 

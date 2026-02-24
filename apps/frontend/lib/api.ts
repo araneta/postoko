@@ -48,10 +48,16 @@ class APIClient {
     });
 
     if (res.status === 401) {
-      // Redirect to login page
-      window.alert("Session expired. Please sign in again.");
-      window.location.href = "/sign-in";
-      // Optionally, return a rejected promise to stop further processing
+      // Handle unauthorized access - platform specific
+      if (typeof window !== 'undefined') {
+        // Web platform
+        window.alert("Session expired. Please sign in again.");
+        window.location.href = "/sign-in";
+      } else {
+        // React Native platform - throw error for handling at component level
+        console.warn("Session expired. Please sign in again.");
+      }
+      // Return a rejected promise to stop further processing
       return Promise.reject(new Error("Unauthorized"));
     }
 

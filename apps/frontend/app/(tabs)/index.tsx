@@ -10,6 +10,7 @@ import EmployeePinLogin from '@/components/EmployeePinLogin';
 import CategoryFilter from '../../components/CategoryFilter';
 import { DiscountValidator } from '../../components/DiscountValidator';
 import { ItemDiscountModal } from '../../components/ItemDiscountModal';
+import DebugScreen from '../../components/DebugScreen';
 import useStore from '../../store/useStore';
 import { printReceipt } from '../../utils/printer';
 import { PaymentDetails, Employee, DiscountValidationResponse, TaxRate, CartItem } from '../../types';
@@ -17,9 +18,10 @@ import { getCustomers, getEmployees, getTaxRates, getDefaultTaxRate } from '../.
 import { Customer } from '../../types';
 import loyaltyService from '../../lib/loyalty';
 import { filterProducts, filterCustomers } from '../../utils/searchUtils';
+import debugLogger from '../../utils/debugLogger';
 
 export default function POSScreen() {
-  console.log('POS screen component initialized');
+  debugLogger.info('POS screen component initialized');
   const router = useRouter();
   const {
     products,
@@ -40,7 +42,7 @@ export default function POSScreen() {
     defaultTaxRate,
     refreshTaxRates
   } = useStore();
-  console.log('Current authenticated employee in POS screen:', authenticatedEmployee);
+  debugLogger.info('Current authenticated employee in POS screen:', authenticatedEmployee);
 
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showScannerModal, setShowScannerModal] = useState(false);
@@ -60,6 +62,7 @@ export default function POSScreen() {
     type: 'info',
   });
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [showDebugScreen, setShowDebugScreen] = useState(false);
 
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
@@ -73,7 +76,7 @@ export default function POSScreen() {
 
   // Check for low stock alerts when component mounts
   useEffect(() => {
-    console.log('POS screen useEffect called');
+    debugLogger.info('POS screen useEffect called');
     checkLowStockAlerts();
     // Fetch customers and employees for selection
     (async () => {
@@ -83,14 +86,14 @@ export default function POSScreen() {
           getEmployees(),
         ]);
         setCustomers(customersData);
-        console.log('Fetched employees:', employeesData);
+        debugLogger.info('Fetched employees:', employeesData);
         setEmployees(employeesData);
         // Initialize tax rates in store if not already loaded
         if (taxRates.length === 0) {
           refreshTaxRates();
         }
       } catch (error) {
-        console.error('Failed to fetch data', error);
+        debugLogger.error('Failed to fetch data', error);
       }
     })();
   }, []);
@@ -104,7 +107,7 @@ export default function POSScreen() {
 
   // Redirect to dashboard if no employee is logged in
   if (!authenticatedEmployee) {
-    console.log('No authenticated employee, redirecting to dashboard');
+    debugLogger.info('No authenticated employee, redirecting to dashboard');
     return <Redirect href="/(tabs)/dashboard" />;
   }
 
@@ -176,7 +179,7 @@ export default function POSScreen() {
 
   const handlePaymentComplete = async (paymentDetails: PaymentDetails[]) => {
     try {
-      console.log("promotion", appliedDiscount);
+      debugLogger.info("promotion", { discount: appliedDiscount });
       let discountCode = appliedDiscount?.discountCode;
       
       // Pass customer and employee to createOrder if selected
@@ -184,10 +187,10 @@ export default function POSScreen() {
 
       // Log the authenticated employee
       if (authenticatedEmployee) {
-        console.log('Order processed by employee:', authenticatedEmployee.name);
+        debugLogger.info('Order processed by employee:', { name: authenticatedEmployee.name });
       }
 
-      console.log('order', order);
+      debugLogger.info('order', { order });
       setShowPaymentModal(false);
 
       if (order) {
@@ -222,9 +225,9 @@ export default function POSScreen() {
         );
       }
     } catch (error) {
-      console.error('Payment processing error:', error);
+      debugLogger.error('Payment processing error:', { error });
       if (Platform.OS === 'web') {
-        console.warn('Print error:', error);
+        debugLogger.warn('Print error:', { error });
       } else {
         setPrintError('Failed to process payment or print receipt. Please try again.');
         setTimeout(() => setPrintError(null), 3000);
@@ -287,9 +290,9 @@ export default function POSScreen() {
   const filteredProducts = filterProducts(products, searchQuery, selectedCategoryId);
 
   const handleEmployeeSelected = (employee: Employee) => {
-    console.log('Employee selected:', employee.name);
+    debugLogger.info('Employee selected:', { name: employee.name });
     setAuthenticatedEmployee(employee);
-    console.log('Authenticated employee set in store:', employee.name);
+    debugLogger.info('Authenticated employee set in store:', { name: employee.name });
     setShowEmployeePinModal(false);
     //router.replace('/(tabs)')
   };
@@ -370,6 +373,24 @@ export default function POSScreen() {
             <Text style={{ fontWeight: '600', fontSize: 16 }}>
               {`Employee: ${authenticatedEmployee ? (authenticatedEmployee.name || 'Unknown Employee') : 'No employee logged in'}`}
             </Text>
+            {/* Debug button - only visible in production */}
+            {!__DEV__ && (
+              <Pressable
+                style={{ 
+                  flexDirection: 'row', 
+                  alignItems: 'center', 
+                  marginTop: 8,
+                  padding: 4,
+                  backgroundColor: '#f0f0f0',
+                  borderRadius: 4,
+                  alignSelf: 'flex-start'
+                }}
+                onPress={() => setShowDebugScreen(true)}
+              >
+                <Ionicons name="bug-outline" size={16} color="#666" style={{ marginRight: 4 }} />
+                <Text style={{ fontSize: 12, color: '#666' }}>Debug Logs</Text>
+              </Pressable>
+            )}
           </View>
 
           {/* Customer Selection */}
@@ -486,7 +507,7 @@ export default function POSScreen() {
               <Pressable
                 style={styles.addDiscountButton}
                 onPress={() => {
-                  console.log('Opening discount modal with customer:', selectedCustomer?.id, selectedCustomer?.name);
+                  debugLogger.info('Opening discount modal with customer:', { id: selectedCustomer?.id, name: selectedCustomer?.name });
                   setShowDiscountModal(true);
                 }}
                 disabled={cart.length === 0}
@@ -535,9 +556,9 @@ export default function POSScreen() {
             style={[styles.checkoutButton, (cart.length === 0 || !authenticatedEmployee) && styles.disabledButton]}
             disabled={cart.length === 0 || !authenticatedEmployee}
             onPress={() => {
-              console.log('Complete Sale button pressed');
-              console.log('Cart length:', cart.length);
-              console.log('Authenticated employee:', authenticatedEmployee);
+              debugLogger.info('Complete Sale button pressed');
+              debugLogger.info('Cart length:', { length: cart.length });
+              debugLogger.info('Authenticated employee:', authenticatedEmployee);
               setShowPaymentModal(true);
             }}>
             <Text style={styles.checkoutButtonText}>Complete Sale</Text>
@@ -651,14 +672,19 @@ export default function POSScreen() {
                 const employeesData = await getEmployees();
                 setEmployees(employeesData);
               } catch (error) {
-                console.error('Failed to refresh employees', error);
+                debugLogger.error('Failed to refresh employees', error);
               }
             })();
           }}
           onClose={() => {
-            console.log('Employee PIN modal closed');
+            debugLogger.info('Employee PIN modal closed');
             setShowEmployeePinModal(false);
           }}
+        />
+
+        <DebugScreen
+          visible={showDebugScreen}
+          onClose={() => setShowDebugScreen(false)}
         />
 
       </View>
