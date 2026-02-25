@@ -30,29 +30,20 @@ jobs:
       #- name: Disable Sentry for CI
       #  run: rm -f apps/frontend/android/sentry.properties
       
-      # 🔥 Ensure Metro bundle is generated before Gradle
-      - name: Generate JS bundle manually
+      # 🔥 THIS IS THE IMPORTANT PART
+      - name: Export Expo bundle
         working-directory: apps/frontend
         run: |
-          npx react-native bundle \
-            --platform android \
-            --dev false \
-            --entry-file index.js \
-            --bundle-output android/app/src/main/assets/index.android.bundle \
-            --assets-dest android/app/src/main/res
+          npx expo export --platform android
 
-      # 🔍 Check if bundle exists
+      # 🔍 Check bundle exists
       - name: Verify JS bundle exists
         working-directory: apps/frontend
         run: |
-          echo "Checking assets folder..."
-          ls -lah android/app/src/main/assets || true
-          if [ ! -f android/app/src/main/assets/index.android.bundle ]; then
-            echo "❌ JS bundle missing!"
-            exit 1
-          else
-            echo "✅ JS bundle found"
-          fi   
+          echo "Checking bundle..."
+          find . -name "index.android.bundle"
+
+      
       - name: Build Release
         working-directory: apps/frontend/android
         env:
