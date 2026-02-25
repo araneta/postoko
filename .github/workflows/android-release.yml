@@ -27,8 +27,8 @@ jobs:
 
       - uses: android-actions/setup-android@v3
 
-      - name: Disable Sentry for CI
-        run: rm -f apps/frontend/android/sentry.properties
+      #- name: Disable Sentry for CI
+      #  run: rm -f apps/frontend/android/sentry.properties
         
       - name: Build Release
         working-directory: apps/frontend/android
