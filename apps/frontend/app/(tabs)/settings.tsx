@@ -9,6 +9,7 @@ import { Platform } from 'react-native';
 import PaymentSettings from '../../components/PaymentSettings';
 import CustomAlert from '../../components/CustomAlert';
 import loyaltyService from '../../lib/loyalty';
+//import * as Sentry from '@sentry/react-native';
 
 // Common timezones list
 const timezones = [
@@ -226,6 +227,8 @@ export default function SettingsScreen() {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Store Settings</Text>
+        {/* <Button title='Try!' onPress={ () => { Sentry.captureException(new Error('First error')) }}/> */}
+
         <Pressable 
           style={styles.settingItem}
           onPress={() => setShowCurrencyModal(true)}
