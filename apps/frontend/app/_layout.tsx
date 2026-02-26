@@ -123,7 +123,6 @@ function AppContent() {
     </ErrorBoundary>
   );
 }
-/*
 export default Sentry.wrap(function RootLayout() {
   return (
     <ClerkProvider
@@ -136,13 +135,4 @@ export default Sentry.wrap(function RootLayout() {
       </GestureHandlerRootView>
     </ClerkProvider>
   );
-});*/
-export default function RootLayout() {
-  return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <View style={{ flex:1, justifyContent:'center', alignItems:'center' }}>
-        <Text>CLERK REMOVED TEST</Text>
-      </View>
-    </GestureHandlerRootView>
-  );
-}
+});
