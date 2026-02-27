@@ -19,6 +19,12 @@ jobs:
       - name: Install dependencies
         working-directory: apps/frontend
         run: npm ci
+        
+      - name: Verify patch applied
+        working-directory: apps/frontend
+        run: |
+          echo "Checking compileSdkVersion in printer module"
+          grep -r "compileSdkVersion" node_modules/@brooons/react-native-bluetooth-escpos-printer/android/build.gradle  
 
       - uses: actions/setup-java@v4
         with:
