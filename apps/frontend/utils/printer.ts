@@ -1,5 +1,7 @@
 import { Order, PrinterDevice, Settings } from '../types';
 import { safeToFixed, safeToNumber, safeToInteger } from './formatters';
+import { Platform, PermissionsAndroid } from 'react-native';
+import { BluetoothManager } from '@brooons/react-native-bluetooth-escpos-printer';
 
 // Web printer implementation remains unchanged
 const webPrinter = {
@@ -248,6 +250,40 @@ export async function printReceipt(order: Order, settings: Settings, formatPrice
 }
 
 export async function scanPrinters(): Promise<PrinterDevice[]> {
-  // Stub: Replace with actual implementation for native platforms
-  return [];
+  try {
+    // Request necessary permissions for Android
+    if (Platform.OS === 'android') {
+      await PermissionsAndroid.requestMultiple([
+        PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
+        PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+      ]);
+    }
+
+    // Enable Bluetooth and get paired devices
+    const paired = await BluetoothManager.enableBluetooth();
+    let pairedDevices: any[] = [];
+    
+    if (paired && typeof paired === 'string') {
+      try {
+        const parsed = JSON.parse(paired);
+        pairedDevices = Array.isArray(parsed) ? parsed : [];
+      } catch (parseError) {
+        console.warn('Failed to parse paired devices:', parseError);
+        pairedDevices = [];
+      }
+    }
+
+    // Transform the devices to match PrinterDevice interface
+    const printers: PrinterDevice[] = pairedDevices.map((device: any) => ({
+      deviceId: device.address,
+      deviceName: device.name,
+      address: device.address,
+    }));
+
+    return printers;
+  } catch (error) {
+    console.error('Failed to scan Bluetooth printers:', error);
+    throw new Error('Failed to scan Bluetooth printers');
+  }
 }
