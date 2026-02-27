@@ -30,8 +30,11 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-
+                 
       - uses: android-actions/setup-android@v3
+      
+      - name: Install Android SDK 35
+        run: sdkmanager "platforms;android-35"  
 
       #- name: Disable Sentry for CI
       #  run: rm -f apps/frontend/android/sentry.properties
