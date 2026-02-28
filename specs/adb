@@ -1,0 +1,3 @@
+adb logcat -c
+./adb shell pidof com.boltexpo.pos
+./adb logcat --pid=19931
