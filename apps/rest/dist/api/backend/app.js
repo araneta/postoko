@@ -20,6 +20,9 @@ import employeesRoutes from './routes/employees.js';
 import rolesRoutes from './routes/roles.js';
 import stripeRoutes from './routes/stripe.js';
 import paypalRoutes from './routes/paypal.js';
+import promotionsRoutes from './routes/promotions.js';
+import taxratesRoutes from './routes/taxrates.js';
+import inventoriesRoutes from './routes/inventories.js';
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -42,6 +45,9 @@ app.use('/api/employees', employeesRoutes);
 app.use('/api/roles', rolesRoutes);
 app.use('/api/stripe', stripeRoutes);
 app.use('/api/paypal', paypalRoutes);
+app.use('/api/promotions', promotionsRoutes);
+app.use('/api/tax-rates', taxratesRoutes);
+app.use('/api/inventory', inventoriesRoutes);
 //imagekit auth endpoint
 // This endpoint is used to generate a signature for ImageKit uploads
 // ImageKit configuration

@@ -1,0 +1,8 @@
+	modified:   android/app/build.gradle
+	deleted:    android/app/my-release-key.keystore
+	modified:   android/gradle.properties
+	modified:   android/sentry.properties
+	modified:   ios/boltexpopos.xcodeproj/project.pbxproj
+	modified:   ios/boltexpopos/Info.plist
+	modified:   ios/boltexpopos/boltexpopos.entitlements
+	modified:   ios/sentry.properties

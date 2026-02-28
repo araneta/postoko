@@ -30,7 +30,7 @@ export default class SuppliersController {
         if (!auth.userId) {
             return res.status(401).send('Unauthorized');
         }
-        const { id, name, email, phone, address, notes } = req.body;
+        const { id, name, email, phone, address, notes, website, taxId, paymentTerms, creditLimit, currency, rating, totalOrders, totalSpent, averageDeliveryDays, isActive } = req.body;
         if (!id || !name || !email) {
             return res.status(400).json({ message: 'Missing required fields: id, name, email' });
         }
@@ -50,6 +50,16 @@ export default class SuppliersController {
                 phone: phone || '',
                 address: address || '',
                 notes: notes || '',
+                website: website || '',
+                taxId: taxId || '',
+                paymentTerms: paymentTerms || '',
+                creditLimit: creditLimit || '0.00',
+                currency: currency || 'USD',
+                rating: rating || 0,
+                totalOrders: totalOrders || 0,
+                totalSpent: totalSpent || '0.00',
+                averageDeliveryDays: averageDeliveryDays || 0,
+                isActive: isActive !== undefined ? isActive : true,
             }).returning();
             res.status(201).json(newSupplier[0]);
         }
@@ -64,13 +74,13 @@ export default class SuppliersController {
             return res.status(401).send('Unauthorized');
         }
         const supplierId = req.params.id;
-        const { name, email, phone, address, notes } = req.body;
+        const { name, email, phone, address, notes, website, taxId, paymentTerms, creditLimit, currency, rating, totalOrders, totalSpent, averageDeliveryDays, isActive } = req.body;
         if (!name || !email) {
             return res.status(400).json({ message: 'Missing required fields: name, email' });
         }
         try {
             const updatedSupplier = await db.update(suppliersTable)
-                .set({ name, email, phone: phone || '', address: address || '' })
+                .set({ name, email, phone: phone || '', address: address || '', notes: notes || '', website: website || '', taxId: taxId || '', paymentTerms: paymentTerms || '', creditLimit: creditLimit || '0.00', currency: currency || 'USD', rating: rating || 0, totalOrders: totalOrders || 0, totalSpent: totalSpent || '0.00', averageDeliveryDays: averageDeliveryDays || 0, isActive: isActive !== undefined ? isActive : true })
                 .where(eq(suppliersTable.id, supplierId))
                 .returning();
             if (updatedSupplier.length === 0) {

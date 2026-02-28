@@ -1,6 +1,6 @@
 import { getAuth } from '@clerk/express';
 import { db } from '../db/index.js';
-import { customersTable, customerPurchasesTable, storeInfoTable, ordersTable, orderItemsTable, productsTable, customerLoyaltyPointsTable } from '../db/schema.js';
+import { customersTable, storeInfoTable, ordersTable, orderItemsTable, productsTable, customerLoyaltyPointsTable } from '../db/schema.js';
 import { eq, sql, and } from 'drizzle-orm';
 export default class CustomersController {
     static async getCustomers(req, res) {

@@ -31,7 +31,8 @@ export default class SettingsController {
                             phone: settingsData.store_info.phone,
                             email: settingsData.store_info.email,
                             website: settingsData.store_info.website,
-                            taxId: settingsData.store_info.taxId
+                            taxId: settingsData.store_info.taxId,
+                            timezone: settingsData.store_info.timezone,
                         },
                         payment: null
                     });
@@ -50,7 +51,8 @@ export default class SettingsController {
                         phone: settingsData.store_info.phone,
                         email: settingsData.store_info.email,
                         website: settingsData.store_info.website,
-                        taxId: settingsData.store_info.taxId
+                        taxId: settingsData.store_info.taxId,
+                        timezone: settingsData.store_info.timezone,
                     },
                     payment: payment ? {
                         stripePublishableKey: payment.stripePublishableKey || '',
@@ -75,6 +77,7 @@ export default class SettingsController {
             return res.status(401).send('Unauthorized');
         }
         const { currency, printer, storeInfo, payment } = req.body;
+        console.log('timezone', storeInfo.timezone);
         try {
             // 1. Upsert storeInfo
             let storeInfoRecord = await db.select().from(storeInfoTable).where(eq(storeInfoTable.userId, auth.userId));
@@ -87,7 +90,8 @@ export default class SettingsController {
                     phone: storeInfo.phone || '',
                     email: storeInfo.email || '',
                     website: storeInfo.website || '',
-                    taxId: storeInfo.taxId || ''
+                    taxId: storeInfo.taxId || '',
+                    timezone: storeInfo.timezone || '',
                 }).returning();
                 storeInfoId = inserted[0].id;
             }
@@ -99,7 +103,8 @@ export default class SettingsController {
                     phone: storeInfo.phone || '',
                     email: storeInfo.email || '',
                     website: storeInfo.website || '',
-                    taxId: storeInfo.taxId || ''
+                    taxId: storeInfo.taxId || '',
+                    timezone: storeInfo.timezone || '',
                 })
                     .where(eq(storeInfoTable.userId, auth.userId))
                     .returning();
@@ -168,14 +173,16 @@ export default class SettingsController {
                 settingsResult = await db.insert(settingsTable).values({
                     currencyCode: currency.code,
                     printerSettingsId: printerSettingsId,
-                    storeInfoId: storeInfoId
+                    storeInfoId: storeInfoId,
+                    timezone: storeInfo.timezone,
                 }).returning();
             }
             else {
                 settingsResult = await db.update(settingsTable)
                     .set({
                     currencyCode: currency.code,
-                    printerSettingsId: printerSettingsId
+                    printerSettingsId: printerSettingsId,
+                    timezone: storeInfo.timezone,
                 })
                     .where(eq(settingsTable.storeInfoId, storeInfoId))
                     .returning();

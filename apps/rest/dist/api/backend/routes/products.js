@@ -127,4 +127,5 @@ router.post('', requireAuth(), ProductsController.createProduct);
  *         description: Unauthorized
  */
 router.put('/:id', requireAuth(), ProductsController.updateProduct);
+router.delete('/:id', requireAuth(), ProductsController.deleteProduct);
 export default router;

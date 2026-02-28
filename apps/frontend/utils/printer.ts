@@ -251,39 +251,86 @@ export async function printReceipt(order: Order, settings: Settings, formatPrice
 
 export async function scanPrinters(): Promise<PrinterDevice[]> {
   try {
+    console.log('Starting Bluetooth printer scan...');
+    
     // Request necessary permissions for Android
     if (Platform.OS === 'android') {
-      await PermissionsAndroid.requestMultiple([
+      console.log('Requesting Android Bluetooth permissions...');
+      const permissions = await PermissionsAndroid.requestMultiple([
         PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
         PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
         PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
       ]);
+      
+      console.log('Permission results:', permissions);
+      
+      // Check if all permissions were granted
+      const allGranted = Object.values(permissions).every(status => status === 'granted');
+      if (!allGranted) {
+        console.warn('Not all Bluetooth permissions were granted');
+      }
     }
 
     // Enable Bluetooth and get paired devices
+    console.log('Enabling Bluetooth...');
     const paired = await BluetoothManager.enableBluetooth();
+    console.log('Bluetooth enable result:', paired);
+    
     let pairedDevices: any[] = [];
     
     if (paired && typeof paired === 'string') {
       try {
         const parsed = JSON.parse(paired);
         pairedDevices = Array.isArray(parsed) ? parsed : [];
+        console.log('Parsed paired devices:', pairedDevices);
       } catch (parseError) {
         console.warn('Failed to parse paired devices:', parseError);
         pairedDevices = [];
+      }
+    } else {
+      console.warn('Bluetooth enable returned unexpected data:', paired);
+    }
+
+    // Check if EPPOS+ printer is in paired devices
+    const eposPrinters = pairedDevices.filter((device: any) => {
+      const name = (device.name || '').toLowerCase();
+      return name.includes('epos') || name.includes('epos+');
+    });
+    
+    console.log('EPPOS+ printers found:', eposPrinters);
+    
+    if (eposPrinters.length === 0) {
+      console.warn('No EPPOS+ printers found in paired devices');
+      console.log('All available devices:', pairedDevices.map(d => ({ name: d.name, address: d.address })));
+      
+      // Check if there are any devices that might be the EPPOS+ printer
+      const suspiciousDevices = pairedDevices.filter((device: any) => {
+        const name = (device.name || '').toLowerCase();
+        return name.includes('ep') || name.includes('pos') || name.includes('printer');
+      });
+      
+      if (suspiciousDevices.length > 0) {
+        console.log('Devices that might be your printer:', suspiciousDevices);
+      } else {
+        console.log('Make sure your EPPOS+ printer is:');
+        console.log('1. Turned on and in pairing mode');
+        console.log('2. Already paired with your Android device');
+        console.log('3. Within Bluetooth range');
+        console.log('4. Not connected to another device');
       }
     }
 
     // Transform the devices to match PrinterDevice interface
     const printers: PrinterDevice[] = pairedDevices.map((device: any) => ({
-      deviceId: device.address,
-      deviceName: device.name,
-      address: device.address,
+      deviceId: device.address || device.mac_address || 'unknown',
+      deviceName: device.name || device.device_name || 'Unknown Device',
+      address: device.address || device.mac_address || 'unknown',
     }));
 
+    console.log('Final printer list:', printers);
     return printers;
   } catch (error) {
     console.error('Failed to scan Bluetooth printers:', error);
-    throw new Error('Failed to scan Bluetooth printers');
+    throw new Error('Failed to scan Bluetooth printers: ' + (error as Error).message);
   }
 }
