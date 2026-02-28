@@ -340,8 +340,34 @@ export async function scanPrinters(): Promise<PrinterDevice[]> {
           }
         }
       } else if (Array.isArray(paired)) {
-        // Already an array
-        pairedDevices = paired;
+        // Already an array - but might contain string representations of objects
+        console.log('Processing array of devices:', paired);
+        
+        pairedDevices = paired.map((item: any, index: number) => {
+          console.log(`Processing device ${index}:`, item, typeof item);
+          
+          // If the item is a string, try to parse it as JSON
+          if (typeof item === 'string') {
+            try {
+              const parsed = JSON.parse(item);
+              console.log(`Successfully parsed device ${index}:`, parsed);
+              return parsed;
+            } catch (e) {
+              console.warn(`Failed to parse device string ${index}:`, item, e);
+              // Try to extract name and address manually as fallback
+              const nameMatch = item.match(/"name":"([^"]+)"/);
+              const addressMatch = item.match(/"address":"([^"]+)"/);
+              return { 
+                name: nameMatch ? nameMatch[1] : item, 
+                address: addressMatch ? addressMatch[1] : 'unknown' 
+              };
+            }
+          }
+          // If it's already an object, return it as is
+          console.log(`Device ${index} is already an object:`, item);
+          return item;
+        });
+        
         console.log('Successfully processed paired devices (array):', pairedDevices);
       } else if (typeof paired === 'object') {
         // Single object, convert to array
