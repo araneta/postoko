@@ -116,20 +116,18 @@ export default class CustomersController {
         }
         const customerId = req.params.id;
         try {
-            // Get all purchases for this customer with order details and items
+            // Get all orders for this customer with order details and items
             const purchasesWithItems = await db.select({
-                purchaseId: customerPurchasesTable.id,
-                orderId: customerPurchasesTable.orderId,
-                purchaseDate: customerPurchasesTable.purchaseDate,
+                orderId: ordersTable.id,
+                purchaseDate: ordersTable.createdAt,
                 order: ordersTable,
                 orderItem: orderItemsTable,
                 product: productsTable
             })
-            .from(customerPurchasesTable)
-            .leftJoin(ordersTable, eq(customerPurchasesTable.orderId, ordersTable.id))
+            .from(ordersTable)
             .leftJoin(orderItemsTable, eq(ordersTable.id, orderItemsTable.orderId))
             .leftJoin(productsTable, eq(orderItemsTable.productId, productsTable.id))
-            .where(eq(customerPurchasesTable.customerId, customerId));
+            .where(eq(ordersTable.customerId, customerId));
 
             // Get customer's loyalty points
             const loyaltyPoints = await db.select()
@@ -140,11 +138,11 @@ export default class CustomersController {
             const purchasesMap = new Map();
             
             purchasesWithItems.forEach(row => {
-                const purchaseId = row.purchaseId;
+                const orderId = row.orderId;
                 
-                if (!purchasesMap.has(purchaseId)) {
-                    purchasesMap.set(purchaseId, {
-                        purchaseId: row.purchaseId,
+                if (!purchasesMap.has(orderId)) {
+                    purchasesMap.set(orderId, {
+                        purchaseId: row.orderId,
                         orderId: row.orderId,
                         purchaseDate: row.purchaseDate,
                         order: {
@@ -156,12 +154,12 @@ export default class CustomersController {
                 
                 // Add item if it exists (order might not have items)
                 if (row.orderItem && row.product) {
-                    const existingItem = purchasesMap.get(purchaseId).order.items.find(
+                    const existingItem = purchasesMap.get(orderId).order.items.find(
                         (item: any) => item.id === row.orderItem!.productId
                     );
                     
                     if (!existingItem) {
-                        purchasesMap.get(purchaseId).order.items.push({
+                        purchasesMap.get(orderId).order.items.push({
                             id: row.orderItem!.productId,
                             storeInfoId: row.product.storeInfoId,
                             name: row.product.name,
