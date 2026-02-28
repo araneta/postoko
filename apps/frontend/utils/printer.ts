@@ -1,7 +1,271 @@
 import { Order, PrinterDevice, Settings } from '../types';
 import { safeToFixed, safeToNumber, safeToInteger } from './formatters';
 import { Platform, PermissionsAndroid } from 'react-native';
-import { BluetoothManager } from '@brooons/react-native-bluetooth-escpos-printer';
+import { BluetoothManager, BluetoothEscposPrinter } from '@brooons/react-native-bluetooth-escpos-printer';
+
+// Bluetooth printer implementation for mobile devices
+const bluetoothPrinter = {
+  async print(order: Order, settings: Settings, formatPrice: (price: number) => string) {
+    console.log('Printing order via Bluetooth:', order);
+    
+    if (!settings.printer?.deviceId) {
+      throw new Error('No printer selected. Please select a Bluetooth printer first.');
+    }
+
+    try {
+      // Connect to the printer
+      console.log('Connecting to printer:', settings.printer.deviceId);
+      await BluetoothManager.connect(settings.printer.deviceId);
+      
+      // Print the receipt
+      await BluetoothEscposPrinter.printerAlign(
+        BluetoothEscposPrinter.ALIGN.CENTER,
+      );
+
+      // Store name
+      await BluetoothEscposPrinter.printText(
+        `${settings.storeInfo?.name || 'Store'}\n\r`,
+        { encoding: 'GBK', codepage: 0, widthtimes: 2, heigthtimes: 2 }
+      );
+
+      await BluetoothEscposPrinter.printerAlign(
+        BluetoothEscposPrinter.ALIGN.LEFT,
+      );
+
+      // Divider
+      await BluetoothEscposPrinter.printText(
+        '-------------------------------\n\r',
+        {}
+      );
+
+      // Order info
+      await BluetoothEscposPrinter.printText(
+        `Order #${order.id || 'N/A'}\n\r`,
+        {}
+      );
+      
+      await BluetoothEscposPrinter.printText(
+        `Date: ${order.date ? new Date(order.date).toLocaleDateString() : 'N/A'}\n\r`,
+        {}
+      );
+      
+      await BluetoothEscposPrinter.printText(
+        `Time: ${order.date ? new Date(order.date).toLocaleTimeString() : 'N/A'}\n\r`,
+        {}
+      );
+
+      // Customer info if available
+      if (order.customer) {
+        await BluetoothEscposPrinter.printText(
+          '-------------------------------\n\r',
+          {}
+        );
+        
+        await BluetoothEscposPrinter.printText(
+          `Customer: ${order.customer.name}\n\r`,
+          {}
+        );
+        
+        if (order.customer.email) {
+          await BluetoothEscposPrinter.printText(
+            `Email: ${order.customer.email}\n\r`,
+            {}
+          );
+        }
+        
+        if (order.customer.phone) {
+          await BluetoothEscposPrinter.printText(
+            `Phone: ${order.customer.phone}\n\r`,
+            {}
+          );
+        }
+      }
+
+      await BluetoothEscposPrinter.printText(
+        '-------------------------------\n\r',
+        {}
+      );
+
+      // Items
+      await BluetoothEscposPrinter.printText(
+        'ITEMS:\n\r',
+        {}
+      );
+
+      for (const item of (order.items || [])) {
+        const price = safeToNumber(item.price);
+        const quantity = safeToInteger(item.quantity);
+        const itemTotal = price * quantity;
+        const itemDiscount = item.discountAmount || 0;
+        const itemSubtotal = itemTotal - itemDiscount;
+        
+        // Item name and quantity
+        await BluetoothEscposPrinter.printText(
+          `${item.name}\n\r`,
+          {}
+        );
+        
+        await BluetoothEscposPrinter.printText(
+          `  ${quantity} x ${formatPrice(price)} = ${formatPrice(itemTotal)}\n\r`,
+          {}
+        );
+        
+        // Discount if any
+        if (itemDiscount > 0) {
+          await BluetoothEscposPrinter.printText(
+            `  Discount: ${item.discountType === 'percentage' 
+              ? `${item.discountValue}% off` 
+              : `-${formatPrice(itemDiscount)}`
+            }\n\r`,
+            {}
+          );
+          
+          await BluetoothEscposPrinter.printText(
+            `  Subtotal: ${formatPrice(itemSubtotal)}\n\r`,
+            {}
+          );
+        }
+      }
+
+      await BluetoothEscposPrinter.printText(
+        '-------------------------------\n\r',
+        {}
+      );
+
+      // Totals
+      await BluetoothEscposPrinter.printerAlign(
+        BluetoothEscposPrinter.ALIGN.RIGHT,
+      );
+
+      if (order.subtotal) {
+        await BluetoothEscposPrinter.printText(
+          `Subtotal: ${formatPrice(order.subtotal)}\n\r`,
+          {}
+        );
+      }
+      
+      // Item discounts
+      const totalItemDiscounts = (order.items || []).reduce((sum, item) => sum + (item.discountAmount || 0), 0);
+      if (totalItemDiscounts > 0) {
+        await BluetoothEscposPrinter.printText(
+          `Item Discounts: -${formatPrice(totalItemDiscounts)}\n\r`,
+          {}
+        );
+      }
+      
+      // Order discount
+      if (order.discountAmount && order.discountAmount > 0) {
+        await BluetoothEscposPrinter.printText(
+          `Discount${order.discountCode ? ` (${order.discountCode})` : ''}: -${formatPrice(order.discountAmount)}\n\r`,
+          {}
+        );
+      }
+      
+      // Tax
+      if (order.taxAmount && order.taxAmount > 0) {
+        await BluetoothEscposPrinter.printText(
+          `Tax: ${formatPrice(order.taxAmount)}\n\r`,
+          {}
+        );
+      }
+      
+      // Total
+      await BluetoothEscposPrinter.printText(
+        `TOTAL: ${formatPrice(order.total || 0)}\n\r`,
+        { widthtimes: 2, heigthtimes: 2 }
+      );
+
+      await BluetoothEscposPrinter.printerAlign(
+        BluetoothEscposPrinter.ALIGN.LEFT,
+      );
+
+      await BluetoothEscposPrinter.printText(
+        '-------------------------------\n\r',
+        {}
+      );
+
+      // Payment details
+      const formatPaymentMethod = (method: string) => {
+        switch (method) {
+          case 'cash': return 'Cash';
+          case 'card': return 'Card';
+          case 'digital_wallet': return 'Digital Wallet';
+          case 'bank_transfer': return 'Bank Transfer';
+          default: return method;
+        }
+      };
+
+      if (order.paymentDetails && order.paymentDetails.length > 0) {
+        await BluetoothEscposPrinter.printText(
+          'PAYMENT:\n\r',
+          {}
+        );
+        
+        for (const payment of order.paymentDetails) {
+          await BluetoothEscposPrinter.printText(
+            `${formatPaymentMethod(payment.method)}: ${formatPrice(payment.amount)}\n\r`,
+            {}
+          );
+          
+          if (payment.transactionId) {
+            await BluetoothEscposPrinter.printText(
+              `  Transaction ID: ${payment.transactionId}\n\r`,
+              {}
+            );
+          }
+          
+          if (payment.cardLast4) {
+            await BluetoothEscposPrinter.printText(
+              `  Card: ****${payment.cardLast4} (${payment.cardBrand})\n\r`,
+              {}
+            );
+          }
+          
+          if (payment.change && payment.change > 0) {
+            await BluetoothEscposPrinter.printText(
+              `  Change: ${formatPrice(payment.change)}\n\r`,
+              {}
+            );
+          }
+        }
+      } else {
+        await BluetoothEscposPrinter.printText(
+          `Payment: ${formatPaymentMethod(order.paymentMethod)}\n\r`,
+          {}
+        );
+      }
+
+      await BluetoothEscposPrinter.printText(
+        '-------------------------------\n\r',
+        {}
+      );
+
+      // Footer
+      await BluetoothEscposPrinter.printerAlign(
+        BluetoothEscposPrinter.ALIGN.CENTER,
+      );
+
+      await BluetoothEscposPrinter.printText(
+        'Thank you for your purchase!\n\r',
+        {}
+      );
+
+      await BluetoothEscposPrinter.printText(
+        'Please come again\n\r',
+        {}
+      );
+
+      // Cut the paper
+      await BluetoothEscposPrinter.cutOnePoint();
+
+      console.log('Bluetooth printing completed successfully');
+      
+    } catch (error) {
+      console.error('Bluetooth printing failed:', error);
+      throw new Error('Bluetooth printing failed: ' + (error as Error).message);
+    }
+  },
+};
 
 // Web printer implementation remains unchanged
 const webPrinter = {
@@ -245,8 +509,23 @@ const webPrinter = {
 };
 
 export async function printReceipt(order: Order, settings: Settings, formatPrice: (price: number) => string) {
-  console.log('printing receipt', order, settings);
-  return webPrinter.print(order, settings, formatPrice);
+  console.log('Printing receipt', order, settings);
+  
+  // Detect platform and use appropriate printer
+  const isWeb = typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+  const isMobile = Platform.OS === 'android' || Platform.OS === 'ios';
+  
+  if (isWeb) {
+    console.log('Using web printer for browser');
+    return webPrinter.print(order, settings, formatPrice);
+  } else if (isMobile) {
+    console.log('Using Bluetooth printer for mobile device');
+    return bluetoothPrinter.print(order, settings, formatPrice);
+  } else {
+    // Fallback to web printer for unknown platforms
+    console.log('Platform not detected, using web printer as fallback');
+    return webPrinter.print(order, settings, formatPrice);
+  }
 }
 
 export async function scanPrinters(): Promise<PrinterDevice[]> {
