@@ -284,23 +284,58 @@ export async function scanPrinters(): Promise<PrinterDevice[]> {
       if (typeof paired === 'string') {
         const pairedString = paired; // Explicitly type as string
         try {
-          // Try to parse as JSON
+          // Try to parse as JSON first
           const parsed = JSON.parse(pairedString);
           pairedDevices = Array.isArray(parsed) ? parsed : [parsed];
           console.log('Successfully processed paired devices:', pairedDevices);
         } catch (parseError) {
-          console.warn('Failed to parse paired devices:', parseError);
+          console.warn('Failed to parse paired devices as JSON:', parseError);
           console.log('Raw paired data:', pairedString);
           
-          // Try to extract devices from malformed data
-          if ((pairedString as string).includes('name') && (pairedString as string).includes('address')) {
-            try {
-              // Try to fix common JSON issues
-              const fixedJson = (pairedString as string).startsWith('[') ? pairedString : `[${pairedString}]`;
-              const parsed = JSON.parse(fixedJson);
-              pairedDevices = Array.isArray(parsed) ? parsed : [];
-            } catch (fixError) {
-              console.warn('Could not fix JSON parsing:', fixError);
+          // Try to handle JavaScript array literal format
+          try {
+            // Remove the outer brackets and split by lines
+            const cleaned = (pairedString as string)
+              .replace(/^\[\s*/, '') // Remove opening bracket and whitespace
+              .replace(/\s*\]$/, '') // Remove closing bracket and whitespace
+              .split(',\n') // Split by comma and newline
+              .map((line: string) => line.trim()) // Trim whitespace
+              .filter((line: string) => line.length > 0); // Remove empty lines
+            
+            // Parse each line as JSON
+            const parsedDevices = cleaned.map((line: string) => {
+              try {
+                return JSON.parse(line);
+              } catch (e) {
+                console.warn('Failed to parse line:', line);
+                return null;
+              }
+            }).filter((device: any) => device !== null);
+            
+            pairedDevices = parsedDevices;
+            console.log('Successfully processed devices from array literal:', pairedDevices);
+          } catch (arrayLiteralError) {
+            console.warn('Failed to parse array literal format:', arrayLiteralError);
+            
+            // Final fallback - try to extract JSON objects from the string
+            if ((pairedString as string).includes('name') && (pairedString as string).includes('address')) {
+              try {
+                // Extract all JSON objects using regex
+                const jsonMatches = (pairedString as string).match(/\{[^}]+\}/g);
+                if (jsonMatches) {
+                  const extractedDevices = jsonMatches.map((match: string) => {
+                    try {
+                      return JSON.parse(match);
+                    } catch (e) {
+                      return null;
+                    }
+                  }).filter((device: any) => device !== null);
+                  pairedDevices = extractedDevices;
+                  console.log('Successfully extracted devices using regex:', pairedDevices);
+                }
+              } catch (regexError) {
+                console.warn('Failed to extract devices with regex:', regexError);
+              }
             }
           }
         }
