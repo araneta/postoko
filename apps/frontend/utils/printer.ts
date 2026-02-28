@@ -275,26 +275,55 @@ export async function scanPrinters(): Promise<PrinterDevice[]> {
     console.log('Enabling Bluetooth...');
     const paired = await BluetoothManager.enableBluetooth();
     console.log('Bluetooth enable result:', paired);
+    console.log('Type of paired result:', typeof paired);
     
     let pairedDevices: any[] = [];
     
-    if (paired && typeof paired === 'string') {
-      try {
-        const parsed = JSON.parse(paired);
-        pairedDevices = Array.isArray(parsed) ? parsed : [];
-        console.log('Parsed paired devices:', pairedDevices);
-      } catch (parseError) {
-        console.warn('Failed to parse paired devices:', parseError);
-        pairedDevices = [];
+    // Handle different return types from enableBluetooth
+    if (paired) {
+      if (typeof paired === 'string') {
+        const pairedString = paired; // Explicitly type as string
+        try {
+          // Try to parse as JSON
+          const parsed = JSON.parse(pairedString);
+          pairedDevices = Array.isArray(parsed) ? parsed : [parsed];
+          console.log('Successfully processed paired devices:', pairedDevices);
+        } catch (parseError) {
+          console.warn('Failed to parse paired devices:', parseError);
+          console.log('Raw paired data:', pairedString);
+          
+          // Try to extract devices from malformed data
+          if ((pairedString as string).includes('name') && (pairedString as string).includes('address')) {
+            try {
+              // Try to fix common JSON issues
+              const fixedJson = (pairedString as string).startsWith('[') ? pairedString : `[${pairedString}]`;
+              const parsed = JSON.parse(fixedJson);
+              pairedDevices = Array.isArray(parsed) ? parsed : [];
+            } catch (fixError) {
+              console.warn('Could not fix JSON parsing:', fixError);
+            }
+          }
+        }
+      } else if (Array.isArray(paired)) {
+        // Already an array
+        pairedDevices = paired;
+        console.log('Successfully processed paired devices (array):', pairedDevices);
+      } else if (typeof paired === 'object') {
+        // Single object, convert to array
+        pairedDevices = [paired];
+        console.log('Successfully processed paired devices (object):', pairedDevices);
       }
     } else {
-      console.warn('Bluetooth enable returned unexpected data:', paired);
+      console.warn('Bluetooth enable returned null or undefined');
     }
 
     // Check if EPPOS+ printer is in paired devices
     const eposPrinters = pairedDevices.filter((device: any) => {
       const name = (device.name || '').toLowerCase();
-      return name.includes('epos') || name.includes('epos+');
+      return name.includes('epos') || 
+             name.includes('epos+') || 
+             name.includes('rpp') ||  // RPP02N pattern
+             name.includes('pos');    // Generic POS printer
     });
     
     console.log('EPPOS+ printers found:', eposPrinters);
