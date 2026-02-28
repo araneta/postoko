@@ -10,7 +10,7 @@
 // Import AsyncStorage conditionally to avoid web issues
 let AsyncStorage: any = null;
 try {
-  if (typeof window === 'undefined') {
+  if (typeof window === 'undefined' || (typeof window !== 'undefined' && !window.localStorage)) {
     // Only import AsyncStorage in React Native environment
     AsyncStorage = require('@react-native-async-storage/async-storage').default;
   }
@@ -32,7 +32,7 @@ class DebugLogger {
   private logs: LogEntry[] = [];
   private maxLogs = 100; // Keep only last 100 logs
   private storageKey = '@debug_logs';
-  private isWeb = typeof window !== 'undefined';
+  private isWeb = typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
   private initialized = false;
 
   constructor() {
